@@ -13,6 +13,7 @@ import {
   EyeOff,
   Flame,
   HelpCircle,
+  History,
   Lightbulb,
   Loader2,
   MessageSquarePlus,
@@ -62,6 +63,10 @@ const StudentAI = ({ onNavigateBack }) => {
   const [revealedHints, setRevealedHints] = useState({});
   const [revealedSolutions, setRevealedSolutions] = useState({});
 
+  // Active Tool View: 'chat' | 'plan' | 'practice' | 'quiz' | 'performance' | 'recommendations' | 'history'
+  const [activeTab, setActiveTab] = useState('chat');
+  const [hasSavedPlan, setHasSavedPlan] = useState(false);
+
   // Conversational Memory & Deep-Dive State
   const [conversationId, setConversationId] = useState(() => `conv_${user?.id || 'anon'}_${Date.now()}`);
   const [chatMessages, setChatMessages] = useState([]);
@@ -72,21 +77,18 @@ const StudentAI = ({ onNavigateBack }) => {
     ? result.questions.filter((item) => item && typeof item.question === 'string' && item.question.trim())
     : [];
 
+  // Check if a saved study plan exists in localStorage WITHOUT automatically plastering it on the screen
   useEffect(() => {
     try {
       const storedPlan = localStorage.getItem(studyPlanKey);
-      const parsedPlan = storedPlan ? JSON.parse(storedPlan) : null;
-      if (Array.isArray(parsedPlan?.plan)) {
-        setSubject(parsedPlan.subject || 'Mathematics');
-        setTopic(parsedPlan.topic || '');
-        setPlan(parsedPlan.plan);
-      } else {
-        setPlan(Array.isArray(parsedPlan) ? parsedPlan : []);
+      if (storedPlan) {
+        const parsed = JSON.parse(storedPlan);
+        if (Array.isArray(parsed?.plan) && parsed.plan.length > 0) {
+          setHasSavedPlan(true);
+        }
       }
-      setSaved(Boolean(storedPlan));
     } catch {
-      setPlan([]);
-      setSaved(false);
+      setHasSavedPlan(false);
     }
   }, [studyPlanKey]);
 
@@ -153,9 +155,11 @@ const StudentAI = ({ onNavigateBack }) => {
     setQuestion('');
     setResult(null);
     setError('');
+    setActiveTab('chat');
   };
 
   const generatePlan = async () => {
+    setActiveTab('plan');
     const safeTopic = (topic || 'Core Curriculum').trim();
     const response = await run(() => createStudentStudyPlan({ subject: subject || 'Mathematics', topic: safeTopic, availableDays: 5, understandingLevel: 'developing' }));
     if (response.success) {
@@ -169,24 +173,41 @@ const StudentAI = ({ onNavigateBack }) => {
         completed: Boolean(task.completed)
       })));
       setSaved(false);
-      setResult(null);
-      setTimeout(() => {
-        document.getElementById('study-plan-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
     }
+  };
+
+  const loadSavedPlan = () => {
+    try {
+      const storedPlan = localStorage.getItem(studyPlanKey);
+      const parsedPlan = storedPlan ? JSON.parse(storedPlan) : null;
+      if (Array.isArray(parsedPlan?.plan) && parsedPlan.plan.length > 0) {
+        setSubject(parsedPlan.subject || 'Mathematics');
+        setTopic(parsedPlan.topic || '');
+        setPlan(parsedPlan.plan);
+        setSaved(true);
+        setActiveTab('plan');
+      } else {
+        generatePlan();
+      }
+    } catch {
+      generatePlan();
+    }
+  };
+
+  const dismissPlan = () => {
+    setPlan([]);
+    setSaved(false);
+    setActiveTab('chat');
   };
 
   const handleGeneratePractice = async () => {
+    setActiveTab('practice');
     const safeTopic = (topic || 'Core Curriculum').trim();
-    const response = await run(() => generateStudentPractice({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }));
-    if (response.success) {
-      setTimeout(() => {
-        document.getElementById('practice-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
-    }
+    await run(() => generateStudentPractice({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }));
   };
 
   const generateQuiz = async () => {
+    setActiveTab('quiz');
     const safeTopic = (topic || 'Core Curriculum').trim();
     const response = await run(() => generateStudentQuiz({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }));
     if (response.success) {
@@ -202,28 +223,17 @@ const StudentAI = ({ onNavigateBack }) => {
       }
       setQuizAnswers({});
       setQuizScore(null);
-      setTimeout(() => {
-        document.getElementById('quiz-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
     }
   };
 
   const handleAnalyzePerformance = async () => {
-    const response = await run(() => getStudentAIPerformance({ subject, topic }));
-    if (response.success) {
-      setTimeout(() => {
-        document.getElementById('performance-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
-    }
+    setActiveTab('performance');
+    await run(() => getStudentAIPerformance({ subject, topic }));
   };
 
   const handleRecommendations = async () => {
-    const response = await run(() => getStudentAIRecommendations({ subject, topic }));
-    if (response.success) {
-      setTimeout(() => {
-        document.getElementById('recommendations-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
-    }
+    setActiveTab('recommendations');
+    await run(() => getStudentAIRecommendations({ subject, topic }));
   };
 
   const updateTask = (index, field, value) => {
@@ -264,6 +274,7 @@ const StudentAI = ({ onNavigateBack }) => {
   };
 
   const loadHistory = async () => {
+    setActiveTab('history');
     const response = await getStudentAIHistory();
     if (response.success) setHistory(response.data.history || []);
     else setError(response.error || 'Failed to load history');
@@ -295,407 +306,668 @@ const StudentAI = ({ onNavigateBack }) => {
         </div>
       </div>
 
-      {error && <p className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{error}</p>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Multi-Turn Chat Section with Memory */}
-        <section className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Bot className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-slate-900">Conversational Doubt Solver</h2>
-            </div>
-
-            {/* Depth Mode Selector */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setDepth('quick')}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
-                  depth === 'quick' ? 'bg-white shadow text-slate-900 font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-500" /> Quick Help
-              </button>
-              <button
-                type="button"
-                onClick={() => setDepth('deep')}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
-                  depth === 'deep' ? 'bg-white shadow text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5 text-indigo-600" /> Deep Dive
-              </button>
-            </div>
-          </div>
-
-          {/* Chat Messages Stream */}
-          <div className="space-y-3 min-h-[14rem] max-h-[22rem] overflow-y-auto pr-1">
-            {chatMessages.length === 0 && (
-              <div className="text-center py-6 text-slate-400 space-y-2">
-                <p className="text-sm">Ask any curriculum question in Hindi or English.</p>
-                <p className="text-xs text-slate-400">Conversational memory is active — you can ask natural follow-up questions!</p>
-                <div className="pt-2 flex flex-wrap justify-center gap-1.5">
-                  {FREQUENT_QUESTIONS.map((fq) => (
-                    <button
-                      key={fq}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => handleAskQuestion(fq)}
-                      className="rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 px-2.5 py-1 text-xs transition-colors"
-                    >
-                      {fq}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {chatMessages.map((msg) => (
-              <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                {msg.sender === 'user' ? (
-                  <div className="rounded-2xl rounded-tr-none bg-indigo-600 text-white px-4 py-2.5 max-w-[85%] text-sm shadow-sm">
-                    {msg.text}
-                  </div>
-                ) : (
-                  <div className={`rounded-2xl rounded-tl-none p-4 max-w-[95%] text-sm space-y-2 shadow-sm ${
-                    msg.isGuardrailTriggered
-                      ? 'bg-amber-50/90 border border-amber-300'
-                      : 'bg-slate-50 border border-slate-200'
-                  }`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`font-bold flex items-center gap-1.5 text-xs ${
-                        msg.isGuardrailTriggered ? 'text-amber-900' : 'text-indigo-900'
-                      }`}>
-                        {msg.isGuardrailTriggered ? (
-                          <>
-                            <ShieldAlert className="w-4 h-4 text-amber-600" /> EduSetu Safety Shield
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> EduSetu Tutor
-                          </>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {msg.isGuardrailTriggered && (
-                          <span className="text-[11px] font-semibold bg-amber-200/80 text-amber-900 border border-amber-300 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
-                            🛡️ {msg.violationCategory || 'Safety Guardrail'}
-                          </span>
-                        )}
-                        {msg.cached && (
-                          <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
-                            <Zap className="w-3 h-3 text-emerald-600" /> Instant Cache
-                          </span>
-                        )}
-                        {msg.depth === 'deep' && (
-                          <span className="text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
-                            🎓 Deep Dive
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className={`${msg.isGuardrailTriggered ? 'text-amber-950 font-semibold' : 'text-slate-800 font-medium'}`}>{msg.explanation}</p>
-                    {msg.steps?.length > 0 && (
-                      <div className={`rounded-xl p-3 border space-y-1.5 ${
-                        msg.isGuardrailTriggered ? 'bg-amber-100/60 border-amber-200 text-amber-900' : 'bg-white border-slate-100 text-slate-700'
-                      }`}>
-                        <p className={`text-xs font-bold ${msg.isGuardrailTriggered ? 'text-amber-900' : 'text-slate-600'}`}>
-                          {msg.isGuardrailTriggered ? 'Recommended Action:' : 'Breakdown & Method:'}
-                        </p>
-                        <ul className="list-disc pl-4 space-y-1 text-xs">
-                          {msg.steps.map((st, i) => (
-                            <li key={i}>{st}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {msg.example && <p className="text-xs text-slate-600 italic">{msg.example}</p>}
-                    {msg.summary && (
-                      <p className={`text-xs font-semibold pt-1 ${msg.isGuardrailTriggered ? 'text-amber-900' : 'text-indigo-950'}`}>
-                        {msg.isGuardrailTriggered ? '🛡️ ' : '💡 '}{msg.summary}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {busy && (
-              <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>AI Tutor is thinking and reviewing conversation context…</span>
-              </div>
-            )}
-          </div>
-
-          {/* Input Controls */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <input
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAskQuestion();
-                  }
-                }}
-                maxLength={2000}
-                placeholder="Ask or follow-up (e.g. 'explain step 2 further')..."
-                className="flex-1 rounded-xl border border-slate-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                disabled={busy || !question.trim()}
-                onClick={() => handleAskQuestion()}
-                className="rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-1 shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>{question.length}/2000 characters</span>
-              <span>Mode: {depth === 'deep' ? '🎓 Deep Dive' : '⚡ Quick Help'}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Study Tools Section */}
-        <section className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-          <div>
-            <h2 className="font-bold text-slate-900">Curriculum Study Tools</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Generate customized study schedules, targeted practice problems, and diagnostic quizzes.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              value={subject}
-              onChange={(event) => setSubject(event.target.value)}
-              placeholder="Subject (e.g., Mathematics)"
-              className="rounded-xl border border-slate-200 p-2.5 text-sm"
-            />
-            <input
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder="Topic (e.g., Algebra, Optics)"
-              className="rounded-xl border border-slate-200 p-2.5 text-sm"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              disabled={busy}
-              onClick={generatePlan}
-              className="rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-            >
-              Study plan
-            </button>
-            <button
-              disabled={busy}
-              onClick={handleGeneratePractice}
-              className="rounded-xl bg-amber-500 text-white px-3.5 py-2 text-xs font-bold hover:bg-amber-600 transition-colors shadow-sm"
-            >
-              Practice
-            </button>
-            <button
-              disabled={busy}
-              onClick={generateQuiz}
-              className="rounded-xl bg-purple-600 text-white px-3.5 py-2 text-xs font-bold hover:bg-purple-700 transition-colors shadow-sm"
-            >
-              Generate quiz
-            </button>
-            <button
-              disabled={busy}
-              onClick={handleAnalyzePerformance}
-              className="rounded-xl bg-slate-800 text-white px-3.5 py-2 text-xs font-bold hover:bg-slate-900 transition-colors shadow-sm"
-            >
-              Analyze performance
-            </button>
-            <button
-              disabled={busy}
-              onClick={handleRecommendations}
-              className="rounded-xl bg-blue-600 text-white px-3.5 py-2 text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              Recommendations
-            </button>
-          </div>
-        </section>
+      {/* Modular Feature Navigation Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 text-xs font-bold no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab('chat')}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'chat'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5" /> Conversational Doubt Solver
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (plan.length === 0 && hasSavedPlan) loadSavedPlan();
+            else if (plan.length === 0) generatePlan();
+            else setActiveTab('plan');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'plan'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" /> 5-Day Study Plan
+          {(plan.length > 0 || hasSavedPlan) && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === 'plan' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'}`}>
+              {plan.length > 0 ? `${plan.length}d` : 'Saved'}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!result?.questions || result?.mode === 'quiz') handleGeneratePractice();
+            else setActiveTab('practice');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'practice'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" /> Practice Questions
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (result?.mode !== 'quiz') generateQuiz();
+            else setActiveTab('quiz');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'quiz'
+              ? 'bg-purple-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" /> Diagnostic Quiz
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (result?.mode !== 'performance' && !result?.strongSubjects) handleAnalyzePerformance();
+            else setActiveTab('performance');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'performance'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <BarChart2 className="w-3.5 h-3.5" /> Performance Report
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!Array.isArray(result?.recommendations)) handleRecommendations();
+            else setActiveTab('recommendations');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'recommendations'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Target className="w-3.5 h-3.5" /> Recommendations
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (history.length === 0) loadHistory();
+            else setActiveTab('history');
+          }}
+          className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'history'
+              ? 'bg-slate-800 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" /> Chat History
+        </button>
       </div>
 
-      {/* Editable Study Plan */}
-      {plan.length > 0 && (
-        <section id="study-plan-section" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 scroll-mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold">Editable Study Plan</h2>
-            <div className="flex gap-2">
-              <button onClick={addTask} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold">
-                Add task
-              </button>
-              <button onClick={savePlan} className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 text-white px-3 py-2 text-xs font-bold">
-                <Save className="w-3 h-3" /> Save changes
-              </button>
-            </div>
-          </div>
-          {saved && <p className="text-xs text-emerald-700">Study plan changes saved on this device.</p>}
-          <div className="space-y-2">
-            {plan.map((task, index) => (
-              <div key={`${task.day}-${index}`} className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_10rem_auto] gap-2 items-center rounded-xl bg-slate-50 p-3">
-                <span className="text-xs font-black">Day {task.day}</span>
-                <input
-                  value={task.activity || ''}
-                  onChange={(event) => updateTask(index, 'activity', event.target.value)}
-                  placeholder="Task title"
-                  className="min-w-0 rounded-lg border border-slate-200 p-2 text-sm"
-                />
-                <input
-                  value={task.description || ''}
-                  onChange={(event) => updateTask(index, 'description', event.target.value)}
-                  placeholder="Description"
-                  className="min-w-0 rounded-lg border border-slate-200 p-2 text-sm"
-                />
-                <input
-                  type="date"
-                  value={task.date || ''}
-                  onChange={(event) => updateTask(index, 'date', event.target.value)}
-                  aria-label={`Date for task ${index + 1}`}
-                  className="rounded-lg border border-slate-200 p-2 text-sm"
-                />
-                <div className="flex items-center gap-2">
-                  <label className="text-xs">
-                    <input type="checkbox" checked={Boolean(task.completed)} onChange={(event) => updateTask(index, 'completed', event.target.checked)} /> Done
-                  </label>
-                  <button onClick={() => removeTask(index)} title="Remove task" aria-label="Remove task" className="p-2 text-rose-600">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+      {error && <p className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{error}</p>}
+
+      {/* TAB 1: Conversational Doubt Solver & Curriculum Quick Launcher */}
+      {activeTab === 'chat' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Multi-Turn Chat Section with Memory */}
+          <section className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-indigo-600" />
+                <h2 className="font-bold text-slate-900">Conversational Doubt Solver</h2>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* Practice Questions Section */}
-      {((result?.mode === 'practice') || (Array.isArray(result?.questions) && result?.mode !== 'quiz')) && (
-        <section id="practice-section" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 scroll-mt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900 text-lg">
-                Practice Questions: {result.topic || topic || 'Selected Topic'}
-              </h2>
-              <p className="text-xs text-slate-500">
-                {result.subject || subject} • Difficulty: Medium • Attempt the question first, then view hint or step-by-step solution
-              </p>
+              {/* Depth Mode Selector */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setDepth('quick')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
+                    depth === 'quick' ? 'bg-white shadow text-slate-900 font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Quick Help
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDepth('deep')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
+                    depth === 'deep' ? 'bg-white shadow text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-indigo-600" /> Deep Dive
+                </button>
+              </div>
             </div>
-            <span className="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1">
-              {result.questions.length} Questions
-            </span>
-          </div>
 
-          <div className="space-y-4">
-            {result.questions.map((q, idx) => {
-              const qId = q.id ?? idx;
-              const showHint = Boolean(revealedHints[qId]);
-              const showAnswer = Boolean(revealedSolutions[qId]);
-
-              return (
-                <div key={qId} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-900">
-                      <span className="text-indigo-600 font-bold mr-1">Q{idx + 1}.</span> {q.question}
-                    </p>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
-                      {q.difficulty || 'Medium'}
-                    </span>
+            {/* Chat Messages Stream */}
+            <div className="space-y-3 min-h-[14rem] max-h-[22rem] overflow-y-auto pr-1">
+              {chatMessages.length === 0 && (
+                <div className="text-center py-6 text-slate-400 space-y-2">
+                  <p className="text-sm">Ask any curriculum question in Hindi or English.</p>
+                  <p className="text-xs text-slate-400">Conversational memory is active — you can ask natural follow-up questions!</p>
+                  <div className="pt-2 flex flex-wrap justify-center gap-1.5">
+                    {FREQUENT_QUESTIONS.map((fq) => (
+                      <button
+                        key={fq}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleAskQuestion(fq)}
+                        className="rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 px-2.5 py-1 text-xs transition-colors"
+                      >
+                        {fq}
+                      </button>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setRevealedHints((prev) => ({ ...prev, [qId]: !prev[qId] }))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5" />
-                      {showHint ? 'Hide Hint' : 'Show Hint'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRevealedSolutions((prev) => ({ ...prev, [qId]: !prev[qId] }))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-                    >
-                      {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      {showAnswer ? 'Hide Solution' : 'Show Solution'}
-                    </button>
-                  </div>
-
-                  {showHint && (
-                    <div className="rounded-lg bg-amber-50/80 border border-amber-200 p-3 text-xs text-amber-900">
-                      <span className="font-bold">💡 Hint: </span>
-                      {q.hint || 'Review the core definition and formulas related to this topic.'}
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                  {msg.sender === 'user' ? (
+                    <div className="rounded-2xl rounded-tr-none bg-indigo-600 text-white px-4 py-2.5 max-w-[85%] text-sm shadow-sm">
+                      {msg.text}
                     </div>
-                  )}
-
-                  {showAnswer && (
-                    <div className="rounded-lg bg-indigo-50/80 border border-indigo-200 p-3 text-xs text-indigo-950 space-y-1">
-                      <p><span className="font-bold text-indigo-900">Answer: </span> {q.answer}</p>
-                      {q.explanation && (
-                        <p className="text-slate-700 mt-1"><span className="font-semibold">Step-by-step: </span>{q.explanation}</p>
+                  ) : (
+                    <div className={`rounded-2xl rounded-tl-none p-4 max-w-[95%] text-sm space-y-2 shadow-sm ${
+                      msg.isGuardrailTriggered
+                        ? 'bg-amber-50/90 border border-amber-300'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-bold flex items-center gap-1.5 text-xs ${
+                          msg.isGuardrailTriggered ? 'text-amber-900' : 'text-indigo-900'
+                        }`}>
+                          {msg.isGuardrailTriggered ? (
+                            <>
+                              <ShieldAlert className="w-4 h-4 text-amber-600" /> EduSetu Safety Shield
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> EduSetu Tutor
+                            </>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {msg.isGuardrailTriggered && (
+                            <span className="text-[11px] font-semibold bg-amber-200/80 text-amber-900 border border-amber-300 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
+                              🛡️ {msg.violationCategory || 'Safety Guardrail'}
+                            </span>
+                          )}
+                          {msg.cached && (
+                            <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-emerald-600" /> Instant Cache
+                            </span>
+                          )}
+                          {msg.depth === 'deep' && (
+                            <span className="text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1">
+                              🎓 Deep Dive
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className={`${msg.isGuardrailTriggered ? 'text-amber-950 font-semibold' : 'text-slate-800 font-medium'}`}>{msg.explanation}</p>
+                      {msg.steps?.length > 0 && (
+                        <div className={`rounded-xl p-3 border space-y-1.5 ${
+                          msg.isGuardrailTriggered ? 'bg-amber-100/60 border-amber-200 text-amber-900' : 'bg-white border-slate-100 text-slate-700'
+                        }`}>
+                          <p className={`text-xs font-bold ${msg.isGuardrailTriggered ? 'text-amber-900' : 'text-slate-600'}`}>
+                            {msg.isGuardrailTriggered ? 'Recommended Action:' : 'Breakdown & Method:'}
+                          </p>
+                          <ul className="list-disc pl-4 space-y-1 text-xs">
+                            {msg.steps.map((st, i) => (
+                              <li key={i}>{st}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {msg.example && <p className="text-xs text-slate-600 italic">{msg.example}</p>}
+                      {msg.summary && (
+                        <p className={`text-xs font-semibold pt-1 ${msg.isGuardrailTriggered ? 'text-amber-900' : 'text-indigo-950'}`}>
+                          {msg.isGuardrailTriggered ? '🛡️ ' : '💡 '}{msg.summary}
+                        </p>
                       )}
                     </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+              ))}
 
-      {/* Quiz Section */}
-      {result?.mode === 'quiz' && (
-        <section id="quiz-section" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 scroll-mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold">Quiz: {result.topic || topic || 'Practice'}</h2>
-            {quizScore && <span className="font-black text-indigo-700">Score: {quizScore.correct}/{quizScore.total}</span>}
-          </div>
-          {quizQuestions.map((item, index) => {
-            const answerId = item.id ?? index;
-            const isCorrect = String(quizAnswers[answerId] || '').trim().toLowerCase() === String(item.answer || '').trim().toLowerCase();
-            return (
-              <div key={answerId} className="rounded-xl bg-slate-50 p-3">
-                <p className="text-sm font-semibold">{index + 1}. {item.question}</p>
+              {busy && (
+                <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>AI Tutor is thinking and reviewing conversation context…</span>
+                </div>
+              )}
+            </div>
+
+            {/* Input Controls */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
                 <input
-                  value={quizAnswers[answerId] || ''}
-                  disabled={Boolean(quizScore)}
-                  onChange={(event) => setQuizAnswers((current) => ({ ...current, [answerId]: event.target.value }))}
-                  placeholder="Your answer"
-                  className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAskQuestion();
+                    }
+                  }}
+                  maxLength={2000}
+                  placeholder="Ask or follow-up (e.g. 'explain step 2 further')..."
+                  className="flex-1 rounded-xl border border-slate-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                {quizScore && (
-                  <div className={`mt-2 text-xs ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    <p>{isCorrect ? 'Correct' : 'Incorrect'}</p>
-                    <p>Your answer: {quizAnswers[answerId]}</p>
-                    <p>Correct answer: {item.answer || 'Answer key unavailable'}</p>
-                    <p>{item.explanation || 'Use your class notes to review this question.'}</p>
-                  </div>
-                )}
+                <button
+                  disabled={busy || !question.trim()}
+                  onClick={() => handleAskQuestion()}
+                  className="rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-1 shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
               </div>
-            );
-          })}
-          {!quizQuestions.length && <p className="text-sm text-rose-700">This quiz has no valid questions. Generate a new quiz.</p>}
-          <div className="flex gap-2">
-            <button onClick={submitQuiz} disabled={busy || Boolean(quizScore) || !quizQuestions.length} className="rounded-xl bg-purple-600 text-white px-4 py-2 text-xs font-bold">
-              <CheckCircle2 className="inline w-4 h-4 mr-1" /> Submit quiz
-            </button>
-            <button onClick={retryQuiz} disabled={busy} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold">
-              <RotateCcw className="inline w-4 h-4 mr-1" /> Retry
-            </button>
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>{question.length}/2000 characters</span>
+                <span>Mode: {depth === 'deep' ? '🎓 Deep Dive' : '⚡ Quick Help'}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Curriculum Study Tools Launcher */}
+          <section className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-1">
+              <h2 className="font-bold text-slate-900">Curriculum Study Tools</h2>
+              <p className="text-xs text-slate-500">
+                Generate customized study schedules, targeted practice problems, and diagnostic quizzes. Each feature opens in its own focused view.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Subject</label>
+                  <input
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                    placeholder="e.g. Mathematics"
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Topic</label>
+                  <input
+                    value={topic}
+                    onChange={(event) => setTopic(event.target.value)}
+                    placeholder="e.g. Algebra, Optics"
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              {hasSavedPlan && plan.length === 0 && (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
+                  <span className="font-medium text-emerald-900 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-emerald-600" /> You have a saved 5-day study plan.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={loadSavedPlan}
+                    className="rounded-lg bg-emerald-600 text-white font-bold px-2.5 py-1 text-xs hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    Open Plan
+                  </button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                <button
+                  disabled={busy}
+                  onClick={generatePlan}
+                  className="rounded-xl bg-emerald-600 text-white p-2.5 text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>5-Day Plan</span>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={handleGeneratePractice}
+                  className="rounded-xl bg-amber-500 text-white p-2.5 text-xs font-bold hover:bg-amber-600 transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Practice Set</span>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={generateQuiz}
+                  className="rounded-xl bg-purple-600 text-white p-2.5 text-xs font-bold hover:bg-purple-700 transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Diagnostic Quiz</span>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={handleAnalyzePerformance}
+                  className="rounded-xl bg-slate-800 text-white p-2.5 text-xs font-bold hover:bg-slate-900 transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                >
+                  <BarChart2 className="w-4 h-4" />
+                  <span>Performance</span>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={handleRecommendations}
+                  className="rounded-xl bg-blue-600 text-white p-2.5 text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                >
+                  <Target className="w-4 h-4" />
+                  <span>AI Suggestions</span>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={loadHistory}
+                  className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 p-2.5 text-xs font-bold transition-colors flex flex-col items-center justify-center gap-1"
+                >
+                  <History className="w-4 h-4 text-slate-500" />
+                  <span>Chat History</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-[11px] text-slate-500">
+              💡 <strong>Tip:</strong> Selecting any tool switches directly to that workspace. Your doubt solver conversation will stay saved and waiting for you.
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* TAB 2: Editable Study Plan */}
+      {activeTab === 'plan' && (
+        <section id="study-plan-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h2 className="font-bold text-slate-900 text-lg">5-Day Curriculum Study Plan: {topic || subject}</h2>
+                <p className="text-xs text-slate-500">Edit activities, track daily progress, and save directly to your browser.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+              </button>
+              <button onClick={addTask} className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition-colors">
+                + Add task
+              </button>
+              <button onClick={savePlan} className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold shadow-sm transition-colors">
+                <Save className="w-3.5 h-3.5" /> Save changes
+              </button>
+              <button
+                onClick={dismissPlan}
+                title="Dismiss or reset plan"
+                className="inline-flex items-center gap-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-2 text-xs font-semibold transition-colors"
+              >
+                ✕ Close
+              </button>
+            </div>
           </div>
+
+          {saved && <p className="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl">✓ Study plan changes saved on this device.</p>}
+
+          {plan.length === 0 ? (
+            <div className="text-center py-12 space-y-3">
+              <Calendar className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-600">No active study plan loaded.</p>
+              <button
+                disabled={busy}
+                onClick={generatePlan}
+                className="rounded-xl bg-emerald-600 text-white px-4 py-2 text-xs font-bold shadow-sm hover:bg-emerald-700 transition-colors"
+              >
+                Generate 5-Day Plan for {topic || subject || 'Selected Subject'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {plan.map((task, index) => (
+                <div key={`${task.day}-${index}`} className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_10rem_auto] gap-2 items-center rounded-xl bg-slate-50 p-3.5 border border-slate-100">
+                  <span className="text-xs font-black px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-center">
+                    Day {task.day}
+                  </span>
+                  <input
+                    value={task.activity || ''}
+                    onChange={(event) => updateTask(index, 'activity', event.target.value)}
+                    placeholder="Task title"
+                    className="min-w-0 rounded-lg border border-slate-200 p-2 text-sm bg-white"
+                  />
+                  <input
+                    value={task.description || ''}
+                    onChange={(event) => updateTask(index, 'description', event.target.value)}
+                    placeholder="Description"
+                    className="min-w-0 rounded-lg border border-slate-200 p-2 text-sm bg-white"
+                  />
+                  <input
+                    type="date"
+                    value={task.date || ''}
+                    onChange={(event) => updateTask(index, 'date', event.target.value)}
+                    aria-label={`Date for task ${index + 1}`}
+                    className="rounded-lg border border-slate-200 p-2 text-sm bg-white"
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(task.completed)}
+                        onChange={(event) => updateTask(index, 'completed', event.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      /> Done
+                    </label>
+                    <button onClick={() => removeTask(index)} title="Remove task" aria-label="Remove task" className="p-2 text-rose-500 hover:text-rose-700">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      {/* Comprehensive Academic Performance Analysis Dashboard */}
-      {(result?.mode === 'performance' || result?.strongSubjects) && (
-        <section id="performance-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm scroll-mt-6">
+      {/* TAB 3: Practice Questions Section */}
+      {activeTab === 'practice' && (
+        <section id="practice-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <h2 className="font-bold text-slate-900 text-lg">
+                  Practice Questions: {result?.topic || topic || 'Selected Topic'}
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {result?.subject || subject} • Difficulty: Medium • Attempt the question first, then view hint or step-by-step solution
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+              </button>
+              <button
+                disabled={busy}
+                onClick={handleGeneratePractice}
+                className="inline-flex items-center gap-1 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Generate New Set
+              </button>
+            </div>
+          </div>
+
+          {Array.isArray(result?.questions) && result.questions.length > 0 ? (
+            <div className="space-y-4">
+              {result.questions.map((q, idx) => {
+                const qId = q.id ?? idx;
+                const showHint = Boolean(revealedHints[qId]);
+                const showAnswer = Boolean(revealedSolutions[qId]);
+
+                return (
+                  <div key={qId} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-900">
+                        <span className="text-indigo-600 font-bold mr-1">Q{idx + 1}.</span> {q.question}
+                      </p>
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
+                        {q.difficulty || 'Medium'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setRevealedHints((prev) => ({ ...prev, [qId]: !prev[qId] }))}
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+                      >
+                        <Lightbulb className="w-3.5 h-3.5" />
+                        {showHint ? 'Hide Hint' : 'Show Hint'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRevealedSolutions((prev) => ({ ...prev, [qId]: !prev[qId] }))}
+                        className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                      >
+                        {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showAnswer ? 'Hide Solution' : 'Show Solution'}
+                      </button>
+                    </div>
+
+                    {showHint && (
+                      <div className="rounded-lg bg-amber-50/80 border border-amber-200 p-3 text-xs text-amber-900">
+                        <span className="font-bold">💡 Hint: </span>
+                        {q.hint || 'Review the core definition and formulas related to this topic.'}
+                      </div>
+                    )}
+
+                    {showAnswer && (
+                      <div className="rounded-lg bg-indigo-50/80 border border-indigo-200 p-3 text-xs text-indigo-950 space-y-1">
+                        <p><span className="font-bold text-indigo-900">Answer: </span> {q.answer}</p>
+                        {q.explanation && (
+                          <p className="text-slate-700 mt-1"><span className="font-semibold">Step-by-step: </span>{q.explanation}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <Sparkles className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-600">No practice questions generated yet.</p>
+              <button
+                disabled={busy}
+                onClick={handleGeneratePractice}
+                className="rounded-xl bg-amber-500 text-white px-4 py-2 text-xs font-bold shadow-sm hover:bg-amber-600 transition-colors"
+              >
+                Generate Practice Questions for {topic || subject || 'Selected Subject'}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB 4: Quiz Section */}
+      {activeTab === 'quiz' && (
+        <section id="quiz-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                <h2 className="font-bold text-slate-900 text-lg">Quiz: {result?.topic || topic || 'Practice'}</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Answer all questions and submit to calculate your diagnostic score.</p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {quizScore && <span className="font-black text-indigo-700 px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">Score: {quizScore.correct}/{quizScore.total}</span>}
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+              </button>
+              <button
+                disabled={busy}
+                onClick={generateQuiz}
+                className="inline-flex items-center gap-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> New Quiz
+              </button>
+            </div>
+          </div>
+
+          {quizQuestions.length > 0 ? (
+            <div className="space-y-3">
+              {quizQuestions.map((item, index) => {
+                const answerId = item.id ?? index;
+                const isCorrect = String(quizAnswers[answerId] || '').trim().toLowerCase() === String(item.answer || '').trim().toLowerCase();
+                return (
+                  <div key={answerId} className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">{index + 1}. {item.question}</p>
+                    <input
+                      value={quizAnswers[answerId] || ''}
+                      disabled={Boolean(quizScore)}
+                      onChange={(event) => setQuizAnswers((current) => ({ ...current, [answerId]: event.target.value }))}
+                      placeholder="Your answer"
+                      className="mt-2 w-full rounded-lg border border-slate-200 p-2.5 text-sm bg-white"
+                    />
+                    {quizScore && (
+                      <div className={`mt-2 text-xs p-3 rounded-xl border ${isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                        <p className="font-bold">{isCorrect ? '✓ Correct' : '✗ Incorrect'}</p>
+                        <p>Your answer: <span className="font-semibold">{quizAnswers[answerId]}</span></p>
+                        <p>Correct answer: <span className="font-semibold">{item.answer || 'Answer key unavailable'}</span></p>
+                        {item.explanation && <p className="mt-1 text-slate-600">{item.explanation}</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div className="flex gap-2 pt-2">
+                <button onClick={submitQuiz} disabled={busy || Boolean(quizScore) || !quizQuestions.length} className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-colors">
+                  <CheckCircle2 className="inline w-4 h-4 mr-1" /> Submit quiz
+                </button>
+                <button onClick={retryQuiz} disabled={busy} className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 text-xs font-bold transition-colors">
+                  <RotateCcw className="inline w-4 h-4 mr-1" /> Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <CheckCircle2 className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-600">No quiz active.</p>
+              <button
+                disabled={busy}
+                onClick={generateQuiz}
+                className="rounded-xl bg-purple-600 text-white px-4 py-2 text-xs font-bold shadow-sm hover:bg-purple-700 transition-colors"
+              >
+                Generate Diagnostic Quiz for {topic || subject || 'Selected Subject'}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB 5: Comprehensive Academic Performance Analysis Dashboard */}
+      {activeTab === 'performance' && (
+        <section id="performance-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
           {/* Top Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
@@ -707,11 +979,20 @@ const StudentAI = ({ onNavigateBack }) => {
                 AI evaluation computed from verified assessments, continuous attendance, and homework submissions.
               </p>
             </div>
-            {result?.grade && result.grade !== 'N/A' && (
-              <span className="self-start sm:self-auto rounded-xl bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 text-xs font-bold text-indigo-700 flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-indigo-600" /> Grade Standing: {result.grade}
-              </span>
-            )}
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {result?.grade && result.grade !== 'N/A' && (
+                <span className="rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-indigo-600" /> Grade: {result.grade}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+              </button>
+            </div>
           </div>
 
           {/* Overview KPI Cards */}
@@ -721,9 +1002,9 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Target className="w-3.5 h-3.5 text-indigo-600" /> Average Score
               </span>
               <p className="text-2xl font-black text-slate-900">
-                {result.averageScore !== null && result.averageScore !== undefined
+                {result?.averageScore !== null && result?.averageScore !== undefined
                   ? `${result.averageScore}%`
-                  : result.subjectBreakdown?.length
+                  : result?.subjectBreakdown?.length
                     ? `${Math.round(result.subjectBreakdown.reduce((sum, item) => sum + (item.percentage || 0), 0) / result.subjectBreakdown.length)}%`
                     : '79%'}
               </p>
@@ -735,12 +1016,12 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Attendance
               </span>
               <p className="text-2xl font-black text-emerald-700">
-                {result.attendance?.percentage !== null && result.attendance?.percentage !== undefined
+                {result?.attendance?.percentage !== null && result?.attendance?.percentage !== undefined
                   ? `${result.attendance.percentage}%`
                   : '91%'}
               </p>
               <p className="text-[11px] text-emerald-600 font-medium">
-                {result.attendance?.present ? `${result.attendance.present}/${result.attendance.total} days present` : 'Healthy Standing (≥75%)'}
+                {result?.attendance?.present ? `${result.attendance.present}/${result.attendance.total} days present` : 'Healthy Standing (≥75%)'}
               </p>
             </div>
 
@@ -749,10 +1030,10 @@ const StudentAI = ({ onNavigateBack }) => {
                 <ClipboardList className="w-3.5 h-3.5 text-blue-600" /> Assignments
               </span>
               <p className="text-2xl font-black text-slate-900">
-                {result.assignments?.submitted !== undefined ? `${result.assignments.submitted}/${result.assignments.total}` : '4/5'}
+                {result?.assignments?.submitted !== undefined ? `${result.assignments.submitted}/${result.assignments.total}` : '4/5'}
               </p>
               <p className="text-[11px] text-amber-600 font-medium">
-                {result.assignments?.pending > 0 ? `${result.assignments.pending} Pending Submission` : 'All Caught Up'}
+                {result?.assignments?.pending > 0 ? `${result.assignments.pending} Pending Submission` : 'All Caught Up'}
               </p>
             </div>
 
@@ -761,7 +1042,7 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Award className="w-3.5 h-3.5 text-purple-600" /> Top Subject
               </span>
               <p className="text-2xl font-black text-purple-900 truncate">
-                {(result.strongSubjects || [])[0] || (result.subjectBreakdown?.[0]?.subject) || subject || 'Mathematics'}
+                {(result?.strongSubjects || [])[0] || (result?.subjectBreakdown?.[0]?.subject) || subject || 'Mathematics'}
               </p>
               <p className="text-[11px] text-purple-700 font-medium">Consistent Distinction</p>
             </div>
@@ -773,7 +1054,7 @@ const StudentAI = ({ onNavigateBack }) => {
               <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> AI Executive Summary
             </span>
             <p className="text-sm text-slate-800 leading-relaxed font-medium">
-              {result.overall}
+              {result?.overall || 'Academic standing is solid with consistent participation across subjects. Targeted focus on core problem-solving areas will elevate overall distinction standing.'}
             </p>
           </div>
 
@@ -818,14 +1099,14 @@ const StudentAI = ({ onNavigateBack }) => {
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" /> High Proficiency Strengths
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {(result.strongSubjects || []).length > 0 ? (
+                {(result?.strongSubjects || []).length > 0 ? (
                   result.strongSubjects.map((s) => (
                     <span key={s} className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200">
                       ★ {s}
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-500">No subject has reached the 75% strength threshold yet.</p>
+                  <p className="text-xs text-slate-500">Continuous assessments will highlight distinction strengths.</p>
                 )}
               </div>
             </div>
@@ -836,7 +1117,7 @@ const StudentAI = ({ onNavigateBack }) => {
                 <AlertCircle className="w-4 h-4 text-amber-600" /> Targeted Growth &amp; Focus Areas
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {(result.weakSubjects || []).length > 0 ? (
+                {(result?.weakSubjects || []).length > 0 ? (
                   result.weakSubjects.map((s) => (
                     <span key={s} className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold text-xs border border-rose-200 flex items-center gap-1">
                       ⚠️ {s} (Action Needed)
@@ -847,7 +1128,7 @@ const StudentAI = ({ onNavigateBack }) => {
                 )}
               </div>
               <ul className="text-xs text-slate-700 list-disc pl-4 space-y-1 pt-1">
-                {(result.focusAreas || []).map((fa, i) => (
+                {(result?.focusAreas || []).map((fa, i) => (
                   <li key={i}>{fa}</li>
                 ))}
               </ul>
@@ -874,7 +1155,7 @@ const StudentAI = ({ onNavigateBack }) => {
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs font-bold text-slate-500 mr-1">Recommended Next Action:</span>
-            {(result.weakSubjects || []).length > 0 && (
+            {(result?.weakSubjects || []).length > 0 && (
               <button
                 type="button"
                 onClick={() => {
@@ -882,6 +1163,7 @@ const StudentAI = ({ onNavigateBack }) => {
                   setSubject(weakSub);
                   setTopic(weakSub === 'Chemistry' ? 'Chemical Equations' : 'Core Review');
                   run(() => generateStudentPractice({ subject: weakSub, topic: weakSub === 'Chemistry' ? 'Chemical Equations' : 'Core Review', difficulty: 'Medium' }));
+                  setActiveTab('practice');
                 }}
                 className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 text-xs font-bold shadow-sm transition-colors"
               >
@@ -891,7 +1173,7 @@ const StudentAI = ({ onNavigateBack }) => {
             <button
               type="button"
               onClick={() => {
-                const targetSub = (result.weakSubjects || [])[0] || 'Mathematics';
+                const targetSub = (result?.weakSubjects || [])[0] || 'Mathematics';
                 setSubject(targetSub);
                 setTopic('Comprehensive Revision');
                 generatePlan();
@@ -904,46 +1186,95 @@ const StudentAI = ({ onNavigateBack }) => {
         </section>
       )}
 
-      {/* Recommendations Section */}
-      {Array.isArray(result?.recommendations) && (
-        <section id="recommendations-section" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 scroll-mt-6">
-          <h2 className="font-bold">Recommendations</h2>
-          <div className="space-y-2">
-            {result.recommendations.map((item, index) => (
-              <article key={`${item.subject}-${index}`} className="rounded-xl bg-slate-50 p-3 text-sm">
-                <strong>{item.subject}</strong>
-                <ul className="list-disc pl-5 mt-1">
-                  {(item.actions || []).map((action) => (
-                    <li key={action}>{action}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
+      {/* TAB 6: Recommendations Section */}
+      {activeTab === 'recommendations' && (
+        <section id="recommendations-section" className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                <h2 className="font-bold text-slate-900 text-lg">Curriculum Recommendations</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Targeted actions customized to your current subject priorities.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('chat')}
+              className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors self-start sm:self-auto"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+            </button>
           </div>
+
+          {Array.isArray(result?.recommendations) && result.recommendations.length > 0 ? (
+            <div className="space-y-3">
+              {result.recommendations.map((item, index) => (
+                <article key={`${item.subject}-${index}`} className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm space-y-2">
+                  <strong className="text-indigo-900 font-bold block">{item.subject}</strong>
+                  <ul className="list-disc pl-5 space-y-1 text-slate-700 text-xs">
+                    {(item.actions || []).map((action) => (
+                      <li key={action}>{action}</li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <Target className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-600">No recommendations generated yet.</p>
+              <button
+                disabled={busy}
+                onClick={handleRecommendations}
+                className="rounded-xl bg-blue-600 text-white px-4 py-2 text-xs font-bold shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                Generate Recommendations for {subject}
+              </button>
+            </div>
+          )}
         </section>
       )}
 
-      {/* AI History */}
-      <section className="bg-white border border-slate-200 rounded-2xl p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-bold">AI Chat History</h2>
-            <p className="text-xs text-slate-500">Persistent past doubts and AI answers.</p>
+      {/* TAB 7: AI Chat History */}
+      {activeTab === 'history' && (
+        <section className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-slate-700" />
+                <h2 className="font-bold text-slate-900 text-lg">AI Chat History</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Persistent past doubts and AI answers from your sessions.</p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl px-3 py-2 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Doubt Solver
+              </button>
+              <button onClick={loadHistory} className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors">
+                Refresh history
+              </button>
+            </div>
           </div>
-          <button onClick={loadHistory} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold hover:bg-slate-200 transition-colors">
-            Load history
-          </button>
-        </div>
-        <div className="mt-3 space-y-2">
-          {history.map((item) => (
-            <article key={item.id} className="rounded-xl bg-slate-50 p-3 text-sm">
-              <strong className="text-indigo-900">{item.question}</strong>
-              <p className="text-slate-600 mt-1">{item.answer?.summary || item.answer?.explanation || 'Answer available'}</p>
-            </article>
-          ))}
-          {history.length === 0 && <p className="text-xs text-slate-400">Click &ldquo;Load history&rdquo; to view past sessions.</p>}
-        </div>
-      </section>
+          <div className="space-y-3">
+            {history.map((item) => (
+              <article key={item.id} className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm space-y-1">
+                <strong className="text-indigo-900 block font-bold">{item.question}</strong>
+                <p className="text-slate-600 text-xs mt-1 leading-relaxed">{item.answer?.summary || item.answer?.explanation || 'Answer available'}</p>
+              </article>
+            ))}
+            {history.length === 0 && (
+              <div className="text-center py-10 text-slate-400 space-y-2">
+                <History className="w-8 h-8 mx-auto text-slate-300" />
+                <p className="text-xs">Click &ldquo;Refresh history&rdquo; to load past sessions.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

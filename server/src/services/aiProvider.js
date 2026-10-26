@@ -821,54 +821,66 @@ Return strictly valid JSON:
     if (!process.env.AI_API_KEY) throw new Error('AI provider is not configured');
 
     const promptContent = this.formatTaskPrompt(task, payload);
+    const candidateModels = [
+      process.env.AI_MODEL,
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.2-3b-instruct:free',
+      'meta-llama/llama-3.1-8b-instruct:free',
+      'qwen/qwen-2.5-7b-instruct:free',
+      'mistralai/mistral-7b-instruct:free',
+      'cohere/north-mini-code:free'
+    ].filter(Boolean);
 
-    const response = await fetch(process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.AI_API_KEY}`,
-        'HTTP-Referer': 'http://localhost:5173',
-        'X-Title': 'EduSetu'
-      },
-      body: JSON.stringify({
-        model: process.env.AI_MODEL || 'gpt-4o-mini',
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert school tutor and curriculum specialist. You generate high-quality educational study plans, quizzes, and problem explanations. Return strictly valid JSON without any markdown formatting.'
-          },
-          { role: 'user', content: promptContent }
-        ]
-      })
-    });
+    let lastError = null;
 
-    if (!response.ok) {
-      let providerError;
+    for (const modelName of candidateModels) {
       try {
-        providerError = (await response.json())?.error;
-      } catch (error) {
-        if (!(error instanceof SyntaxError)) throw error;
+        const response = await fetch(process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.AI_API_KEY}`,
+            'HTTP-Referer': 'http://localhost:5173',
+            'X-Title': 'EduSetu'
+          },
+          body: JSON.stringify({
+            model: modelName,
+            temperature: 0.3,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert school tutor and curriculum specialist. You generate high-quality educational study plans, quizzes, and problem explanations. Return strictly valid JSON without any markdown formatting.'
+              },
+              { role: 'user', content: promptContent }
+            ]
+          })
+        });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            console.warn(`[AI] Model ${modelName} rate-limited (HTTP 429), trying next candidate...`);
+            continue;
+          }
+          throw new Error(`AI provider request failed (HTTP ${response.status})`);
+        }
+
+        const body = await response.json();
+        const content = body.choices?.[0]?.message?.content || '{}';
+        try {
+          return JSON.parse(content);
+        } catch (error) {
+          const match = content.match(/\{[\s\S]*\}/);
+          if (match) {
+            try { return JSON.parse(match[0]); } catch (inner) { /* fall through */ }
+          }
+          throw new Error('AI provider returned invalid JSON');
+        }
+      } catch (err) {
+        lastError = err;
       }
-      const safeCode = (value) => typeof value === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(value) ? value : undefined;
-      const requestError = new Error(`AI provider request failed (HTTP ${response.status})`);
-      requestError.status = response.status;
-      requestError.providerCode = safeCode(providerError?.code);
-      requestError.providerType = safeCode(providerError?.type);
-      throw requestError;
     }
 
-    const body = await response.json();
-    const content = body.choices?.[0]?.message?.content || '{}';
-    try {
-      return JSON.parse(content);
-    } catch (error) {
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { return JSON.parse(match[0]); } catch (inner) { /* fall through */ }
-      }
-      throw new Error('AI provider returned invalid JSON');
-    }
+    throw lastError || new Error('All AI candidate models failed');
   }
 }
 

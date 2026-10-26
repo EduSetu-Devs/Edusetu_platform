@@ -272,9 +272,18 @@ const TutorProfileDetailPage = ({ tutorId, onNavigate, onBack }) => {
             
             {/* Avatar & Key Info */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-emerald-600 to-indigo-600 text-white font-extrabold text-3xl sm:text-4xl flex items-center justify-center shadow-lg shadow-emerald-700/15 shrink-0">
-                {tutor.name?.charAt(0) || 'T'}
-              </div>
+              {(tutor.user?.profileImage || tutor.profilePicture) ? (
+                <img
+                  src={tutor.user?.profileImage || tutor.profilePicture}
+                  alt={tutor.name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover shadow-lg shadow-emerald-700/15 shrink-0 border-2 border-slate-100"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-emerald-600 to-indigo-600 text-white font-extrabold text-3xl sm:text-4xl flex items-center justify-center shadow-lg shadow-emerald-700/15 shrink-0">
+                  {tutor.name?.charAt(0) || 'T'}
+                </div>
+              )}
               
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">

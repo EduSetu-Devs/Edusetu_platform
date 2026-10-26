@@ -735,9 +735,18 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
                     {/* Top Row: Avatar & Badges */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3.5">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-sm">
-                          {tutor.name?.charAt(0) || 'T'}
-                        </div>
+                        {tutor.profilePicture ? (
+                          <img
+                            src={tutor.profilePicture}
+                            alt={tutor.name}
+                            className="w-14 h-14 rounded-2xl object-cover shadow-sm border border-slate-100 shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-sm shrink-0">
+                            {tutor.name?.charAt(0) || 'T'}
+                          </div>
+                        )}
                         <div>
                           <div className="flex items-center space-x-1.5">
                             <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">

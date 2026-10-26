@@ -198,6 +198,42 @@ node ../test_live_all.js
 
 ---
 
+## 🐳 Docker Containerization & Deployment
+
+EduSetu is fully containerized with multi-stage production Dockerfiles and Docker Compose orchestration:
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   Docker Compose Mesh                  │
+├───────────────────┬──────────────────┬─────────────────┤
+│  Frontend Client  │  Backend Server  │  MySQL Database │
+│  (React + Nginx)  │  (Node.js 20)    │  (MySQL 8.0)    │
+│  Port 80 / 3000   │  Port 5000       │  Port 3306      │
+└───────────────────┴──────────────────┴─────────────────┘
+```
+
+### 1-Click Launch with Docker Compose
+```bash
+# Build and launch all 3 microservices in detached mode
+docker compose up -d --build
+
+# View real-time container logs
+docker compose logs -f
+
+# Check container health status
+docker compose ps
+
+# Gracefully stop the application
+docker compose down
+```
+
+### Accessing the Containerized App:
+- **Web App (Nginx Reverse Proxy):** `http://localhost` or `http://localhost:3000`
+- **Backend API:** `http://localhost:5000`
+- **Health Check:** `http://localhost:5000/api/health`
+
+---
+
 ## 📄 License
 
 This project is licensed under the **ISC License**. Developed with ❤️ by the EduSetu Team.

@@ -20,8 +20,8 @@ const Footer = () => {
           <span>for clean & scalable learning</span>
         </div>
 
-        <div>
-          <span>Step 1: Initialization & Architecture Complete</span>
+        <div className="text-center sm:text-right">
+          <span>Crafted by <strong className="text-slate-700">Arjit Katiyar, Vedant Sharma, Chandan Yadav &amp; Vishal Mauray</strong></span>
         </div>
       </div>
     </footer>

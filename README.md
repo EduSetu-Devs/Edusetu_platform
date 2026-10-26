@@ -234,6 +234,19 @@ docker compose down
 
 ---
 
+## 👥 Contributors & Development Team
+
+EduSetu was designed and engineered as a collaborative group initiative:
+
+| Team Member | Role & Key Contributions | Profile |
+| :--- | :--- | :--- |
+| **Arjit Katiyar** | Full-Stack System Architecture, AI Study Assistant & Two-Tier Cache, Real-time Guardrails & Red-Teaming, Docker Setup | [@Arjit005](https://github.com/Arjit005) |
+| **Vedant Sharma** | Frontend UI/UX, Interactive Learning Components, Responsive Client Workflows | Team Contributor |
+| **Chandan Yadav** | Relational Database Design, Sequelize Schema & Data Migrations, API Endpoints | Team Contributor |
+| **Vishal Mauray** | Quality Assurance, Tutor Marketplace Logic, Integration Testing & Validation | Team Contributor |
+
+---
+
 ## 📄 License
 
-This project is licensed under the **ISC License**. Developed with ❤️ by the EduSetu Team.
+This project is licensed under the **ISC License**. Developed with ❤️ by **Arjit Katiyar, Vedant Sharma, Chandan Yadav & Vishal Mauray**.

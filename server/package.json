@@ -18,7 +18,13 @@
     "mongodb",
     "nodejs"
   ],
-  "author": "EduSetu Team",
+  "author": "Arjit Katiyar",
+  "contributors": [
+    "Arjit Katiyar",
+    "Vedant Sharma",
+    "Chandan Yadav",
+    "Vishal Mauray"
+  ],
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",

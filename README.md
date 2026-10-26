@@ -137,7 +137,7 @@ EduSetu Platform
 ### 1. Clone & Setup Environment
 
 ```bash
-git clone https://github.com/Arjit005/Edusetu_platform.git
+git clone https://github.com/EduSetu-Devs/Edusetu_platform.git
 cd Edusetu_platform
 ```
 

@@ -72,7 +72,12 @@ const connectDB = async () => {
     console.log(`[Database] Sequelize successfully connected to MySQL database: ${DB_NAME} at ${DB_HOST}:${DB_PORT}`);
 
     // 3. Sync database models (creates tables such as 'users' if they don't exist)
-    await sequelize.sync();
+    try {
+      await sequelize.sync();
+      console.log('[Database] Database tables synchronized successfully.');
+    } catch (syncErr) {
+      console.warn('[Database] Model sync notice (continuing with existing schema):', syncErr.message);
+    }
     try {
       await ensureGradingColumns();
     } catch (colErr) {
@@ -83,7 +88,6 @@ const connectDB = async () => {
     } catch (schemaErr) {
       console.log('[Database] ensureMarketplaceSchema notice:', schemaErr.message);
     }
-    console.log('[Database] Database tables synchronized successfully.');
 
     return {
       connected: true,

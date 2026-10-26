@@ -73,8 +73,16 @@ const connectDB = async () => {
 
     // 3. Sync database models (creates tables such as 'users' if they don't exist)
     await sequelize.sync();
-    await ensureGradingColumns();
-    await ensureMarketplaceSchema();
+    try {
+      await ensureGradingColumns();
+    } catch (colErr) {
+      console.log('[Database] ensureGradingColumns notice:', colErr.message);
+    }
+    try {
+      await ensureMarketplaceSchema();
+    } catch (schemaErr) {
+      console.log('[Database] ensureMarketplaceSchema notice:', schemaErr.message);
+    }
     console.log('[Database] Database tables synchronized successfully.');
 
     return {

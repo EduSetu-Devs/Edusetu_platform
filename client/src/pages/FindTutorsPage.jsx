@@ -30,6 +30,29 @@ import {
   Building
 } from 'lucide-react';
 
+const INDIAN_CITIES_SUGGESTIONS = [
+  'Kota', 'Delhi', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Pune',
+  'Jaipur', 'Kolkata', 'Patna', 'Lucknow', 'Chennai', 'Ahmedabad',
+  'Chandigarh', 'Indore', 'Noida', 'Gurgaon', 'Kanpur', 'Mohali'
+];
+
+const POPULAR_SUBJECTS_SUGGESTIONS = [
+  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Science',
+  'Computer Science', 'Python', 'English', 'Hindi', 'Sanskrit',
+  'Accountancy', 'Economics', 'Business Studies', 'History', 'Social Studies'
+];
+
+const QUICK_DISCOVERY_TAGS = [
+  { label: '🔥 Kota JEE Physics', set: { city: 'Kota', subject: 'Physics' } },
+  { label: '📐 Delhi CBSE Maths', set: { city: 'Delhi', subject: 'Mathematics' } },
+  { label: '💻 Bengaluru Python', set: { city: 'Bengaluru', subject: 'Python' } },
+  { label: '🧬 NEET Biology', set: { subject: 'Biology', city: '' } },
+  { label: '💼 Commerce & Accounts', set: { subject: 'Accountancy', city: '' } },
+  { label: '🏠 Mumbai Home Tutors', set: { city: 'Mumbai', teachingMode: 'both' } },
+  { label: '💰 Under ₹600/hr', set: { maxRate: '600', minRate: '' } },
+  { label: '⭐ Top Rated (4.9+)', set: { minRating: '4.9' } }
+];
+
 const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareList = [], setCompareList }) => {
   const { user, isAuthenticated } = useAuth();
 
@@ -331,6 +354,40 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
           <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none hidden md:block" />
         </div>
 
+        {/* Quick Indian Discovery Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
+          <span className="text-xs font-bold text-slate-500 shrink-0 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Quick Discovery:
+          </span>
+          {QUICK_DISCOVERY_TAGS.map((tag) => (
+            <button
+              key={tag.label}
+              type="button"
+              onClick={() => {
+                if (tag.set.city !== undefined) setCity(tag.set.city);
+                if (tag.set.subject !== undefined) setSubject(tag.set.subject);
+                if (tag.set.teachingMode !== undefined) setTeachingMode(tag.set.teachingMode);
+                if (tag.set.maxRate !== undefined) setMaxRate(tag.set.maxRate);
+                if (tag.set.minRate !== undefined) setMinRate(tag.set.minRate);
+                if (tag.set.minRating !== undefined) setMinRating(tag.set.minRating);
+                setPage(1);
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 shadow-2xs transition-all cursor-pointer"
+            >
+              {tag.label}
+            </button>
+          ))}
+          {(city || subject || teachingMode || maxRate || minRating) && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="shrink-0 px-2.5 py-1.5 rounded-full text-xs font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+            >
+              ✕ Reset
+            </button>
+          )}
+        </div>
+
         {/* Search & Filter Bar */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -342,11 +399,15 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
+                  list="popular-subjects-list"
                   placeholder="e.g. Mathematics, Physics..."
                   value={subject}
                   onChange={(e) => { setSubject(e.target.value); setPage(1); }}
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
+                <datalist id="popular-subjects-list">
+                  {POPULAR_SUBJECTS_SUGGESTIONS.map(s => <option key={s} value={s} />)}
+                </datalist>
               </div>
             </div>
 
@@ -357,11 +418,15 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder="e.g. Mumbai, Delhi, Patna..."
+                  list="indian-cities-list"
+                  placeholder="e.g. Mumbai, Delhi, Kota..."
                   value={city}
                   onChange={(e) => { setCity(e.target.value); setPage(1); }}
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
+                <datalist id="indian-cities-list">
+                  {INDIAN_CITIES_SUGGESTIONS.map(c => <option key={c} value={c} />)}
+                </datalist>
               </div>
             </div>
 

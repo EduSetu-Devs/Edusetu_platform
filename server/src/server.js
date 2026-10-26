@@ -12,6 +12,7 @@ const app = require('./app');
 const { connectDB } = require('./config/db');
 const { initSocket } = require('./socket');
 const { startTeachingSessionReminderWorker } = require('./services/teachingSessionReminder');
+const { seedIndianTutorsIfNeeded } = require('./services/seedIndianTutors');
 
 const PORT = process.env.PORT || 5000;
 
@@ -20,6 +21,7 @@ const startServer = async () => {
   try {
     // Attempt database connection and table synchronization
     await connectDB();
+    seedIndianTutorsIfNeeded().catch((err) => console.warn('[Startup Seeder Error]:', err.message));
 
     // Create HTTP server instance
     const httpServer = http.createServer(app);

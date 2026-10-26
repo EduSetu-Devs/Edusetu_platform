@@ -353,16 +353,135 @@ class MockAIProvider {
 
     // 3. Newton's Laws / Force / Gravity
     if (qLower.includes('newton') || qLower.includes('gravity') || qLower.includes('gurutv') || qLower.includes('force')) {
+      const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isHindi) {
+        return {
+          explanation: "न्यूटन के गति के तीन मूलभूत नियम (Newton's Laws of Motion) किसी वस्तु पर लगने वाले बल और उसकी गति के सम्बंध को समझाते हैं।",
+          steps: [
+            "1. प्रथम नियम (जड़त्व का नियम / Law of Inertia): कोई वस्तु तब तक अपनी विराम अवस्था या एकसमान गति में रहती है, जब तक कि उस पर कोई बाहरी असंतुलित बल न लगाया जाए।",
+            "2. द्वितीय नियम (संवेग और बल / F = ma): किसी वस्तु के संवेग परिवर्तन की दर लगाए गए बल के समानुपाती होती है: बल (F) = द्रव्यमान (m) × त्वरण (a)।",
+            "3. तृतीय नियम (क्रिया-प्रतिक्रिया / Action & Reaction): प्रत्येक क्रिया की सदैव बराबर और विपरीत दिशा में प्रतिक्रिया होती है।"
+          ],
+          example: "उदाहरण: 5 kg की गेंद को 3 m/s² की गति से त्वरित करने के लिए आवश्यक बल F = 5 × 3 = 15 Newtons होगा।",
+          summary: "न्यूटन के नियम भौतिक विज्ञान का आधार हैं। F = ma से बल का परिमाण ज्ञात होता है, और तीसरा नियम बताता है कि बल हमेशा युग्म (pairs) में होते हैं।",
+          practiceQuestions: ["रॉकेट किस नियम के सिद्धांत पर उड़ता है?", "जड़त्व (Inertia) का द्रव्यमान से क्या सम्बंध है?"]
+        };
+      }
       return {
-        explanation: "Newton formulated the three fundamental laws of classical mechanics governing force, mass, and acceleration.",
+        explanation: "Sir Isaac Newton formulated the three foundational laws of classical mechanics describing the relationship between the forces acting on a body and its motion.",
         steps: [
-          "First Law (Inertia): An object remains at rest or in uniform motion unless acted upon by a net external force.",
-          "Second Law (Force): Force equals the rate of change of momentum: F = m * a (Force = mass × acceleration).",
-          "Third Law (Action & Reaction): For every action, there is an equal and opposite reaction acting on different bodies.",
-          "Gravity: The universal attractive force between two masses, given by F = G(m₁m₂)/r²."
+          "First Law (Inertia): An object remains in a state of rest or uniform motion in a straight line unless compelled to change that state by an external net force.",
+          "Second Law (Force): The rate of change of momentum is directly proportional to the applied force: F = m × a (Force = mass × acceleration).",
+          "Third Law (Action & Reaction): For every action, there is an equal and opposite reaction acting on mutually interacting bodies."
         ],
-        example: "A 10 kg box accelerated at 2 m/s² requires a force of F = 10 * 2 = 20 Newtons.",
-        summary: "Forces cause changes in motion, with acceleration being directly proportional to net force and inversely proportional to mass."
+        example: "Example: Accelerating a 10 kg mass at 2 m/s² requires an applied net force of F = 10 × 2 = 20 Newtons.",
+        summary: "Newton's laws dictate classical motion: inertia resists velocity changes, force induces acceleration proportional to mass (F = ma), and all interaction forces occur in balanced pairs.",
+        practiceQuestions: ["Explain how a rocket propels forward using Newton's third law.", "Why do passengers fall backward when a bus accelerates suddenly?"]
+      };
+    }
+
+    // 4. Ohm's Law & Electricity
+    if (qLower.includes('ohm') || qLower.includes('resistance') || qLower.includes('voltage') || qLower.includes('current') || qLower.includes('vidyut')) {
+      const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao') || qLower.includes('kahiye');
+      if (isHindi) {
+        return {
+          explanation: "ओम का नियम (Ohm's Law) कहता है कि यदि किसी चालक (conductor) की भौतिक अवस्थाएँ (जैसे तापमान) स्थिर रहें, तो उसके दोनों सिरों के बीच का विभवांतर (Voltage, V) उसमें प्रवाहित विद्युत धारा (Current, I) के समानुपाती होता है: V ∝ I, अर्थात् V = I × R।",
+          steps: [
+            "1. कथन (Statement): स्थिर तापमान पर V ∝ I (विभवांतर विद्युत धारा के सीधे अनुपाती है)।",
+            "2. सूत्र (Formula): V = I × R, जहाँ V = वोल्टेज (Volts), I = विद्युत धारा (Amperes), और R = प्रतिरोध (Resistance, Ohms Ω)।",
+            "3. प्रतिरोध (Resistance): R = V / I चालक का वह आंतरिक गुण है जो विद्युत धारा के प्रवाह में रुकावट डालता है।",
+            "4. व्यावहारिक नियम: यदि प्रतिरोध (R) स्थिर है और वोल्टेज दोगुना कर दिया जाए, तो धारा (I) भी दोगुनी हो जाएगी।"
+          ],
+          example: "उदाहरण: यदि किसी बल्ब का प्रतिरोध R = 10 Ω है और परिपथ में I = 2 A की धारा बह रही है, तो आवश्यक वोल्टेज V = I × R = 2 × 10 = 20 Volts होगा।",
+          summary: "ओम का नियम विद्युत परिपथों का मूल आधार है: V = I × R। इसका उपयोग वोल्टेज, करंट या प्रतिरोध में से किसी अज्ञात मान को ज्ञात करने के लिए किया जाता है।",
+          practiceQuestions: ["यदि 24V की बैटरी से 4Ω का प्रतिरोधक जोड़ा जाए, तो कितनी धारा प्रवाहित होगी?", "ओमिक (Ohmic) और अन-ओमिक (Non-Ohmic) चालकों में क्या अंतर है?"]
+        };
+      }
+      return {
+        explanation: "Ohm’s Law states that the electric current (I) flowing through a metallic conductor between two points is directly proportional to the potential difference (Voltage, V) across those points, provided physical conditions such as temperature remain constant: V ∝ I, which yields V = I × R.",
+        steps: [
+          "Step 1: Fundamental Law: At constant temperature, Voltage is directly proportional to Current: V ∝ I.",
+          "Step 2: Governing Formula: V = I × R (where V is Voltage in Volts [V], I is Current in Amperes [A], and R is Resistance in Ohms [Ω]).",
+          "Step 3: Calculating Resistance: R = V / I represents the opposition offered by the material to the flow of electric charges.",
+          "Step 4: Calculating Current: I = V / R shows that increasing resistance decreases electric current for a fixed voltage."
+        ],
+        example: "Example Problem: A circuit has a resistance of R = 5 Ω and a current of I = 3 A flowing through it. The potential difference across the resistor is V = I × R = 3 × 5 = 15 Volts.",
+        summary: "Ohm's Law relates Voltage, Current, and Resistance via V = I × R. Materials that obey this linear V-I relationship are called Ohmic conductors (e.g. copper wires).",
+        practiceQuestions: ["Calculate the current flowing through a 12 Ω resistor connected to a 24 V battery.", "Why does Ohm's law not hold true at very high temperatures?"]
+      };
+    }
+
+    // 5. Conservation of Energy
+    if (qLower.includes('conservation of energy') || qLower.includes('energy conservation') || qLower.includes('urja sanrakshan')) {
+      const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isHindi) {
+        return {
+          explanation: "ऊर्जा संरक्षण का नियम (Law of Conservation of Energy) यह बताता है कि ऊर्जा को न तो उत्पन्न किया जा सकता है और न ही नष्ट किया जा सकता है; इसे केवल एक रूप से दूसरे रूप में बदला जा सकता है। ब्रह्मांड की कुल ऊर्जा हमेशा स्थिर रहती है।",
+          steps: [
+            "1. मूल सिद्धांत: कुल प्रारंभिक ऊर्जा = कुल अंतिम ऊर्जा (E_total = Constant)।",
+            "2. यांत्रिक ऊर्जा संरक्षण: Total Mechanical Energy = Kinetic Energy (गतिज ऊर्जा) + Potential Energy (स्थितिज ऊर्जा) = ½mv² + mgh = स्थिर।",
+            "3. ऊर्जा रूपांतरण: जैसे पनबिजली संयंत्र (Hydroelectric plant) में पानी की स्थितिज ऊर्जा (PE) गिरकर गतिज ऊर्जा (KE) बनती है और टरबाइन के ज़रिए विद्युत ऊर्जा (Electrical Energy) में बदल जाती है।"
+          ],
+          example: "उदाहरण: एक सरल लोलक (Simple Pendulum) जब अपने उच्चतम बिंदु पर होता है तो उसमें केवल स्थितिज ऊर्जा (PE) होती है, और जब वह मध्य बिंदु से तेज़ी से गुजरता है तो सारी ऊर्जा गतिज ऊर्जा (KE) में बदल जाती है।",
+          summary: "ऊर्जा रूप बदलती है लेकिन कभी ख़त्म नहीं होती। गणितीय रूप से: ΔE_system + ΔE_surroundings = 0।",
+          practiceQuestions: ["मुक्त रूप से गिरती हुई किसी गेंद में गतिज और स्थितिज ऊर्जा का रूपांतरण समझाइए।", "क्या घर्षण (friction) की स्थिति में भी ऊर्जा संरक्षण का नियम लागू होता है?"]
+        };
+      }
+      return {
+        explanation: "The Law of Conservation of Energy states that energy can neither be created nor destroyed in an isolated system; it can only be transformed from one form to another. The total quantity of energy in the universe remains constant.",
+        steps: [
+          "Step 1: First Principle: Total Energy of an isolated system is strictly conserved: E_initial = E_final.",
+          "Step 2: Mechanical Energy Conservation: E_total = Kinetic Energy (KE) + Potential Energy (PE) = ½mv² + mgh = Constant (in the absence of non-conservative forces like air friction).",
+          "Step 3: Energy Transformations: Chemical energy in fuel transforms into thermal energy during combustion, which then converts into kinetic energy in an automobile engine."
+        ],
+        example: "Example: A roller coaster car at the top of a 20 m hill possesses maximum gravitational potential energy (mgh). As it plunges downward, that potential energy converts entirely into kinetic energy (½mv²), reaching maximum speed at the lowest point.",
+        summary: "Energy transforms continuously across forms (mechanical, thermal, electrical, chemical), but the net sum remains invariant: ΔE = 0.",
+        practiceQuestions: ["A 2 kg rock falls from a height of 10 m. What is its kinetic energy just before striking the ground? (Use g = 9.8 m/s²)", "How does the first law of thermodynamics relate to the conservation of energy?"]
+      };
+    }
+
+    // 6. Cell Biology & Genetics (DNA / RNA / Mitochondria)
+    if (qLower.includes('cell') || qLower.includes('mitochondria') || qLower.includes('dna') || qLower.includes('rna') || qLower.includes('gene')) {
+      return {
+        explanation: "In biology, the cell is the fundamental structural, functional, and biological unit of all living organisms. Within cells, specialized organelles and nucleic acids (DNA/RNA) drive metabolism, energy production, and heredity.",
+        steps: [
+          "Mitochondria: Known as the 'powerhouse of the cell', it produces cellular energy in the form of ATP (Adenosine Triphosphate) through cellular respiration.",
+          "DNA (Deoxyribonucleic Acid): Double-helix polymer composed of nucleotide bases (A, T, C, G) carrying genetic instructions for development and functioning.",
+          "Central Dogma of Biology: Genetic information flows sequentially from DNA -> RNA (transcription) -> Protein (translation)."
+        ],
+        example: "Human cells contain 23 pairs of chromosomes inside the nucleus, encoding roughly 20,000 to 25,000 individual genes.",
+        summary: "Organelle specialization and nucleic acid replication allow cells to maintain homeostasis and transmit genetic traits.",
+        practiceQuestions: ["What are the key structural differences between plant and animal cells?", "Why do mitochondria have their own separate circular DNA?"]
+      };
+    }
+
+    // 7. Chemistry: Acids, Bases, pH, and Chemical Bonding
+    if (qLower.includes('acid') || qLower.includes('base') || qLower.includes('ph') || qLower.includes('bond') || qLower.includes('atom') || qLower.includes('periodic')) {
+      return {
+        explanation: "Chemistry studies matter, atomic structure, and chemical interactions through which valence electrons form bonds to create stable compounds.",
+        steps: [
+          "Atomic Structure: Atoms consist of a dense nucleus (protons and neutrons) surrounded by valence electron shells.",
+          "Chemical Bonding: Ionic bonds involve complete electron transfer (e.g. Na⁺ and Cl⁻ forming NaCl), whereas covalent bonds involve electron sharing (e.g. H₂O, CO₂).",
+          "Acids and Bases: Acids release H⁺ ions in aqueous solution (pH < 7), while bases release OH⁻ ions (pH > 7). Neutral substances like pure water have pH = 7."
+        ],
+        example: "Neutralization Reaction: Hydrochloric acid reacts with Sodium hydroxide to produce salt and water: HCl + NaOH -> NaCl + H₂O.",
+        summary: "Chemical properties and reactivity are determined by electron configurations, bond electronegativity, and thermodynamic stability.",
+        practiceQuestions: ["What is the pH of a 0.01 M HCl solution?", "Explain the difference between covalent and ionic bonds with examples."]
+      };
+    }
+
+    // 8. Trigonometry & Geometry
+    if (qLower.includes('trigonometry') || qLower.includes('sin') || qLower.includes('cos') || qLower.includes('tan') || qLower.includes('pythagor')) {
+      return {
+        explanation: "Trigonometry studies the mathematical relationships between the side lengths and interior angles of triangles.",
+        steps: [
+          "Trigonometric Ratios: In a right triangle, sin(θ) = Opposite / Hypotenuse, cos(θ) = Adjacent / Hypotenuse, and tan(θ) = Opposite / Adjacent (SOH CAH TOA).",
+          "Pythagorean Theorem: In any right-angled triangle with legs a and b and hypotenuse c: a² + b² = c².",
+          "Core Trigonometric Identity: For all angles θ, sin²(θ) + cos²(θ) = 1 and 1 + tan²(θ) = sec²(θ)."
+        ],
+        example: "In a right triangle with base = 4 cm and height = 3 cm, hypotenuse c = √(3² + 4²) = √25 = 5 cm, and sin(θ) = 3/5 = 0.6.",
+        summary: "Trigonometric ratios enable calculation of unknown distances, angles of elevation, and wave oscillations across science and engineering.",
+        practiceQuestions: ["Find the value of sin(30°) + cos(60°).", "A 10 m ladder leans against a wall at a 60° angle. Find the height it reaches on the wall."]
       };
     }
 

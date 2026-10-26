@@ -66,20 +66,33 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Root entry route
-app.get('/', (req, res) => {
-  res.json({
-    project: 'EduSetu',
-    status: 'Running',
-    version: '1.0.0 (Production Hardened)',
-    message: 'Welcome to EduSetu Backend Server',
-    documentation: 'See README.md for endpoint details',
-    healthCheck: '/api/health'
-  });
-});
-
 // Mount Main API Router under /api
 app.use('/api', apiRoutes);
+
+// Serve frontend static build if present
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+const fs = require('fs');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+} else {
+  // Root entry route fallback for API-only mode
+  app.get('/', (req, res) => {
+    res.json({
+      project: 'EduSetu',
+      status: 'Running',
+      version: '1.0.0 (Production Hardened)',
+      message: 'Welcome to EduSetu Backend Server',
+      documentation: 'See README.md for endpoint details',
+      healthCheck: '/api/health'
+    });
+  });
+}
 
 // Middleware: 404 handler for unmatched routes
 app.use(notFoundHandler);

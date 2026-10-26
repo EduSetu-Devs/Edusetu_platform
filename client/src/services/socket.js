@@ -3,7 +3,7 @@ import { getStoredToken } from './authService';
 
 let socket = null;
 
-const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:5000');
 
 /**
  * Initialize and connect WebSocket with authenticated JWT

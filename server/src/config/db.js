@@ -8,6 +8,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSW
 const DB_HOST = process.env.DB_HOST || '127.0.0.1';
 const DB_PORT = parseInt(process.env.DB_PORT, 10) || 3306;
 const DB_DIALECT = process.env.DB_DIALECT || 'mysql';
+const useSSL = process.env.DB_SSL === 'true' || DB_HOST.includes('tidbcloud.com') || DB_HOST.includes('aivencloud.com');
 
 // Initialize Sequelize instance
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
@@ -15,14 +16,20 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   port: DB_PORT,
   dialect: DB_DIALECT,
   logging: false, // Clean console logging
+  dialectOptions: useSSL ? {
+    ssl: {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true
+    }
+  } : {},
   pool: {
     max: 5,
     min: 0,
-    acquire: 5000,
+    acquire: 10000,
     idle: 10000
   },
   retry: {
-    max: 1 // Quick fail if database is not running to avoid blocking server start
+    max: 2 // Quick fail if database is not running to avoid blocking server start
   }
 });
 
@@ -38,7 +45,8 @@ const ensureDatabaseExists = async () => {
       host: DB_HOST,
       port: DB_PORT,
       user: DB_USER,
-      password: DB_PASSWORD
+      password: DB_PASSWORD,
+      ssl: useSSL ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined
     });
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
     await connection.end();

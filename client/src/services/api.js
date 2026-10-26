@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API base URL from Vite environment variables or fallback to local default
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.origin ? `${window.location.origin}/api` : 'http://localhost:5000/api');
 
 // Create a configured Axios instance
 const apiClient = axios.create({

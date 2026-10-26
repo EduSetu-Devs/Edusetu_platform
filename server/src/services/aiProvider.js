@@ -291,7 +291,36 @@ class MockAIProvider {
       };
     }
 
-    // 2. Photosynthesis
+    // 2. Python / Loops / Programming
+    if (qLower.includes('python') || qLower.includes('loop') || qLower.includes('coding') || qLower.includes('program')) {
+      const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isHindi) {
+        return {
+          explanation: 'Python में Loop एक ऐसी तकनीक (control structure) है जिसका उपयोग किसी कोड ब्लॉक को बार-बार (repeatedly) चलाने के लिए किया जाता है।',
+          steps: [
+            '1. For Loop: किसी sequence (जैसे list, tuple, string, या range) के प्रत्येक element पर एक-एक करके iterate करता है। Example: for i in range(5): print(i)',
+            '2. While Loop: जब तक दी गई condition True रहती है, तब तक कोड को बार-बार execute करता रहता है। Example: count = 0; while count < 5: count += 1',
+            '3. Control Statements: break (लूप को तुरंत रोकने के लिए) और continue (अगले चक्र पर जाने के लिए) का इस्तेमाल होता है।'
+          ],
+          example: '# Example: 1 से 5 तक print करना\nfor i in range(1, 6):\n    print("Number:", i)',
+          summary: 'Loops कोड को दोहराने से बचाते हैं और प्रोग्राम को तेज़ और संक्षिप्त बनाते हैं।',
+          practiceQuestions: ['Python में for loop और while loop में क्या अंतर है?', 'range() function का क्या उपयोग है?']
+        };
+      }
+      return {
+        explanation: 'In Python, a loop is a control structure used to execute a block of code repeatedly as long as a specified condition is true or for iterating over elements in a sequence.',
+        steps: [
+          '1. For Loop: Iterates over items in an iterable (list, tuple, string, or range). Example: for i in range(5): print(i)',
+          '2. While Loop: Continues running as long as a boolean test condition evaluates to True. Example: while count < 5: count += 1',
+          '3. Loop Controls: Use "break" to terminate a loop prematurely, and "continue" to skip to the next iteration.'
+        ],
+        example: '# Python for-loop example:\nfor number in range(1, 6):\n    print(f"Counting: {number}")',
+        summary: 'Loops automate repetitive tasks in Python. The two primary types are "for" loops (definite iteration) and "while" loops (indefinite, condition-based iteration).',
+        practiceQuestions: ['What is the difference between "for" and "while" loops in Python?', 'How do "break" and "continue" statements work inside a loop?']
+      };
+    }
+
+    // 3. Photosynthesis
     if (qLower.includes('photosynthesis') || qLower.includes('photo synthesis')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
       if (isHindi) {

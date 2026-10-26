@@ -183,10 +183,6 @@ const askDoubt = async (req, res) => {
       return successResponse(res, 200, 'AI answer generated (from cache)', responseData);
     }
 
-    if (!process.env.AI_API_KEY) {
-      return errorResponse(res, 503, 'AI provider is not configured');
-    }
-
     // 3. Retrieve multi-turn conversation memory (last 6 turns)
     let conversationContext = [];
     if (req.body?.conversationId) {
@@ -207,15 +203,15 @@ const askDoubt = async (req, res) => {
       : 'Answer accurately in simple Hindi or English, matching the question language. Use short, clear steps and an age-appropriate example when useful. Return JSON with explanation (string), steps (array of strings), and summary (string).';
 
     let answer;
-    try {
-      answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
-    } catch (error) {
-      if (error.status === 429) {
-        console.warn('[AI] doubt provider rate-limited, using mock fallback');
+    if (process.env.AI_API_KEY && process.env.AI_PROVIDER === 'openai') {
+      try {
+        answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
+      } catch (error) {
+        console.warn('[AI] doubt provider error, using fallback:', error.message);
         answer = await mockAI.doubt({ question, depth, conversationContext });
-      } else {
-        throw error;
       }
+    } else {
+      answer = await mockAI.doubt({ question, depth, conversationContext });
     }
     if (!answer || typeof answer.explanation !== 'string' || !answer.explanation.trim()
       || !Array.isArray(answer.steps) || answer.steps.some((step) => typeof step !== 'string')

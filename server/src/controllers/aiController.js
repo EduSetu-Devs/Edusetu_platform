@@ -62,27 +62,49 @@ const academicSummary = (profile) => ({
 });
 
 const studentPerformance = async (req, res) => {
-  try { const student = await getOwnStudent(req.user.id); const profile = student && await getAcademicProfile(student.id); if (!profile) return errorResponse(res, 404, 'Student profile not found'); const rawPerformance = await runAI('performance-analysis', profile, 'analyzePerformance'); const performanceResult = rawPerformance && typeof rawPerformance === 'object' && Array.isArray(rawPerformance.strongSubjects) ? rawPerformance : await mockAI.analyzePerformance(profile); return successResponse(res, 200, 'Performance analysis generated', performanceResult); }
+  try {
+    const student = await getOwnStudent(req.user.id);
+    const profile = student && await getAcademicProfile(student.id);
+    if (!profile) return errorResponse(res, 404, 'Student profile not found');
+    const query = { subject: req.query?.subject, topic: req.query?.topic };
+    const rawPerformance = await runAI('performance-analysis', { ...profile, query }, 'analyzePerformance');
+    const performanceResult = rawPerformance && typeof rawPerformance === 'object' && Array.isArray(rawPerformance.strongSubjects)
+      ? rawPerformance
+      : await mockAI.analyzePerformance(profile, query);
+    return successResponse(res, 200, 'Performance analysis generated', performanceResult);
+  }
   catch (error) { return handleAIError(res, error); }
 };
 
 const studentRecommendations = async (req, res) => {
-  try { const student = await getOwnStudent(req.user.id); const profile = student && await getAcademicProfile(student.id); if (!profile) return errorResponse(res, 404, 'Student profile not found'); const rawRecommendations = await runAI('study-recommendations', profile, 'recommendations'); const recommendations = Array.isArray(rawRecommendations) ? rawRecommendations : (Array.isArray(rawRecommendations?.recommendations) ? rawRecommendations.recommendations : await mockAI.recommendations(profile)); return successResponse(res, 200, 'Study recommendations generated', { recommendations }); }
+  try {
+    const student = await getOwnStudent(req.user.id);
+    const profile = student && await getAcademicProfile(student.id);
+    if (!profile) return errorResponse(res, 404, 'Student profile not found');
+    const query = { subject: req.query?.subject, topic: req.query?.topic };
+    const rawRecommendations = await runAI('study-recommendations', { ...profile, query }, 'recommendations');
+    const recommendations = Array.isArray(rawRecommendations)
+      ? rawRecommendations
+      : (Array.isArray(rawRecommendations?.recommendations) ? rawRecommendations.recommendations : await mockAI.recommendations(profile, query));
+    return successResponse(res, 200, 'Study recommendations generated', { recommendations });
+  }
   catch (error) { return handleAIError(res, error); }
 };
 
 const studyPlan = async (req, res) => {
   try {
     const { subject, topic, availableDays, targetDate, understandingLevel } = req.body || {};
-    if (!subject || !topic || !availableDays) return errorResponse(res, 400, 'Subject, topic, and available study days are required');
+    const safeSubject = String(subject || 'Mathematics').trim() || 'Mathematics';
+    const safeTopic = String(topic || 'Core Curriculum').trim() || 'Core Curriculum';
+    const days = Math.max(1, Math.min(14, Number(availableDays) || 5));
     
-    const subjectGuard = aiGuardrailService.evaluateInput(subject);
-    const topicGuard = aiGuardrailService.evaluateInput(topic);
+    const subjectGuard = aiGuardrailService.evaluateInput(safeSubject);
+    const topicGuard = aiGuardrailService.evaluateInput(safeTopic);
     if (!subjectGuard.safe || !topicGuard.safe) {
       return errorResponse(res, 400, 'Subject or topic contains prohibited or unsafe content');
     }
 
-    const raw = await runAI('study-plan', { subject, topic, availableDays, targetDate, understandingLevel }, 'studyPlan');
+    const raw = await runAI('study-plan', { subject: safeSubject, topic: safeTopic, availableDays: days, targetDate, understandingLevel }, 'studyPlan');
     console.log('[studyPlan] raw:', JSON.stringify(raw));
 
     const rawPlan = extractList(raw, ['plan', 'tasks']);

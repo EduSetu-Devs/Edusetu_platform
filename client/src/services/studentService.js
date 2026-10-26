@@ -33,12 +33,12 @@ export const getStudentLearningHistory = async () => {
   catch (error) { return { success: false, error: error.response?.data?.message || error.message || 'Failed to fetch learning history' }; }
 };
 
-const aiRequest = async (method, url, data) => {
-  try { const response = await apiClient({ method, url, data }); return { success: true, data: response.data.data }; }
+const aiRequest = async (method, url, data, config = {}) => {
+  try { const response = await apiClient({ method, url, data, ...config }); return { success: true, data: response.data.data }; }
   catch (error) { return { success: false, error: error.response?.data?.message || error.message || 'AI request failed' }; }
 };
-export const getStudentAIPerformance = () => aiRequest('get', '/student/ai/performance');
-export const getStudentAIRecommendations = () => aiRequest('get', '/student/ai/recommendations');
+export const getStudentAIPerformance = (params) => aiRequest('get', '/student/ai/performance', null, { params });
+export const getStudentAIRecommendations = (params) => aiRequest('get', '/student/ai/recommendations', null, { params });
 export const createStudentStudyPlan = (data) => aiRequest('post', '/student/ai/study-plan', data);
 export const askStudentAI = (payload) => {
   const data = typeof payload === 'string' ? { question: payload } : payload;

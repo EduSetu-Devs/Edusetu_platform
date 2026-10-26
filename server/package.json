@@ -1,0 +1,42 @@
+{
+  "name": "edusetu-server",
+  "version": "1.0.0",
+  "description": "Backend REST API for EduSetu platform",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test testChatMessaging.js testAIStudyAssistant.js testTutorRecommendations.js testSafetyGuardrails.js",
+    "test:safety": "node --test testSafetyGuardrails.js",
+    "test:deepeval": "python evals/test_safety_deepeval.py"
+  },
+  "keywords": [
+    "edusetu",
+    "education",
+    "express",
+    "mongodb",
+    "nodejs"
+  ],
+  "author": "EduSetu Team",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
+    "multer": "^2.3.0",
+    "mysql2": "^3.24.2",
+    "sequelize": "^6.37.8",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+.mirror {
+  transform: scaleX(-1);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased min-h-screen font-sans selection:bg-indigo-500 selection:text-white;
+  }
+}

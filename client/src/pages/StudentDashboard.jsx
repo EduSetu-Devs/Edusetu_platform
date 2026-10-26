@@ -1,0 +1,701 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  getStudentProfile,
+  updateStudentProfile,
+  getStudentDashboard,
+  getStudentAttendanceSummary,
+  getStudentHomework,
+  getStudentPerformance
+} from '../services/studentService';
+import { getTutorAssignmentEligibility } from '../services/tutorService';
+import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
+import {
+  GraduationCap,
+  User,
+  Mail,
+  Phone,
+  BookOpen,
+  Calendar,
+  ClipboardList,
+  Award,
+  Bell,
+  Edit3,
+  Save,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  LogOut,
+  MapPin,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  Percent,
+  Clock,
+  TrendingUp
+} from 'lucide-react';
+
+const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomework, onNavigateToMarks, onNavigateToClasses, onNavigateToTutors, onNavigateToAI }) => {
+  const { user, logout } = useAuth();
+  
+  const [profile, setProfile] = useState(null);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+  const [attendanceSummary, setAttendanceSummary] = useState(null);
+  const [homeworkStats, setHomeworkStats] = useState({ total: 0, active: 0, pending: 0 });
+  const [performance, setPerformance] = useState(null);
+  const [assignmentEligibility, setAssignmentEligibility] = useState(null);
+  const [eligibilityError, setEligibilityError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message }
+
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    className: '',
+    section: '',
+    rollNumber: '',
+    dateOfBirth: '',
+    gender: '',
+    address: ''
+  });
+
+  // Fetch student profile, dashboard summary, attendance stats, homework & performance on mount
+  const loadStudentData = async () => {
+    setIsLoading(true);
+    setFeedback(null);
+    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes] = await Promise.all([
+      getStudentProfile(),
+      getStudentDashboard(),
+      getStudentAttendanceSummary(),
+      getStudentHomework(),
+      getStudentPerformance(),
+      getTutorAssignmentEligibility()
+    ]);
+
+    if (eligibilityRes.success) {
+      setAssignmentEligibility(eligibilityRes.data);
+      setEligibilityError('');
+    } else {
+      setEligibilityError(eligibilityRes.error);
+    }
+
+    if (profRes.success) {
+      setProfile(profRes.data);
+      setEditForm({
+        name: profRes.data.name || '',
+        phone: profRes.data.phone || '',
+        className: profRes.data.className || '',
+        section: profRes.data.section || '',
+        rollNumber: profRes.data.rollNumber || '',
+        dateOfBirth: profRes.data.dateOfBirth ? profRes.data.dateOfBirth.slice(0, 10) : '',
+        gender: profRes.data.gender || '',
+        address: profRes.data.address || ''
+      });
+    }
+
+    if (dashRes.success) {
+      setDashboardSummary(dashRes.data);
+    }
+
+    if (attRes.success) {
+      setAttendanceSummary(attRes.data);
+    }
+
+    if (hwRes.success && Array.isArray(hwRes.data)) {
+      const active = hwRes.data.filter((h) => h.status === 'active').length;
+      const pending = hwRes.data.filter((h) => h.submissionStatus === 'pending' && h.status === 'active').length;
+      setHomeworkStats({
+        total: hwRes.data.length,
+        active,
+        pending
+      });
+    }
+
+    if (perfRes.success) {
+      setPerformance(perfRes.data);
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadStudentData();
+  }, []);
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!editForm.name.trim() || editForm.name.trim().length < 2) {
+      setFeedback({ type: 'error', message: 'Name must be at least 2 characters long' });
+      return;
+    }
+
+    setIsSaving(true);
+    setFeedback(null);
+    const result = await updateStudentProfile(editForm);
+    setIsSaving(false);
+
+    if (result.success) {
+      setProfile(result.data);
+      const eligibilityRes = await getTutorAssignmentEligibility();
+      if (eligibilityRes.success) {
+        setAssignmentEligibility(eligibilityRes.data);
+        setEligibilityError('');
+      } else {
+        setEligibilityError(eligibilityRes.error);
+      }
+      setIsEditing(false);
+      setFeedback({ type: 'success', message: 'Profile updated successfully!' });
+      setTimeout(() => setFeedback(null), 4000);
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Failed to update profile' });
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    if (onLogout) onLogout();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <p className="text-sm font-medium text-slate-500">Loading Student Portal...</p>
+      </div>
+    );
+  }
+
+  const studentName = profile?.name || user?.name || 'Student';
+
+  return (
+    <div className="max-w-6xl mx-auto my-6 px-4 space-y-8">
+      
+      {/* Top Welcome Banner */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold text-white">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Student Portal • Step 4D Active</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight">
+              Welcome back, {studentName}! 🎓
+            </h1>
+            <p className="text-xs sm:text-sm text-blue-100 max-w-xl leading-relaxed">
+              Here is your centralized academic summary and communication feed for EduSetu.
+            </p>
+          </div>
+
+          {/* Quick Profile Summary Badge */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center space-x-4 shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-white text-indigo-600 flex items-center justify-center font-bold text-xl shadow-md">
+              {studentName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-sm">{studentName}</span>
+                <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold uppercase">
+                  Student
+                </span>
+              </div>
+              <p className="text-xs text-blue-200 mt-0.5 font-mono">
+                ID: {profile?.studentId || 'STU-001'}
+              </p>
+              <p className="text-xs text-blue-200">
+                {profile?.className || 'Class Not Set'} {profile?.section ? `• Sec ${profile.section}` : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative Background Circles */}
+        <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onNavigateToTutors}
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"
+        >
+          Find a Tutor <ArrowRight className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onNavigateToAI}
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700"
+        >
+          <Sparkles className="h-4 w-4" /> AI Study Assistant
+        </button>
+      </div>
+      <p className={`-mt-5 text-xs ${
+        eligibilityError ? 'text-rose-700' :
+        assignmentEligibility && !assignmentEligibility.canRequest ? 'text-amber-800' : 'text-slate-500'
+      }`}>
+        {eligibilityError || (assignmentEligibility
+          ? getTutorAssignmentMessage(assignmentEligibility.reason)
+          : 'Checking tutor request eligibility…')}
+        {assignmentEligibility && [
+          'dob_missing',
+          'dob_invalid',
+          'age_unverified',
+          'age_verification_pending',
+          'age_verification_rejected'
+        ].includes(assignmentEligibility.reason) && (
+          <button type="button" onClick={() => setIsEditing(true)} className="ml-1 font-bold underline">
+            Update student profile
+          </button>
+        )}
+      </p>
+
+      {/* Feedback Banner */}
+      {feedback && (
+        <div className={`p-4 rounded-2xl border text-xs sm:text-sm flex items-center space-x-3 transition-all animate-fadeIn ${
+          feedback.type === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : 'bg-rose-50 border-rose-200 text-rose-900'
+        }`}>
+          {feedback.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <span className="font-semibold">{feedback.message}</span>
+        </div>
+      )}
+
+      {/* Academic Profile Summary Card */}
+      <section className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <div className="flex items-center space-x-2">
+              <GraduationCap className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-bold text-slate-900">Academic & Identity Profile</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Your registered academic credentials and student record in the EduSetu database
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setIsEditing(!isEditing);
+              setFeedback(null);
+            }}
+            className={`inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              isEditing
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600'
+            }`}
+          >
+            {isEditing ? (
+              <>
+                <X className="w-4 h-4" />
+                <span>Cancel Editing</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-4 h-4" />
+                <span>Edit Profile</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* View Mode */}
+        {!isEditing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Student ID</p>
+              <p className="text-sm font-bold font-mono text-indigo-600 mt-1">
+                {profile?.studentId || 'N/A'}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Class & Grade</p>
+              <p className="text-sm font-bold text-slate-900 mt-1">
+                {profile?.className || <span className="text-slate-400 italic">Not set</span>}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Section</p>
+              <p className="text-sm font-bold text-slate-900 mt-1">
+                {profile?.section || <span className="text-slate-400 italic">Not set</span>}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Roll Number</p>
+              <p className="text-sm font-bold text-slate-900 mt-1">
+                {profile?.rollNumber || <span className="text-slate-400 italic">Not set</span>}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</p>
+              <p className="text-xs font-semibold text-slate-800 mt-1 truncate">
+                {profile?.email || user?.email}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phone</p>
+              <p className="text-xs font-semibold text-slate-800 mt-1">
+                {profile?.phone || <span className="text-slate-400 italic">Not provided</span>}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</p>
+              <p className="text-xs font-semibold text-slate-800 mt-1 capitalize">
+                {profile?.gender || <span className="text-slate-400 italic">Not specified</span>}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date of Birth</p>
+              <p className="text-xs font-semibold text-slate-800 mt-1">
+                {profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : <span className="text-slate-400 italic">Not set</span>}
+              </p>
+            </div>
+
+            {profile?.address && (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 sm:col-span-2 md:col-span-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Address</p>
+                <p className="text-xs font-semibold text-slate-800 mt-1">
+                  {profile.address}
+                </p>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          /* Edit Form */
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+              
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Full Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Class / Grade</label>
+                <input
+                  type="text"
+                  name="className"
+                  placeholder="e.g. Class 10 / B.Tech CSE"
+                  value={editForm.className}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Section</label>
+                <input
+                  type="text"
+                  name="section"
+                  placeholder="e.g. A"
+                  value={editForm.section}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Roll Number</label>
+                <input
+                  type="text"
+                  name="rollNumber"
+                  placeholder="e.g. 101"
+                  value={editForm.rollNumber}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Phone</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="+91 98765 43210"
+                  value={editForm.phone}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Gender</label>
+                <select
+                  name="gender"
+                  value={editForm.gender}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-semibold text-slate-700">Date of Birth</label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={editForm.dateOfBirth}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1 sm:col-span-2 md:col-span-3">
+                <label className="block font-semibold text-slate-700">Address</label>
+                <textarea
+                  name="address"
+                  rows="2"
+                  placeholder="Street, City, State, Pincode"
+                  value={editForm.address}
+                  onChange={handleEditChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                ></textarea>
+              </div>
+
+            </div>
+
+            <div className="flex items-center space-x-3 pt-2">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
+      {/* Feature Modules (Attendance, Homework & Marks Active) */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Academic Modules & Communication Hub</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Access student modules, academic scores, homework tasks, attendance logs, and notices
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="p-6 rounded-3xl bg-white border-2 border-amber-500/40 hover:border-amber-500 shadow-sm transition-all flex flex-col justify-between space-y-4 cursor-pointer group" onClick={onNavigateToClasses}>
+            <div className="space-y-3"><div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200"><Calendar className="w-6 h-6" /></div><div><h3 className="text-base font-bold text-slate-900 group-hover:text-amber-700">My Classes</h3><p className="text-xs text-slate-500 mt-1 leading-relaxed">See upcoming, live, and completed teaching sessions.</p></div></div>
+            <div className="pt-2 border-t border-slate-100"><button onClick={onNavigateToClasses} className="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs">Open My Classes <ArrowRight className="inline w-3.5 h-3.5" /></button></div>
+          </div>
+          
+          {/* Card 1: Attendance (ACTIVE STEP 4B) */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-emerald-500/40 hover:border-emerald-500 shadow-sm transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-xs">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Step 4B Active
+                </span>
+              </div>
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  Attendance Tracker
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Monitor your daily classroom attendance, subject-wise percentages, and absence reports.
+                </p>
+              </div>
+
+              {/* Attendance Quick Metric */}
+              <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-emerald-700">Current Score</p>
+                  <p className="text-base font-black text-emerald-900 mt-0.5">
+                    {attendanceSummary ? `${attendanceSummary.attendancePercentage}%` : '0%'}
+                  </p>
+                </div>
+                <div className="text-right text-[11px] text-emerald-700">
+                  <span className="font-semibold">{attendanceSummary?.present || 0}</span> / {attendanceSummary?.totalClasses || 0} Attended
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={onNavigateToAttendance}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <span>View Full Attendance Log</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Homework (ACTIVE STEP 4C) */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-indigo-500/40 hover:border-indigo-500 shadow-sm transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200 shadow-xs">
+                  <ClipboardList className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300">
+                  Step 4C Active
+                </span>
+              </div>
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                  Homework & Tasks
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Access daily assignments posted by subject teachers, track due dates and submit solutions.
+                </p>
+              </div>
+
+              {/* Homework Quick Metric */}
+              <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-indigo-700">Active Tasks</p>
+                  <p className="text-base font-black text-indigo-900 mt-0.5">
+                    {homeworkStats.active} Assignment{homeworkStats.active === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <div className="text-right text-[11px] text-indigo-700">
+                  <span className="font-semibold text-amber-700">{homeworkStats.pending} Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={onNavigateToHomework}
+                className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <span>Open Homework Portal</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3: Marks & Academic Performance (ACTIVE STEP 4D) */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-purple-500/40 hover:border-purple-500 shadow-sm transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-200 shadow-xs">
+                  <Award className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300">
+                  Step 4D Active
+                </span>
+              </div>
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Academic Marks
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Review exam report cards, test scores, grading analytics, and subject performance metrics.
+                </p>
+              </div>
+
+              {/* Marks Quick Metric */}
+              <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-purple-700">Overall Score</p>
+                  <p className="text-base font-black text-purple-900 mt-0.5">
+                    {performance ? `${performance.overallPercentage}%` : '0%'}
+                  </p>
+                </div>
+                <div className="text-right text-[11px] text-purple-700">
+                  <span className="font-bold bg-purple-100 px-2 py-0.5 rounded-md border border-purple-200">
+                    Grade {performance?.overallGrade || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={onNavigateToMarks}
+                className="w-full py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <span>View Academic Report</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 4: Announcements (Step 5 Placeholder) */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
+                <Bell className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Class Notices</h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Receive real-time school circulars, exam schedules, holiday notices, and urgent teacher updates.
+                </p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                Placeholder • Step 5
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  );
+};
+
+export default StudentDashboard;

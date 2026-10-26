@@ -249,4 +249,4 @@ EduSetu was designed and engineered as a collaborative group initiative:
 
 ## 📄 License
 
-This project is licensed under the **ISC License**. Developed with ❤️ by **Arjit Katiyar, Vedant Sharma, Chandan Yadav & Vishal Mauray**.
+This project is licensed under the **ISC License**. Developed with ❤️ by **Arjit Katiyar, Vedant Sharma, Chandan Yadav & Vishal Maurya**.

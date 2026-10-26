@@ -150,6 +150,7 @@ const StudentAI = ({ onNavigateBack }) => {
   const startNewConversation = () => {
     setConversationId(`conv_${user?.id || 'anon'}_${Date.now()}`);
     setChatMessages([]);
+    setQuestion('');
     setResult(null);
     setError('');
   };

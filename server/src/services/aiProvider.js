@@ -277,11 +277,48 @@ class MockAIProvider {
   }
 
   async doubt(input) {
-    const raw = String(input?.question || '').trim();
-    const qLower = raw.toLowerCase();
+    let raw = String(input?.question || '').trim();
+    const isDeep = input?.depth === 'deep' || /in\s+deep|deep\s+dive|detail\s+me|exhaustive/i.test(raw);
+    const context = Array.isArray(input?.conversationContext) ? input.conversationContext : [];
+
+    // Context-Aware Follow-Up Query Resolution
+    // If student says "explain this in deep", "explain in detail", "tell me more", "ishe samjhao", "explain step 2"
+    const isReferential = (
+      /^(explain|tell|batao|aur|detail|deep|more|step|what\s+about|in\s+deep)/i.test(raw) ||
+      /(this|it|that|more|deep|detail|further|samjhao|again|step\s*\d+)/i.test(raw) ||
+      (raw.length < 35 && /(deep|detail|more|samjhao|further)/i.test(raw))
+    );
+
+    let effectiveQuestion = raw;
+    if (isReferential && context.length > 0) {
+      for (let i = context.length - 1; i >= 0; i--) {
+        const prevQ = String(context[i].question || '').trim();
+        if (prevQ && !/^(explain\s+this|more|tell\s+me\s+more|aur\s+batao|deep\s+dive|in\s+deep)/i.test(prevQ)) {
+          effectiveQuestion = prevQ;
+          break;
+        }
+      }
+    }
+
+    // If query is an ungrounded meta-phrase with no context (e.g. fresh chat with "explain this in deep")
+    if (/^(explain\s+this|tell\s+me\s+more|deep\s+dive|in\s+deep|aur\s+batao|explain\s+in\s+deep|aur\s+detail\s+me)/i.test(effectiveQuestion.trim())) {
+      return {
+        explanation: "Welcome to the EduSetu Deep-Dive Masterclass! To deliver an exhaustive breakdown with physical intuition, formal derivations, and solved exemplars, please specify which subject, law, or problem you want to explore.",
+        steps: [
+          "Physics Topics: State and explain Ohm's Law, Newton's Laws of Motion, Conservation of Energy, Ray Optics & Lenses, Gravitation.",
+          "Mathematics Topics: Trigonometric Identities, Solving Linear & Quadratic Equations, Pythagoras Theorem, Probability.",
+          "Chemistry Topics: Chemical Reactions & Balancing Equations, Acids, Bases & pH Scale, Periodic Table & Valency.",
+          "Biology & CS: Photosynthesis & Respiration, Cell Organelles & DNA, Python Loops & Functions."
+        ],
+        example: "Try typing: 'Explain Ohm's Law in detail' or 'Solve 3x + 5 = 20'.",
+        summary: "Select any topic or enter an equation above to begin an in-depth academic breakdown!"
+      };
+    }
+
+    const qLower = effectiveQuestion.toLowerCase();
 
     // 1. Math Equation Solver: e.g. "solve 2x + 6 = 16" or "3x - 5 = 10"
-    const linearMatch = raw.match(/([+-]?\s*\d*)\s*([a-zA-Z])\s*([+-]\s*\d+)\s*=\s*([+-]?\s*\d+)/);
+    const linearMatch = effectiveQuestion.match(/([+-]?\s*\d*)\s*([a-zA-Z])\s*([+-]\s*\d+)\s*=\s*([+-]?\s*\d+)/);
     if (linearMatch) {
       const varName = linearMatch[2];
       let coeff = linearMatch[1].replace(/\s+/g, '');
@@ -295,9 +332,9 @@ class MockAIProvider {
       const solution = coeff !== 0 ? (isolatedConst / coeff) : 0;
 
       return {
-        explanation: `To solve the linear equation ${raw}, we use inverse operations to isolate the variable ${varName}.`,
+        explanation: `To solve the linear equation ${effectiveQuestion}, we use inverse operations to isolate the variable ${varName}.`,
         steps: [
-          `Step 1: Write down the equation: ${raw}.`,
+          `Step 1: Write down the equation: ${effectiveQuestion}.`,
           `Step 2: Move the constant term (${constant > 0 ? '+' : ''}${constant}) to the right side by doing the inverse operation: ${coeff}${varName} = ${rhs} - (${constant}) = ${isolatedConst}.`,
           `Step 3: Divide both sides by the coefficient of ${varName} (${coeff}): ${varName} = ${isolatedConst} / ${coeff} = ${solution}.`,
           `Step 4: Check your answer: substitute ${varName} = ${solution} back into the original equation to verify that both sides balance.`
@@ -311,6 +348,20 @@ class MockAIProvider {
     // 2. Python / Loops / Programming
     if (qLower.includes('python') || qLower.includes('loop') || qLower.includes('coding') || qLower.includes('program')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Python Loops & Iteration Control] Loops in Python automate repetitive logic by iterating over iterable objects or maintaining state until a terminal condition evaluates to False.",
+          steps: [
+            "1. Mental Model & Architecture: A 'for' loop is definite iteration using Python's Iterator Protocol (__iter__ and __next__). A 'while' loop is indefinite, running dynamically while a boolean expression remains True.",
+            "2. Iterables vs Iterators: range(start, stop, step) produces a memory-efficient sequence on the fly without storing all numbers in RAM simultaneously.",
+            "3. Control Flow & Advanced Keywords: 'break' terminates loop execution immediately; 'continue' jumps directly to the next iteration; 'else' block executes ONLY if the loop finishes normally without encountering a 'break'.",
+            "4. Solved Exemplar & Complexity: Task: Sum only even numbers in a list [1, 2, 3, 4, 5, 6]. Python Code:\ntotal = sum(x for x in [1, 2, 3, 4, 5, 6] if x % 2 == 0) # Time: O(N), Space: O(1).",
+            "5. High-Yield Exam / Coding Pitfalls: Trap A: Modifying a list (e.g. list.remove(x)) while actively iterating over it causes skipped elements. Trap B: Forgetting loop variable updates in while-loops creates infinite loops."
+          ],
+          example: "# Deep Dive Exemplar: List Comprehension with Filter\nevens_squared = [x**2 for x in range(1, 11) if x % 2 == 0]\nprint(evens_squared) # Output: [4, 16, 36, 64, 100]",
+          summary: "Python loops combine clean syntax with generator memory efficiency. Master 'for item in iterable' for collections and 'while condition' for state-driven execution."
+        };
+      }
       if (isHindi) {
         return {
           explanation: 'Python में Loop एक ऐसी तकनीक (control structure) है जिसका उपयोग किसी कोड ब्लॉक को बार-बार (repeatedly) चलाने के लिए किया जाता है।',
@@ -340,6 +391,19 @@ class MockAIProvider {
     // 3. Photosynthesis
     if (qLower.includes('photosynthesis') || qLower.includes('photo synthesis')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Photosynthesis Biochemical Mechanism] Photosynthesis is the anabolic process by which photoautotrophs convert light radiant energy into chemical energy stored in glucose bonds: 6CO₂ + 6H₂O + Photons -> C₆H₁₂O₆ + 6O₂.",
+          steps: [
+            "1. Dual-Phase Mechanism: A) Light-Dependent Reactions (in Thylakoid membranes): Photons split water (Photolysis: 2H₂O -> 4H⁺ + 4e⁻ + O₂), generating ATP and NADPH. B) Light-Independent Calvin Cycle (in Stroma): CO₂ is fixed by RuBisCO enzyme to produce G3P / Glucose.",
+            "2. Limiting Factors (Blackman's Law): Photosynthetic rate is constrained by the factor in shortest supply: Light intensity, CO₂ concentration (optimal ~0.04%), or Temperature (enzyme denaturation above 40°C).",
+            "3. Ecological Significance: Produces 100% of atmospheric oxygen required for aerobic respiration and serves as the primary trophic energy source for the biosphere.",
+            "4. Common Exam Pitfalls: Trap A: Plants DO undergo cellular respiration 24 hours a day using mitochondria; photosynthesis only operates when light is absorbed. Trap B: The oxygen released comes from splitting WATER (H₂O), NOT from carbon dioxide."
+          ],
+          example: "Chemical Reaction: 6CO₂ + 6H₂O + Solar Photons (Chlorophyll) -> C₆H₁₂O₆ (Glucose) + 6O₂ (Atmospheric Oxygen)",
+          summary: "Photosynthesis couples photon absorption in thylakoids with RuBisCO carbon fixation in stroma to power living systems."
+        };
+      }
       if (isHindi) {
         return {
           explanation: 'Photosynthesis (प्रकाश संश्लेषण) वह प्रक्रिया है जिसके द्वारा हरे पौधे सूर्य के प्रकाश, पानी और कार्बन डाइऑक्साइड की मदद से अपना भोजन (ग्लूकोज) बनाते हैं।',
@@ -368,9 +432,23 @@ class MockAIProvider {
       };
     }
 
-    // 3. Newton's Laws / Force / Gravity
+    // 4. Newton's Laws / Force / Gravity
     if (qLower.includes('newton') || qLower.includes('gravity') || qLower.includes('gurutv') || qLower.includes('force')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Newton's Laws of Motion & Dynamics] Sir Isaac Newton formulated the three core physical laws describing how forces dictate changes in momentum and kinetic state.",
+          steps: [
+            "1. Physical Intuition: First Law (Inertia): A body has an inherent resistance to changing its velocity. A coffee cup slides off a dashboard when a car brakes because no net force acts on the cup to stop its forward momentum.",
+            "2. Mathematical Derivation: Second Law: Force is defined as the time derivative of momentum: F = dp/dt = d(mv)/dt. For constant mass m: F = m * (dv/dt) = m * a. Impulse J = ∫ F dt = Δp.",
+            "3. Mutual Interaction: Third Law: Forces always occur in simultaneous, equal, and opposite pairs: F_AB = -F_BA. Action and reaction forces NEVER act on the same body; they act on distinct bodies and therefore never cancel each other out.",
+            "4. Solved Exemplar: A 1200 kg car accelerates from 0 to 20 m/s in 5 seconds. Acceleration a = (v - u)/t = (20 - 0)/5 = 4 m/s². Required net force: F = m * a = 1200 * 4 = 4,800 Newtons.",
+            "5. High-Yield Exam Traps: Trap A: Inertia depends ONLY on mass, not on velocity or size. Trap B: An object moving at constant velocity has ZERO net force (a = 0)."
+          ],
+          example: "Calculated Exemplar: F = m * a | Weight W = m * g (where g = 9.8 m/s² on Earth).",
+          summary: "Newton's laws bridge kinematics and dynamics: mass measures inertia, net force causes acceleration (F = ma), and all interactions are reciprocal (F_AB = -F_BA)."
+        };
+      }
       if (isHindi) {
         return {
           explanation: "न्यूटन के गति के तीन मूलभूत नियम (Newton's Laws of Motion) किसी वस्तु पर लगने वाले बल और उसकी गति के सम्बंध को समझाते हैं।",
@@ -397,9 +475,23 @@ class MockAIProvider {
       };
     }
 
-    // 4. Ohm's Law & Electricity
+    // 5. Ohm's Law & Electricity
     if (qLower.includes('ohm') || qLower.includes('resistance') || qLower.includes('voltage') || qLower.includes('current') || qLower.includes('vidyut')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao') || qLower.includes('kahiye');
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Ohm’s Law & Microscopic Current Derivation] Ohm’s Law states that at constant temperature and physical conditions, the electric current (I) through a conductor is directly proportional to the potential difference (V) across its ends: V = I × R.",
+          steps: [
+            "1. Physical Intuition & Mental Model: Imagine water circulating in a pipe. Potential difference (Voltage V) is the pump pressure; Current (I) is the flow volume of water per second; Resistance (R) is constriction or obstacles in the pipe. More pressure = more flow; narrower pipe = less flow (I = V / R).",
+            "2. Formal Microscopic Derivation: In an electric field E = V/L, conduction electrons undergo acceleration and collide with lattice ions. Average drift velocity: v_d = (e * E * τ) / m, where τ is relaxation time. Electric current I = n * e * A * v_d = (n * e² * A * τ / m) * (V / L). Rearranging yields V = [ m / (n * e² * τ) * (L / A) ] * I = I * R. Here, Resistivity ρ = m / (n * e² * τ) and Resistance R = ρ * (L / A).",
+            "3. Step-by-Step Solved Exemplar: Problem: A heating coil of length 5 m, cross-sectional area 2.0 × 10⁻⁷ m², and resistivity ρ = 1.0 × 10⁻⁶ Ω·m is connected across a 220 V supply. Step A: Resistance R = ρ * (L / A) = (1.0 × 10⁻⁶ * 5) / (2.0 × 10⁻⁷) = 25 Ω. Step B: Current I = V / R = 220 V / 25 Ω = 8.8 Amperes. Step C: Power dissipated P = V * I = 220 * 8.8 = 1,936 Watts.",
+            "4. High-Yield Exam Pitfalls: Trap A: Ohm's Law is NOT a universal fundamental law; it is an empirical property of metallic conductors. Diodes, transistors, thermistors, and electrolyte solutions are Non-Ohmic. Trap B: Metallic resistance increases with temperature: R_T = R_0 * (1 + α * ΔT).",
+            "5. Summary & Formula Takeaways: V = I * R | R = ρ * (L / A) | P = V * I = I² * R = V² / R. Units: V (Volts), I (Amperes), R (Ohms Ω), ρ (Ohm-meters Ω·m)."
+          ],
+          example: "Verified Calculation: With V = 24 V and R = 6 Ω, current I = 24 / 6 = 4.0 A. Electric power P = 24 * 4 = 96 Watts.",
+          summary: "Ohm's Law V = IR is derived microscopically from electron drift velocity. Remember: R = ρL/A, and Ohm's law strictly requires constant temperature."
+        };
+      }
       if (isHindi) {
         return {
           explanation: "ओम का नियम (Ohm's Law) कहता है कि यदि किसी चालक (conductor) की भौतिक अवस्थाएँ (जैसे तापमान) स्थिर रहें, तो उसके दोनों सिरों के बीच का विभवांतर (Voltage, V) उसमें प्रवाहित विद्युत धारा (Current, I) के समानुपाती होता है: V ∝ I, अर्थात् V = I × R।",
@@ -428,9 +520,22 @@ class MockAIProvider {
       };
     }
 
-    // 5. Conservation of Energy
+    // 6. Conservation of Energy
     if (qLower.includes('conservation of energy') || qLower.includes('energy conservation') || qLower.includes('urja sanrakshan')) {
       const isHindi = qLower.includes('kya') || qLower.includes('kaise') || qLower.includes('batao');
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Conservation of Energy & Work-Energy Theorem] The First Law of Thermodynamics and Mechanical Energy Conservation state that total energy in an isolated system remains constant: E_total = Constant.",
+          steps: [
+            "1. Physical Intuition: Think of a closed financial bank account. You can withdraw cash (convert Potential Energy to Kinetic Energy) or deposit cash, but without external theft or deposit, the total balance remains invariant.",
+            "2. Mathematical Derivation: Work-Energy Theorem: Net Work W = ∫ F dx = ∫ m (v dv/dx) dx = ∫ m v dv = ½ m v_f² - ½ m v_i² = ΔKE. For conservative forces (gravity, ideal springs), Work W = -ΔPE. Hence, ΔKE + ΔPE = 0 => Total Mechanical Energy (KE + PE) = Constant.",
+            "3. Solved Exemplar: A 2 kg ball is dropped from a height of h = 20 m (g = 9.8 m/s²). Top of fall: KE_1 = 0, PE_1 = mgh = 2 * 9.8 * 20 = 392 Joules. Just before ground: PE_2 = 0, so KE_2 = ½mv² = 392 Joules => v = √(2 * 392 / 2) = √392 ≈ 19.8 m/s.",
+            "4. High-Yield Exam Pitfalls: Trap A: If friction or drag is present, mechanical energy is NOT conserved; some energy converts into thermal dissipation (W_nc = ΔE_mechanical). Trap B: Mass and energy are interchangeable in nuclear reactions via Einstein's E = mc²."
+          ],
+          example: "Mechanical Invariance: E = ½mv² + mgh = Constant (in conservative field).",
+          summary: "Energy transforms continuously across forms, but the net universe sum is constant (ΔE = 0)."
+        };
+      }
       if (isHindi) {
         return {
           explanation: "ऊर्जा संरक्षण का नियम (Law of Conservation of Energy) यह बताता है कि ऊर्जा को न तो उत्पन्न किया जा सकता है और न ही नष्ट किया जा सकता है; इसे केवल एक रूप से दूसरे रूप में बदला जा सकता है। ब्रह्मांड की कुल ऊर्जा हमेशा स्थिर रहती है।",
@@ -457,8 +562,21 @@ class MockAIProvider {
       };
     }
 
-    // 6. Cell Biology & Genetics (DNA / RNA / Mitochondria)
+    // 7. Cell Biology & Genetics (DNA / RNA / Mitochondria)
     if (qLower.includes('cell') || qLower.includes('mitochondria') || qLower.includes('dna') || qLower.includes('rna') || qLower.includes('gene')) {
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Cell Structure & Molecular Genetics] Cells are the fundamental structural and functional units of all life. Within eukaryotic cells, compartmentalized organelles and nucleic acids coordinate metabolism, energy generation, and heredity.",
+          steps: [
+            "1. Structural Compartmentalization: Nucleus (stores chromosomal genomic DNA), Mitochondria (ATP production via oxidative phosphorylation), Endoplasmic Reticulum & Golgi Apparatus (protein folding, sorting, and lipid synthesis).",
+            "2. Molecular Architecture of DNA: Double-helix antiparallel polymer of deoxyribonucleotides. Nitrogenous bases follow Chargaff's rules: Adenine pairs with Thymine (A=T via 2 hydrogen bonds), and Guanine pairs with Cytosine (G≡C via 3 hydrogen bonds).",
+            "3. Central Dogma of Molecular Biology: Genetic flow: DNA replication -> Transcription (mRNA synthesis in nucleus) -> Translation (Polypeptide synthesis at ribosomes).",
+            "4. High-Yield Exam Pitfalls: Trap A: Mitochondria and chloroplasts are semi-autonomous (Endosymbiotic Theory) — they possess their own circular DNA and 70S ribosomes. Trap B: Plant cells possess cell walls and chloroplasts; animal cells have neither."
+          ],
+          example: "Human Genome Reference: 23 pairs of chromosomes (46 total) encoding roughly 21,000 protein-coding genes.",
+          summary: "Cellular compartmentalization and complementary base pairing (A-T, G-C) guarantee metabolic efficiency and high-fidelity genetic replication."
+        };
+      }
       return {
         explanation: "In biology, the cell is the fundamental structural, functional, and biological unit of all living organisms. Within cells, specialized organelles and nucleic acids (DNA/RNA) drive metabolism, energy production, and heredity.",
         steps: [
@@ -472,8 +590,21 @@ class MockAIProvider {
       };
     }
 
-    // 7. Chemistry: Acids, Bases, pH, and Chemical Bonding
+    // 8. Chemistry: Acids, Bases, pH, and Chemical Bonding
     if (qLower.includes('acid') || qLower.includes('base') || qLower.includes('ph') || qLower.includes('bond') || qLower.includes('atom') || qLower.includes('periodic')) {
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Acids, Bases & Chemical Thermodynamics] Acid-base chemistry examines proton and electron transfers that govern molecular bonding, equilibrium constants, and biological buffer systems.",
+          steps: [
+            "1. Theoretical Frameworks: A) Arrhenius: Acids release H⁺ in water; Bases release OH⁻. B) Brønsted-Lowry: Acids are proton (H⁺) donors; Bases are proton acceptors. C) Lewis: Acids are electron-pair acceptors; Bases are electron-pair donors.",
+            "2. Mathematical Definition of pH: pH = -log₁₀[H⁺]. Water auto-ionization: K_w = [H⁺][OH⁻] = 1.0 × 10⁻¹⁴ at 25°C. Hence, pH + pOH = 14.",
+            "3. Solved Exemplar: Calculate pH of 0.005 M H₂SO₄ (strong diprotic acid). Complete dissociation: [H⁺] = 2 × 0.005 M = 0.010 M = 1.0 × 10⁻² M. pH = -log₁₀(10⁻²) = 2.0.",
+            "4. High-Yield Exam Traps: Trap A: Diluting a strong acid infinitely NEVER makes it basic (a 10⁻⁸ M HCl solution has pH ≈ 6.98 due to water auto-ionization, NOT 8). Trap B: Strong vs Concentrated — 'strong' means complete dissociation, 'concentrated' means high molarity."
+          ],
+          example: "Neutralization: Strong acid + Strong base -> Salt + Water + Heat (Exothermic: ΔH ≈ -57.1 kJ/mol).",
+          summary: "Acids and bases drive aqueous equilibria. pH is a logarithmic scale (-log[H⁺]) where each integer represents a 10-fold change in acidity."
+        };
+      }
       return {
         explanation: "Chemistry studies matter, atomic structure, and chemical interactions through which valence electrons form bonds to create stable compounds.",
         steps: [
@@ -487,8 +618,21 @@ class MockAIProvider {
       };
     }
 
-    // 8. Trigonometry & Geometry
+    // 9. Trigonometry & Geometry
     if (qLower.includes('trigonometry') || qLower.includes('sin') || qLower.includes('cos') || qLower.includes('tan') || qLower.includes('pythagor')) {
+      if (isDeep) {
+        return {
+          explanation: "[Deep-Dive Masterclass: Trigonometric Functions & Analytical Geometry] Trigonometry defines circular functions connecting angle measures with coordinate projections on the unit circle (x = cos θ, y = sin θ).",
+          steps: [
+            "1. Geometric Foundation: On a right-angled triangle with hypotenuse c and legs a, b: sin θ = opp/hyp, cos θ = adj/hyp, tan θ = opp/adj (SOH CAH TOA).",
+            "2. Unit Circle & Pythagorean Identities: On x² + y² = 1, substituting x = cos θ and y = sin θ yields: sin²θ + cos²θ = 1. Dividing by cos²θ yields: 1 + tan²θ = sec²θ. Dividing by sin²θ yields: 1 + cot²θ = cosec²θ.",
+            "3. Solved Exemplar (Heights & Distances): A surveyor observes the top of a 50 m lighthouse at an angle of elevation of 30°. Distance from base d = 50 / tan(30°) = 50 / (1/√3) = 50√3 ≈ 86.6 meters.",
+            "4. High-Yield Exam Traps: Trap A: sin⁻¹(x) represents arcsin (the angle whose sine is x), NOT 1 / sin(x). Reciprocal of sin(x) is cosec(x). Trap B: Angles must be in radians when doing calculus (d/dx [sin x] = cos x only in radians)."
+          ],
+          example: "Standard Values: sin(0°)=0, sin(30°)=1/2, sin(45°)=1/√2, sin(60°)=√3/2, sin(90°)=1.",
+          summary: "Trigonometric identities originate from the unit circle. Master sin²θ + cos²θ = 1 and reciprocal relations for effortless board problem solving."
+        };
+      }
       return {
         explanation: "Trigonometry studies the mathematical relationships between the side lengths and interior angles of triangles.",
         steps: [
@@ -502,24 +646,24 @@ class MockAIProvider {
       };
     }
 
-    // 4. Default Intelligent Academic Explanation
-    if (input?.depth === 'deep') {
+    // 10. Intelligent Academic Fallback for custom topics
+    const cleanTopic = effectiveQuestion.length > 50 ? effectiveQuestion.slice(0, 47) + '...' : effectiveQuestion;
+    if (isDeep) {
       return {
-        explanation: `[Deep-Dive Concept Masterclass] Here is an exhaustive, rigorous breakdown for "${raw}". We analyze its intuitive foundation, formal mathematical principles, and practical problem-solving strategies.`,
+        explanation: `[Deep-Dive Concept Masterclass: ${cleanTopic}] Here is a rigorous, curriculum-grounded analysis of "${cleanTopic}", examining its foundational mechanisms, mathematical principles, and practical problem-solving applications.`,
         steps: [
-          `1. Intuitive Foundation & Physical Analogy: Consider "${raw}" through physical real-world analogies. Developing mental models allows you to visualize underlying mechanisms before manipulating formal formulas.`,
-          `2. Formal Theoretical Framework & Derivations: In standard curricula, this concept is grounded in foundational conservation laws and algebraic relations. Every quantity must preserve strict dimensional and unit consistency (SI units).`,
-          `3. Step-by-Step Solved Exemplar: When tackling exam questions, write out all given variables with units, state the governing equation, isolate the target unknown algebraically before plugging in numbers, and simplify methodically.`,
-          `4. High-Yield Exam Traps & Misconceptions: Frequent mistakes include sign convention errors (e.g. positive vs negative coordinate axes), missing unit conversions (e.g. cm to meters, grams to kilograms), and confusing instantaneous vs average rates of change.`,
-          `5. Summary & Formula Takeaways: Review governing equations, note boundary conditions (limits as variables approach 0 or infinity), and verify that answers make physical sense.`
+          `1. Intuitive Foundation & Mental Models: To master "${cleanTopic}", visualize the underlying physical or conceptual mechanisms. Real-world analogies anchor abstract textbook statements into concrete mental models before manipulating formal equations.`,
+          `2. Theoretical Framework & Governing Laws: In standard high-school and board curricula, this concept is grounded in fundamental conservation laws and strict dimensional consistency. Always verify SI units and algebraic sign conventions.`,
+          `3. Step-by-Step Problem-Solving Method: When tackling exam questions: A) List all given variables with units, B) State the governing theorem or equation, C) Isolate the unknown variable algebraically first, and D) Substitute numerical values and round appropriately.`,
+          `4. High-Yield Exam Pitfalls & Misconceptions: Common mistakes include unit conversion omissions (e.g. centimeters to meters, minutes to seconds), confusing instantaneous versus average values, and assuming formulas apply outside their boundary conditions.`,
+          `5. Core Summary & Verification: After computing your answer, perform a sanity check: Does the magnitude make physical sense? Test boundary conditions (what happens when values approach 0 or infinity?).`
         ],
-        example: 'Pro-Tip: Always sketch a diagram or write out given values before substituting into equations.',
-        summary: `Mastering "${raw}" requires connecting physical intuition with algebraic rigor and avoiding frequent calculation traps.`,
-        practiceQuestions: [`Explain the core derivation of: ${raw.slice(0, 50)} in your own words.`, `What happens under extreme boundary conditions?`]
+        example: `Exam Pro-Tip: Always sketch a labeled diagram or write out given values before substituting into equations for ${cleanTopic}.`,
+        summary: `Mastering ${cleanTopic} requires connecting intuitive mental models with step-by-step mathematical rigor and disciplined unit verification.`
       };
     }
     return {
-      explanation: `Here is a clear, structured explanation for your question: "${raw}". In education, understanding the fundamental principle first helps connect concepts to practice problems.`,
+      explanation: `Here is a clear, structured explanation for your question on "${cleanTopic}". Understanding the foundational definition first helps connect theory to practice problems.`,
       steps: [
         'Step 1: Identify the central concept, given values, and target outcome from the problem.',
         'Step 2: Recall the underlying definition, theorem, or scientific rule that governs this concept.',
@@ -527,8 +671,8 @@ class MockAIProvider {
         'Step 4: Verify the result by testing edge cases or reversing the working to confirm accuracy.'
       ],
       example: 'Work through one simple numerical or conceptual case before tackling complex problems.',
-      summary: `Focus on mastering the definition of ${raw.slice(0, 40)}, writing down the step-by-step logic, and testing yourself with practice questions.`,
-      practiceQuestions: [`Explain the core idea of: ${raw.slice(0, 50)} in your own words.`, `Give a real-life application of this concept.`]
+      summary: `Focus on mastering the definition of ${cleanTopic}, writing down step-by-step logic, and testing yourself with practice questions.`,
+      practiceQuestions: [`Explain the core idea of ${cleanTopic} in your own words.`, `Give a real-life application of this concept.`]
     };
   }
 

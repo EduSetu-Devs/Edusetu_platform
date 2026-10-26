@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -71,7 +73,6 @@ app.use('/api', apiRoutes);
 
 // Serve frontend static build if present
 const clientDistPath = path.resolve(__dirname, '../../client/dist');
-const fs = require('fs');
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {

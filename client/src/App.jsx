@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import StatusCard from './components/StatusCard';
 import RoleCard from './components/RoleCard';
 import ArchitectureSection from './components/ArchitectureSection';
 import Footer from './components/Footer';
@@ -619,15 +618,6 @@ function AppContent() {
                   </>
                 )}
               </div>
-            </section>
-
-            {/* System Status Card */}
-            <section>
-              <StatusCard
-                backendHealth={backendHealth}
-                isChecking={isChecking}
-                onRefresh={verifyBackend}
-              />
             </section>
 
             {/* Roles Breakdown */}

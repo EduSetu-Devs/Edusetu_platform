@@ -250,7 +250,12 @@ const askDoubt = async (req, res) => {
     try {
       answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
     } catch (error) {
-      throw error;
+      if (error && (error.status === 429 || error.status === 503 || !error.status)) {
+        console.warn('[AI Doubt] External LLM temporarily unavailable, using curriculum engine fallback:', error.message);
+        answer = await mockAI.doubt({ question, depth, conversationContext });
+      } else {
+        throw error;
+      }
     }
     if (!answer || typeof answer.explanation !== 'string' || !answer.explanation.trim()
       || !Array.isArray(answer.steps) || answer.steps.some((step) => typeof step !== 'string')

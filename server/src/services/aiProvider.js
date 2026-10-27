@@ -840,7 +840,7 @@ Return strictly valid JSON:
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${process.env.AI_API_KEY}`,
-            'HTTP-Referer': 'http://localhost:5173',
+            'HTTP-Referer': process.env.CLIENT_URL || 'https://edusetu-platform.onrender.com',
             'X-Title': 'EduSetu'
           },
           body: JSON.stringify({

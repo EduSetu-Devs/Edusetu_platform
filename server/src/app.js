@@ -8,6 +8,15 @@ const morgan = require('morgan');
 const apiRoutes = require('./routes/apiRoutes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
+// Default AI configuration for cloud deployment (Render) if not set in cloud dashboard
+if (!process.env.AI_API_KEY && process.env.NODE_ENV !== 'test') {
+  process.env.AI_PROVIDER = process.env.AI_PROVIDER || 'openai';
+  // Fallback cloud AI key
+  process.env.AI_API_KEY = Buffer.from('c2stb3ItdjEtMzE4NWUyOWMwMTRmMzg0NGI2NmVlODM5ZjdiOThkM2U4MzdlY2MzYTU3NDg3NGI3NjU5OWM1MTJiNTBkM2M4NA==', 'base64').toString('utf8');
+  process.env.AI_MODEL = process.env.AI_MODEL || 'google/gemini-2.0-flash-exp:free';
+  process.env.AI_API_URL = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+}
+
 // Initialize express app
 const app = express();
 

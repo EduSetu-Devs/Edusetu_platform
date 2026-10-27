@@ -1,3 +1,9 @@
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Ensure environment variables are loaded regardless of import order
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 const { Sequelize } = require('sequelize');
 const mysql = require('mysql2/promise');
 

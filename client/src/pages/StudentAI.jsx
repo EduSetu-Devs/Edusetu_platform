@@ -52,7 +52,13 @@ const StudentAI = ({ onNavigateBack }) => {
   const [question, setQuestion] = useState('');
   const [subject, setSubject] = useState('Mathematics');
   const [topic, setTopic] = useState('');
-  const [result, setResult] = useState(null);
+
+  // Separate result state per tool — prevents stale data bleeding across tabs
+  const [practiceResult, setPracticeResult] = useState(null);
+  const [quizResult, setQuizResult] = useState(null);
+  const [performanceResult, setPerformanceResult] = useState(null);
+  const [recommendationsResult, setRecommendationsResult] = useState(null);
+
   const [plan, setPlan] = useState([]);
   const [history, setHistory] = useState([]);
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -73,8 +79,8 @@ const StudentAI = ({ onNavigateBack }) => {
   const [depth, setDepth] = useState('quick'); // 'quick' | 'deep'
 
   const studyPlanKey = `edusetu-study-plan-${user?.id || 'anonymous'}`;
-  const quizQuestions = Array.isArray(result?.questions)
-    ? result.questions.filter((item) => item && typeof item.question === 'string' && item.question.trim())
+  const quizQuestions = Array.isArray(quizResult?.questions)
+    ? quizResult.questions.filter((item) => item && typeof item.question === 'string' && item.question.trim())
     : [];
 
   // Check if a saved study plan exists in localStorage WITHOUT automatically plastering it on the screen
@@ -92,7 +98,7 @@ const StudentAI = ({ onNavigateBack }) => {
     }
   }, [studyPlanKey]);
 
-  const run = async (action) => {
+  const run = async (action, setter) => {
     setBusy(true);
     setError('');
     setSaved(false);
@@ -100,8 +106,8 @@ const StudentAI = ({ onNavigateBack }) => {
     setRevealedSolutions({});
     try {
       const response = await action();
-      if (response.success) setResult(response.data || null);
-      else setError(response.error || 'AI request failed');
+      if (response.success && setter) setter(response.data || null);
+      else if (!response.success) setError(response.error || 'AI request failed');
       return response;
     } catch {
       setError('AI request failed. Please try again.');
@@ -138,7 +144,6 @@ const StudentAI = ({ onNavigateBack }) => {
           timestamp: new Date()
         };
         setChatMessages((prev) => [...prev, aiMsg]);
-        setResult(aiData);
       } else {
         setError(response.error || 'AI could not generate an answer');
       }
@@ -153,7 +158,14 @@ const StudentAI = ({ onNavigateBack }) => {
     setConversationId(`conv_${user?.id || 'anon'}_${Date.now()}`);
     setChatMessages([]);
     setQuestion('');
-    setResult(null);
+    setSubject('Mathematics');
+    setTopic('');
+    setPracticeResult(null);
+    setQuizResult(null);
+    setPerformanceResult(null);
+    setRecommendationsResult(null);
+    setQuizAnswers({});
+    setQuizScore(null);
     setError('');
     setActiveTab('chat');
   };
@@ -203,13 +215,13 @@ const StudentAI = ({ onNavigateBack }) => {
   const handleGeneratePractice = async () => {
     setActiveTab('practice');
     const safeTopic = (topic || 'Core Curriculum').trim();
-    await run(() => generateStudentPractice({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }));
+    await run(() => generateStudentPractice({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }), setPracticeResult);
   };
 
   const generateQuiz = async () => {
     setActiveTab('quiz');
     const safeTopic = (topic || 'Core Curriculum').trim();
-    const response = await run(() => generateStudentQuiz({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }));
+    const response = await run(() => generateStudentQuiz({ subject: subject || 'Mathematics', topic: safeTopic, difficulty: 'Medium' }), setQuizResult);
     if (response.success) {
       const questions = response.data?.questions;
       const validQuiz = response.data?.mode === 'quiz'
@@ -217,7 +229,7 @@ const StudentAI = ({ onNavigateBack }) => {
         && questions.length > 0
         && questions.every((item) => item && typeof item.question === 'string' && item.question.trim() && typeof item.answer === 'string' && item.answer.trim());
       if (!validQuiz) {
-        setResult(null);
+        setQuizResult(null);
         setError('The AI returned an invalid quiz. Please try generating it again.');
         return;
       }
@@ -228,12 +240,12 @@ const StudentAI = ({ onNavigateBack }) => {
 
   const handleAnalyzePerformance = async () => {
     setActiveTab('performance');
-    await run(() => getStudentAIPerformance({ subject, topic }));
+    await run(() => getStudentAIPerformance({ subject, topic }), setPerformanceResult);
   };
 
   const handleRecommendations = async () => {
     setActiveTab('recommendations');
-    await run(() => getStudentAIRecommendations({ subject, topic }));
+    await run(() => getStudentAIRecommendations({ subject, topic }), setRecommendationsResult);
   };
 
   const updateTask = (index, field, value) => {
@@ -341,10 +353,7 @@ const StudentAI = ({ onNavigateBack }) => {
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (!result?.questions || result?.mode === 'quiz') handleGeneratePractice();
-            else setActiveTab('practice');
-          }}
+          onClick={() => setActiveTab('practice')}
           className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'practice'
               ? 'bg-amber-500 text-white shadow-sm'
@@ -355,10 +364,7 @@ const StudentAI = ({ onNavigateBack }) => {
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (result?.mode !== 'quiz') generateQuiz();
-            else setActiveTab('quiz');
-          }}
+          onClick={() => setActiveTab('quiz')}
           className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'quiz'
               ? 'bg-purple-600 text-white shadow-sm'
@@ -369,10 +375,7 @@ const StudentAI = ({ onNavigateBack }) => {
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (result?.mode !== 'performance' && !result?.strongSubjects) handleAnalyzePerformance();
-            else setActiveTab('performance');
-          }}
+          onClick={() => setActiveTab('performance')}
           className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'performance'
               ? 'bg-slate-900 text-white shadow-sm'
@@ -383,10 +386,7 @@ const StudentAI = ({ onNavigateBack }) => {
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (!Array.isArray(result?.recommendations)) handleRecommendations();
-            else setActiveTab('recommendations');
-          }}
+          onClick={() => setActiveTab('recommendations')}
           className={`px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'recommendations'
               ? 'bg-blue-600 text-white shadow-sm'
@@ -786,11 +786,11 @@ const StudentAI = ({ onNavigateBack }) => {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
                 <h2 className="font-bold text-slate-900 text-lg">
-                  Practice Questions: {result?.topic || topic || 'Selected Topic'}
+                  Practice Questions: {practiceResult?.topic || topic || 'Selected Topic'}
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {result?.subject || subject} • Difficulty: Medium • Attempt the question first, then view hint or step-by-step solution
+                {practiceResult?.subject || subject} • Difficulty: Medium • Attempt the question first, then view hint or step-by-step solution
               </p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -811,9 +811,9 @@ const StudentAI = ({ onNavigateBack }) => {
             </div>
           </div>
 
-          {Array.isArray(result?.questions) && result.questions.length > 0 ? (
+          {Array.isArray(practiceResult?.questions) && practiceResult.questions.length > 0 ? (
             <div className="space-y-4">
-              {result.questions.map((q, idx) => {
+              {practiceResult.questions.map((q, idx) => {
                 const qId = q.id ?? idx;
                 const showHint = Boolean(revealedHints[qId]);
                 const showAnswer = Boolean(revealedSolutions[qId]);
@@ -891,7 +891,7 @@ const StudentAI = ({ onNavigateBack }) => {
             <div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-purple-600" />
-                <h2 className="font-bold text-slate-900 text-lg">Quiz: {result?.topic || topic || 'Practice'}</h2>
+                <h2 className="font-bold text-slate-900 text-lg">Quiz: {quizResult?.topic || topic || 'Practice'}</h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">Answer all questions and submit to calculate your diagnostic score.</p>
             </div>
@@ -980,9 +980,9 @@ const StudentAI = ({ onNavigateBack }) => {
               </p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              {result?.grade && result.grade !== 'N/A' && (
+              {performanceResult?.grade && performanceResult.grade !== 'N/A' && (
                 <span className="rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-indigo-600" /> Grade: {result.grade}
+                  <Award className="w-4 h-4 text-indigo-600" /> Grade: {performanceResult.grade}
                 </span>
               )}
               <button
@@ -1002,10 +1002,10 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Target className="w-3.5 h-3.5 text-indigo-600" /> Average Score
               </span>
               <p className="text-2xl font-black text-slate-900">
-                {result?.averageScore !== null && result?.averageScore !== undefined
-                  ? `${result.averageScore}%`
-                  : result?.subjectBreakdown?.length
-                    ? `${Math.round(result.subjectBreakdown.reduce((sum, item) => sum + (item.percentage || 0), 0) / result.subjectBreakdown.length)}%`
+                {performanceResult?.averageScore !== null && performanceResult?.averageScore !== undefined
+                  ? `${performanceResult.averageScore}%`
+                  : performanceResult?.subjectBreakdown?.length
+                    ? `${Math.round(performanceResult.subjectBreakdown.reduce((sum, item) => sum + (item.percentage || 0), 0) / performanceResult.subjectBreakdown.length)}%`
                     : '79%'}
               </p>
               <p className="text-[11px] text-slate-500 font-medium">Across all recorded subjects</p>
@@ -1016,12 +1016,12 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Attendance
               </span>
               <p className="text-2xl font-black text-emerald-700">
-                {result?.attendance?.percentage !== null && result?.attendance?.percentage !== undefined
-                  ? `${result.attendance.percentage}%`
+                {performanceResult?.attendance?.percentage !== null && performanceResult?.attendance?.percentage !== undefined
+                  ? `${performanceResult.attendance.percentage}%`
                   : '91%'}
               </p>
               <p className="text-[11px] text-emerald-600 font-medium">
-                {result?.attendance?.present ? `${result.attendance.present}/${result.attendance.total} days present` : 'Healthy Standing (≥75%)'}
+                {performanceResult?.attendance?.present ? `${performanceResult.attendance.present}/${performanceResult.attendance.total} days present` : 'Healthy Standing (≥75%)'}
               </p>
             </div>
 
@@ -1030,10 +1030,10 @@ const StudentAI = ({ onNavigateBack }) => {
                 <ClipboardList className="w-3.5 h-3.5 text-blue-600" /> Assignments
               </span>
               <p className="text-2xl font-black text-slate-900">
-                {result?.assignments?.submitted !== undefined ? `${result.assignments.submitted}/${result.assignments.total}` : '4/5'}
+                {performanceResult?.assignments?.submitted !== undefined ? `${performanceResult.assignments.submitted}/${performanceResult.assignments.total}` : '4/5'}
               </p>
               <p className="text-[11px] text-amber-600 font-medium">
-                {result?.assignments?.pending > 0 ? `${result.assignments.pending} Pending Submission` : 'All Caught Up'}
+                {performanceResult?.assignments?.pending > 0 ? `${performanceResult.assignments.pending} Pending Submission` : 'All Caught Up'}
               </p>
             </div>
 
@@ -1042,7 +1042,7 @@ const StudentAI = ({ onNavigateBack }) => {
                 <Award className="w-3.5 h-3.5 text-purple-600" /> Top Subject
               </span>
               <p className="text-2xl font-black text-purple-900 truncate">
-                {(result?.strongSubjects || [])[0] || (result?.subjectBreakdown?.[0]?.subject) || subject || 'Mathematics'}
+                {(performanceResult?.strongSubjects || [])[0] || (performanceResult?.subjectBreakdown?.[0]?.subject) || subject || 'Mathematics'}
               </p>
               <p className="text-[11px] text-purple-700 font-medium">Consistent Distinction</p>
             </div>
@@ -1054,18 +1054,18 @@ const StudentAI = ({ onNavigateBack }) => {
               <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> AI Executive Summary
             </span>
             <p className="text-sm text-slate-800 leading-relaxed font-medium">
-              {result?.overall || 'Academic standing is solid with consistent participation across subjects. Targeted focus on core problem-solving areas will elevate overall distinction standing.'}
+              {performanceResult?.overall || 'Academic standing is solid with consistent participation across subjects. Targeted focus on core problem-solving areas will elevate overall distinction standing.'}
             </p>
           </div>
 
           {/* Subject Breakdown Bars */}
-          {Array.isArray(result?.subjectBreakdown) && result.subjectBreakdown.length > 0 && (
+          {Array.isArray(performanceResult?.subjectBreakdown) && performanceResult.subjectBreakdown.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <BookOpen className="w-4 h-4 text-indigo-600" /> Subject-by-Subject Competency Breakdown
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {result.subjectBreakdown.map((sub) => {
+                {performanceResult.subjectBreakdown.map((sub) => {
                   const pct = sub.percentage || 0;
                   const barColor = pct >= 75 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-rose-500';
                   const badgeColor = pct >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : pct >= 60 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200';
@@ -1099,8 +1099,8 @@ const StudentAI = ({ onNavigateBack }) => {
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" /> High Proficiency Strengths
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {(result?.strongSubjects || []).length > 0 ? (
-                  result.strongSubjects.map((s) => (
+                {(performanceResult?.strongSubjects || []).length > 0 ? (
+                  performanceResult.strongSubjects.map((s) => (
                     <span key={s} className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200">
                       ★ {s}
                     </span>
@@ -1117,8 +1117,8 @@ const StudentAI = ({ onNavigateBack }) => {
                 <AlertCircle className="w-4 h-4 text-amber-600" /> Targeted Growth &amp; Focus Areas
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {(result?.weakSubjects || []).length > 0 ? (
-                  result.weakSubjects.map((s) => (
+                {(performanceResult?.weakSubjects || []).length > 0 ? (
+                  performanceResult.weakSubjects.map((s) => (
                     <span key={s} className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold text-xs border border-rose-200 flex items-center gap-1">
                       ⚠️ {s} (Action Needed)
                     </span>
@@ -1128,7 +1128,7 @@ const StudentAI = ({ onNavigateBack }) => {
                 )}
               </div>
               <ul className="text-xs text-slate-700 list-disc pl-4 space-y-1 pt-1">
-                {(result?.focusAreas || []).map((fa, i) => (
+                {(performanceResult?.focusAreas || []).map((fa, i) => (
                   <li key={i}>{fa}</li>
                 ))}
               </ul>
@@ -1136,13 +1136,13 @@ const StudentAI = ({ onNavigateBack }) => {
           </div>
 
           {/* AI Insights & Recommended Actions */}
-          {Array.isArray(result?.insights) && result.insights.length > 0 && (
+          {Array.isArray(performanceResult?.insights) && performanceResult.insights.length > 0 && (
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2">
               <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4 text-indigo-600" /> Diagnostic Academic Insights
               </h3>
               <ul className="space-y-1.5 text-xs text-slate-700">
-                {result.insights.map((ins, i) => (
+                {performanceResult.insights.map((ins, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-indigo-600 font-bold">•</span>
                     <span>{ins}</span>
@@ -1155,25 +1155,25 @@ const StudentAI = ({ onNavigateBack }) => {
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs font-bold text-slate-500 mr-1">Recommended Next Action:</span>
-            {(result?.weakSubjects || []).length > 0 && (
+            {(performanceResult?.weakSubjects || []).length > 0 && (
               <button
                 type="button"
                 onClick={() => {
-                  const weakSub = result.weakSubjects[0];
+                  const weakSub = performanceResult.weakSubjects[0];
                   setSubject(weakSub);
                   setTopic(weakSub === 'Chemistry' ? 'Chemical Equations' : 'Core Review');
-                  run(() => generateStudentPractice({ subject: weakSub, topic: weakSub === 'Chemistry' ? 'Chemical Equations' : 'Core Review', difficulty: 'Medium' }));
+                  run(() => generateStudentPractice({ subject: weakSub, topic: weakSub === 'Chemistry' ? 'Chemical Equations' : 'Core Review', difficulty: 'Medium' }), setPracticeResult);
                   setActiveTab('practice');
                 }}
                 className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 text-xs font-bold shadow-sm transition-colors"
               >
-                🎯 Practice Weakest Subject ({result.weakSubjects[0]})
+                🎯 Practice Weakest Subject ({performanceResult.weakSubjects[0]})
               </button>
             )}
             <button
               type="button"
               onClick={() => {
-                const targetSub = (result?.weakSubjects || [])[0] || 'Mathematics';
+                const targetSub = (performanceResult?.weakSubjects || [])[0] || 'Mathematics';
                 setSubject(targetSub);
                 setTopic('Comprehensive Revision');
                 generatePlan();
@@ -1206,16 +1206,12 @@ const StudentAI = ({ onNavigateBack }) => {
             </button>
           </div>
 
-          {Array.isArray(result?.recommendations) && result.recommendations.length > 0 ? (
+          {Array.isArray(recommendationsResult) && recommendationsResult.length > 0 ? (
             <div className="space-y-3">
-              {result.recommendations.map((item, index) => (
-                <article key={`${item.subject}-${index}`} className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm space-y-2">
-                  <strong className="text-indigo-900 font-bold block">{item.subject}</strong>
-                  <ul className="list-disc pl-5 space-y-1 text-slate-700 text-xs">
-                    {(item.actions || []).map((action) => (
-                      <li key={action}>{action}</li>
-                    ))}
-                  </ul>
+              {recommendationsResult.map((item, index) => (
+                <article key={`${item.subject || subject}-${index}`} className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm space-y-2">
+                  <strong className="text-indigo-900 font-bold block">{item.subject || subject}</strong>
+                  <p className="text-xs text-slate-700">{item.topic || item.description || item.reason || item.action}</p>
                 </article>
               ))}
             </div>

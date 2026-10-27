@@ -82,9 +82,9 @@ const roleOptions = [
 ];
 
 const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
-  const { register, authError, setAuthError } = useAuth();
+  const { sendOtp, verifyOtp, authError, setAuthError } = useAuth();
 
-  // Step state: 'role-select' | 'form'
+  // Step state: 'role-select' | 'form' | 'otp'
   const [step, setStep] = useState('role-select');
   const [selectedRole, setSelectedRole] = useState('student');
   const [showAdminNotice, setShowAdminNotice] = useState(false);
@@ -98,9 +98,11 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     phone: ''
   });
 
+  const [otpCode, setOtpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localErrors, setLocalErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Handle Role Selection
   const handleSelectRole = (roleId) => {
@@ -160,7 +162,7 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     if (!validate()) return;
 
     setIsSubmitting(true);
-    const result = await register({
+    const result = await sendOtp({
       name: formData.name.trim(),
       email: formData.email.trim(),
       password: formData.password,
@@ -170,7 +172,42 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     setIsSubmitting(false);
 
     if (result.success) {
+      setSuccessMessage(`Verification OTP sent to ${formData.email}! Please check your email (or server console in development mode).`);
+      setStep('otp');
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim() || otpCode.trim().length !== 6) {
+      setLocalErrors({ otp: 'Please enter a valid 6-digit OTP code' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await verifyOtp({
+      email: formData.email.trim(),
+      otp: otpCode.trim()
+    });
+    setIsSubmitting(false);
+
+    if (result.success) {
       if (onRegisterSuccess) onRegisterSuccess(result.user);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsSubmitting(true);
+    const result = await sendOtp({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      role: selectedRole,
+      phone: formData.phone.trim()
+    });
+    setIsSubmitting(false);
+    if (result.success) {
+      setSuccessMessage(`A new verification OTP has been sent to ${formData.email}.`);
     }
   };
 
@@ -434,6 +471,123 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
               className="font-bold text-indigo-600 hover:text-indigo-700 underline"
             >
               Sign In
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* STEP 3: EMAIL VERIFICATION OTP SCREEN */}
+      {step === 'otp' && (
+        <div className="max-w-md mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <button
+              type="button"
+              onClick={() => {
+                setStep('form');
+                if (authError) setAuthError(null);
+              }}
+              className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center space-x-1.5 transition-colors group px-2.5 py-1.5 rounded-xl hover:bg-slate-100"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back to Form</span>
+            </button>
+
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center space-x-1">
+              <Mail className="w-3.5 h-3.5" />
+              <span>Email Verification</span>
+            </span>
+          </div>
+
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mx-auto shadow-xs">
+              <Mail className="w-7 h-7" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Verify Your Email
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              We have sent a 6-digit One-Time Password (OTP) to <b className="text-slate-900">{formData.email}</b>. Please enter it below to complete your registration.
+            </p>
+          </div>
+
+          {successMessage && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start space-x-2.5 text-xs text-emerald-800 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">OTP Sent</p>
+                <p className="text-emerald-700">{successMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {authError && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2.5 text-xs text-rose-800 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Verification Error</p>
+                <p className="text-rose-700">{authError}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 text-center">Enter 6-Digit OTP Code</label>
+              <input
+                type="text"
+                maxLength={6}
+                placeholder="123456"
+                value={otpCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtpCode(val);
+                  if (localErrors.otp) setLocalErrors((prev) => ({ ...prev, otp: '' }));
+                  if (authError) setAuthError(null);
+                }}
+                className={`w-full py-3 text-center text-2xl font-black tracking-[0.5em] bg-slate-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
+                  localErrors.otp ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
+                }`}
+              />
+              {localErrors.otp && (
+                <p className="text-xs text-rose-600 font-medium text-center">{localErrors.otp}</p>
+              )}
+              <p className="text-[11px] text-slate-400 text-center pt-1">
+                Code is valid for 10 minutes. Check server console if running in development mode.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || otpCode.length !== 6}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm rounded-xl shadow-md shadow-indigo-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verifying & Registering...</span>
+                </>
+              ) : (
+                <>
+                  <span>Verify OTP & Complete Registration</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+          </form>
+
+          <div className="pt-3 text-center text-xs space-y-2 border-t border-slate-100">
+            <p className="text-slate-500">Didn't receive the OTP code?</p>
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={isSubmitting}
+              className="font-bold text-indigo-600 hover:text-indigo-700 underline disabled:opacity-50"
+            >
+              Resend OTP
             </button>
           </div>
 

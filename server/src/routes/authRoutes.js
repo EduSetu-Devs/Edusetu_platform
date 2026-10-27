@@ -5,7 +5,9 @@ const {
   login,
   getCurrentUser,
   verifyAdminPassword,
-  adminLogin
+  adminLogin,
+  sendRegistrationOtp,
+  verifyAndRegisterOtp
 } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
@@ -13,6 +15,8 @@ const { authorizeRoles } = require('../middleware/roleMiddleware');
 // Public authentication routes
 router.post('/register', register);
 router.post('/login', login);
+router.post('/send-otp', sendRegistrationOtp);
+router.post('/verify-otp', verifyAndRegisterOtp);
 router.post('/admin/verify', verifyAdminPassword);
 router.post('/admin/login', adminLogin);
 router.post('/verify-admin-password', verifyAdminPassword);

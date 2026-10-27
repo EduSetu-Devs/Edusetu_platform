@@ -33,6 +33,7 @@ const TutorReview = require('./TutorReview');
 const TutorShortlist = require('./TutorShortlist');
 const SchoolProfile = require('./SchoolProfile');
 const TutorBookingReport = require('./TutorBookingReport');
+const EmailVerificationOTP = require('./EmailVerificationOTP');
 
 // 1. User <-> StudentProfile (1 : 1)
 User.hasOne(StudentProfile, {
@@ -666,5 +667,6 @@ module.exports = {
   TutorReview,
   TutorShortlist,
   SchoolProfile,
-  TutorBookingReport
+  TutorBookingReport,
+  EmailVerificationOTP
 };

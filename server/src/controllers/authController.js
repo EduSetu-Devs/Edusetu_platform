@@ -1,9 +1,10 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { User, StudentProfile, TeacherProfile, ParentProfile, ParentStudent, AdminProfile } = require('../models');
+const { User, StudentProfile, TeacherProfile, ParentProfile, ParentStudent, AdminProfile, EmailVerificationOTP } = require('../models');
 const { sequelize } = require('../config/db');
 const { generateToken } = require('../utils/tokenHandler');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
+const emailService = require('../services/emailService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edusetu_dev_jwt_secret_key_2026';
 
@@ -492,10 +493,275 @@ const adminLogin = async (req, res) => {
   }
 };
 
+/**
+ * Send OTP for New Account Registration
+ * @route POST /api/auth/send-otp
+ */
+const sendRegistrationOtp = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return errorResponse(res, 400, 'Name is required and must be at least 2 characters long');
+    }
+    if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
+      return errorResponse(res, 400, 'A valid email address is required');
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return errorResponse(res, 400, 'Password is required and must be at least 8 characters long');
+    }
+    const userRole = role ? role.toLowerCase().trim() : 'student';
+    if (!ALLOWED_ROLES.includes(userRole)) {
+      return errorResponse(res, 400, `Invalid role '${role}'. Allowed roles are: ${ALLOWED_ROLES.join(', ')}`);
+    }
+
+    const existingUser = await User.findOne({ where: { email: normalizedEmail } });
+    if (existingUser) {
+      return errorResponse(res, 409, 'An account with this email address already exists');
+    }
+
+    // Generate 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+    // Delete any previous unverified OTPs for this email
+    await EmailVerificationOTP.destroy({ where: { email: normalizedEmail, verified: false } });
+
+    // Save OTP and request payload
+    await EmailVerificationOTP.create({
+      email: normalizedEmail,
+      otp,
+      payload: JSON.stringify(req.body),
+      expiresAt,
+      verified: false,
+      attempts: 0
+    });
+
+    // Send email
+    await emailService.sendOtpEmail(normalizedEmail, otp, name.trim());
+
+    return successResponse(res, 200, 'OTP sent successfully to your email address', {
+      email: normalizedEmail,
+      expiresInMinutes: 10
+    });
+  } catch (error) {
+    console.error('[Send Registration OTP Error]:', error.message);
+    return errorResponse(res, 500, 'Failed to send verification OTP. Please try again.');
+  }
+};
+
+/**
+ * Verify OTP and Complete Registration
+ * @route POST /api/auth/verify-otp
+ */
+const verifyAndRegisterOtp = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      await transaction.rollback();
+      return errorResponse(res, 400, 'Email and OTP are both required');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+
+    const otpRecord = await EmailVerificationOTP.findOne({
+      where: { email: normalizedEmail, verified: false },
+      order: [['createdAt', 'DESC']],
+      transaction
+    });
+
+    if (!otpRecord) {
+      await transaction.rollback();
+      return errorResponse(res, 400, 'No active OTP found for this email. Please request a new OTP.');
+    }
+
+    if (new Date() > new Date(otpRecord.expiresAt)) {
+      await transaction.rollback();
+      return errorResponse(res, 400, 'OTP has expired. Please request a new OTP.');
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await transaction.rollback();
+      return errorResponse(res, 400, 'Maximum verification attempts exceeded. Please request a new OTP.');
+    }
+
+    if (otpRecord.otp !== cleanOtp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save({ transaction });
+      await transaction.commit();
+      return errorResponse(res, 400, `Invalid OTP code. ${5 - otpRecord.attempts} attempts remaining.`);
+    }
+
+    // Mark OTP as verified
+    otpRecord.verified = true;
+    await otpRecord.save({ transaction });
+
+    // Parse payload
+    let payload = {};
+    try {
+      payload = JSON.parse(otpRecord.payload || '{}');
+    } catch (e) {
+      payload = req.body;
+    }
+
+    const {
+      name,
+      password,
+      role,
+      phone,
+      profileImage,
+      className,
+      section,
+      rollNumber,
+      department,
+      designation,
+      subjects,
+      qualification,
+      experience,
+      relationship,
+      occupation,
+      address,
+      studentId,
+      studentIds
+    } = payload;
+
+    const userRole = role ? role.toLowerCase().trim() : 'student';
+
+    // Check duplicate email in User table
+    const existingUser = await User.findOne({ where: { email: normalizedEmail }, transaction });
+    if (existingUser) {
+      await transaction.rollback();
+      return errorResponse(res, 409, 'An account with this email address already exists');
+    }
+
+    const newUser = await User.create(
+      {
+        name: (name || 'User').trim(),
+        email: normalizedEmail,
+        password: password || 'Password123!',
+        role: userRole,
+        phone: phone ? phone.trim() : '',
+        profileImage: profileImage || '',
+        isActive: true
+      },
+      { transaction }
+    );
+
+    let studentProfileData = null;
+    let teacherProfileData = null;
+    let parentProfileData = null;
+    let adminProfileData = null;
+
+    if (userRole === 'student') {
+      const generatedId = generateStudentId(newUser.id);
+      const studentProfile = await StudentProfile.create(
+        {
+          userId: newUser.id,
+          studentId: generatedId,
+          className: className || '',
+          section: section || '',
+          rollNumber: rollNumber || ''
+        },
+        { transaction }
+      );
+      studentProfileData = studentProfile.toJSON();
+    } else if (userRole === 'teacher') {
+      const generatedId = generateTeacherId(newUser.id);
+      const teacherProfile = await TeacherProfile.create(
+        {
+          userId: newUser.id,
+          teacherId: generatedId,
+          department: department || '',
+          designation: designation || '',
+          subjects: Array.isArray(subjects) ? subjects : subjects ? [subjects] : [],
+          className: className || '',
+          section: section || '',
+          phone: phone ? phone.trim() : '',
+          qualification: qualification || '',
+          experience: experience || ''
+        },
+        { transaction }
+      );
+      teacherProfileData = teacherProfile.toJSON();
+    } else if (userRole === 'parent') {
+      const generatedId = generateParentId(newUser.id);
+      const parentProfile = await ParentProfile.create(
+        {
+          userId: newUser.id,
+          parentId: generatedId,
+          phone: phone ? phone.trim() : '',
+          relationship: relationship || 'Parent',
+          occupation: occupation || '',
+          address: address || ''
+        },
+        { transaction }
+      );
+      parentProfileData = parentProfile.toJSON();
+
+      const rawChildren = studentIds || (studentId ? [studentId] : []);
+      if (Array.isArray(rawChildren) && rawChildren.length > 0) {
+        for (const childIdent of rawChildren) {
+          const isNum = !isNaN(Number(childIdent));
+          const childWhere = isNum ? { id: Number(childIdent) } : { studentId: String(childIdent) };
+          const childProfile = await StudentProfile.findOne({ where: childWhere, transaction });
+          if (childProfile) {
+            await ParentStudent.create(
+              {
+                parentProfileId: parentProfile.id,
+                studentProfileId: childProfile.id,
+                relationship: relationship || 'Child'
+              },
+              { transaction }
+            );
+          }
+        }
+      }
+    } else if (userRole === 'admin') {
+      const generatedId = generateAdminId(newUser.id);
+      const adminProfile = await AdminProfile.create(
+        {
+          userId: newUser.id,
+          adminId: generatedId,
+          designation: designation || 'System Administrator',
+          department: department || 'Administration'
+        },
+        { transaction }
+      );
+      adminProfileData = adminProfile.toJSON();
+    }
+
+    await transaction.commit();
+
+    const token = generateToken(newUser);
+    const responseUser = newUser.toJSON();
+    if (studentProfileData) responseUser.studentProfile = studentProfileData;
+    if (teacherProfileData) responseUser.teacherProfile = teacherProfileData;
+    if (parentProfileData) responseUser.parentProfile = parentProfileData;
+    if (adminProfileData) responseUser.adminProfile = adminProfileData;
+
+    return successResponse(res, 201, 'Email verified and account registered successfully', {
+      user: responseUser,
+      token
+    });
+  } catch (error) {
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
+    console.error('[Verify & Register OTP Error]:', error.message);
+    return errorResponse(res, 500, 'An error occurred during account verification. Please try again.');
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
   verifyAdminPassword,
-  adminLogin
+  adminLogin,
+  sendRegistrationOtp,
+  verifyAndRegisterOtp
 };

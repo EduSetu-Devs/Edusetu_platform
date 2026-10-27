@@ -69,6 +69,37 @@ export const registerUser = async (userData) => {
 };
 
 /**
+ * Send Email Verification OTP for registration
+ * @param {Object} userData - { name, email, password, role, phone }
+ */
+export const sendRegistrationOtp = async (userData) => {
+  try {
+    const response = await apiClient.post('/auth/send-otp', userData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Failed to send verification OTP';
+    return { success: false, error: message };
+  }
+};
+
+/**
+ * Verify OTP and complete registration
+ * @param {Object} verificationData - { email, otp }
+ */
+export const verifyAndRegisterOtp = async (verificationData) => {
+  try {
+    const response = await apiClient.post('/auth/verify-otp', verificationData);
+    const { user, token } = response.data.data;
+    setStoredToken(token);
+    setStoredUser(user);
+    return { success: true, data: { user, token } };
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'OTP verification failed';
+    return { success: false, error: message };
+  }
+};
+
+/**
  * Login user with email & password
  * @param {Object} credentials - { email, password }
  */

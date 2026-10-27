@@ -9,6 +9,8 @@ import {
   loginUser,
   adminLoginUser,
   registerUser,
+  sendRegistrationOtp,
+  verifyAndRegisterOtp,
   getCurrentUserProfile,
   logoutUser
 } from '../services/authService';
@@ -97,6 +99,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Send registration OTP
+  const sendOtp = async (userData) => {
+    setAuthError(null);
+    const result = await sendRegistrationOtp(userData);
+    if (!result.success) {
+      setAuthError(result.error);
+    }
+    return result;
+  };
+
+  // Verify OTP and complete registration
+  const verifyOtp = async (verificationData) => {
+    setAuthError(null);
+    const result = await verifyAndRegisterOtp(verificationData);
+    if (result.success) {
+      setUser(result.data.user);
+      setToken(result.data.token);
+      return { success: true, user: result.data.user };
+    } else {
+      setAuthError(result.error);
+      return { success: false, error: result.error };
+    }
+  };
+
   // Logout handler
   const logout = () => {
     logoutUser();
@@ -115,6 +141,8 @@ export const AuthProvider = ({ children }) => {
     login,
     adminLogin,
     register,
+    sendOtp,
+    verifyOtp,
     logout
   };
 

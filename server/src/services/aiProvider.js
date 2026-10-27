@@ -861,7 +861,29 @@ Return strictly valid JSON:
             console.warn(`[AI] Model ${modelName} rate-limited (HTTP 429), trying next candidate...`);
             continue;
           }
-          throw new Error(`AI provider request failed (HTTP ${response.status})`);
+
+          let providerError = {};
+          try {
+            const parsed = await response.json();
+            const errorBody = parsed && typeof parsed === 'object' ? parsed.error || parsed : {};
+            providerError = {
+              status: response.status,
+              providerCode: typeof errorBody.code === 'string' ? errorBody.code : undefined,
+              providerType: typeof errorBody.type === 'string' ? errorBody.type : undefined,
+              message: `AI provider request failed (HTTP ${response.status})`
+            };
+          } catch {
+            providerError = {
+              status: response.status,
+              message: `AI provider request failed (HTTP ${response.status})`
+            };
+          }
+
+          const err = new Error(providerError.message);
+          err.status = providerError.status;
+          if (providerError.providerCode) err.providerCode = providerError.providerCode;
+          if (providerError.providerType) err.providerType = providerError.providerType;
+          throw err;
         }
 
         const body = await response.json();

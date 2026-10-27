@@ -9,18 +9,27 @@ const mockAI = new MockAIProvider();
 
 const runAI = async (task, payload, method) => {
   const provider = getAIProvider();
-  if (process.env.AI_PROVIDER === 'openai' && process.env.AI_API_KEY) {
+  if (process.env.AI_PROVIDER === 'openai') {
+    if (!process.env.AI_API_KEY) {
+      throw new Error('AI provider is not configured');
+    }
+
     try {
       return await provider.generate(task, payload);
     } catch (error) {
-      if (error.message && error.message.includes('invalid JSON')) throw error;
-      if (error.status === 429 || error.status === 401 || !error.status) {
-        console.warn('[AI] provider failed, using mock fallback', error.status || error.message);
+      if (error && error.message && error.message.includes('invalid JSON')) throw error;
+      if (error && (error.status === 429 || error.status === 401 || !error.status)) {
+        console.warn('[AI] provider failed, using mock fallback', error && (error.status || error.message));
         return mockAI[method](payload);
       }
       throw error;
     }
   }
+
+  if (process.env.AI_PROVIDER && process.env.AI_PROVIDER !== 'mock') {
+    throw new Error('AI provider is not configured');
+  }
+
   return provider[method](payload);
 };
 const extractList = (raw, keys = ['plan', 'tasks', 'questions']) => {
@@ -45,14 +54,23 @@ const findStudent = (identifier) => StudentProfile.findOne({ where: !isNaN(Numbe
 const getOwnStudent = (userId) => StudentProfile.findOne({ where: { userId } });
 const getOwnTeacher = (userId) => TeacherProfile.findOne({ where: { userId } });
 const handleAIError = (res, error) => {
+  const message = typeof error?.message === 'string' ? error.message : '';
+  const status = Number.isInteger(error?.status) ? error.status : undefined;
+  const providerCode = typeof error?.providerCode === 'string' ? error.providerCode : undefined;
+  const providerType = typeof error?.providerType === 'string' ? error.providerType : undefined;
+
   console.error('[AI Error]', {
-    status: Number.isInteger(error.status) ? error.status : undefined,
-    providerCode: error.providerCode,
-    providerType: error.providerType
+    status,
+    providerCode,
+    providerType
   });
-  if (error.message.includes('not configured')) return errorResponse(res, 503, 'AI provider is not configured');
-  if (error.message.includes('invalid JSON')) return errorResponse(res, 500, 'AI request could not be completed');
-  return error.message.includes('provider') ? errorResponse(res, 503, 'AI service is temporarily unavailable. Please try again.') : errorResponse(res, 500, 'AI request could not be completed');
+
+  if (/not configured/i.test(message)) return errorResponse(res, 503, 'AI provider is not configured');
+  if (/invalid JSON/i.test(message)) return errorResponse(res, 500, 'AI request could not be completed');
+  if (/provider/i.test(message) || status === 401 || status === 429 || providerCode || providerType) {
+    return errorResponse(res, 503, 'AI service is temporarily unavailable. Please try again.');
+  }
+  return errorResponse(res, 500, 'AI request could not be completed');
 };
 const academicSummary = (profile) => ({
   subjects: profile.subjects,
@@ -225,15 +243,14 @@ const askDoubt = async (req, res) => {
       : 'Answer accurately in simple Hindi or English, matching the question language. Use short, clear steps and an age-appropriate example when useful. Return JSON with explanation (string), steps (array of strings), and summary (string).';
 
     let answer;
-    if (process.env.AI_API_KEY && process.env.AI_PROVIDER === 'openai') {
-      try {
-        answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
-      } catch (error) {
-        console.warn('[AI] doubt provider error, using fallback:', error.message);
-        answer = await mockAI.doubt({ question, depth, conversationContext });
-      }
-    } else {
-      answer = await mockAI.doubt({ question, depth, conversationContext });
+    if (!process.env.AI_API_KEY || process.env.AI_PROVIDER !== 'openai') {
+      throw new Error('AI provider is not configured');
+    }
+
+    try {
+      answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
+    } catch (error) {
+      throw error;
     }
     if (!answer || typeof answer.explanation !== 'string' || !answer.explanation.trim()
       || !Array.isArray(answer.steps) || answer.steps.some((step) => typeof step !== 'string')

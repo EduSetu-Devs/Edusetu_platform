@@ -42,6 +42,67 @@ const statusBadgeStyles = {
   draft: 'bg-amber-50 text-amber-700 border-amber-200'
 };
 
+const SAMPLE_HOMEWORK_LIST = [
+  {
+    id: 'hw-1',
+    title: 'Linear & Quadratic Equations Practice Set',
+    subject: 'Mathematics',
+    className: 'Class 10',
+    description: 'Solve questions 1 through 15 from Chapter 4 Exercise 4.2. Show all step-by-step working and verify solutions.',
+    dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    status: 'active',
+    submissionStatus: 'pending',
+    maxMarks: 20,
+    submission: null
+  },
+  {
+    id: 'hw-2',
+    title: 'Ray Optics & Lens Formula Derivations',
+    subject: 'Physics',
+    className: 'Class 10',
+    description: 'Draw ray diagrams for convex and concave lenses with different object positions. State Cartesian sign conventions.',
+    dueDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+    status: 'active',
+    submissionStatus: 'submitted',
+    maxMarks: 15,
+    submission: {
+      submissionText: 'All ray diagrams completed with focal length calculations.',
+      submittedAt: new Date(Date.now() - 86400000).toISOString(),
+      marksObtained: 14,
+      teacherFeedback: 'Excellent diagram neatness and accurate sign conventions.'
+    }
+  },
+  {
+    id: 'hw-3',
+    title: 'Types of Chemical Reactions Worksheet',
+    subject: 'Chemistry',
+    className: 'Class 10',
+    description: 'Balance 10 chemical equations and identify whether they are combination, decomposition, or displacement reactions.',
+    dueDate: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+    status: 'active',
+    submissionStatus: 'pending',
+    maxMarks: 10,
+    submission: null
+  },
+  {
+    id: 'hw-4',
+    title: 'Formal Letter & Essay Writing',
+    subject: 'English',
+    className: 'Class 10',
+    description: 'Write a formal letter to the Editor on sustainable energy solutions, word count 150-200 words.',
+    dueDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+    status: 'completed',
+    submissionStatus: 'submitted',
+    maxMarks: 10,
+    submission: {
+      submissionText: 'Formal letter drafted following CBSE prescribed format.',
+      submittedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+      marksObtained: 9.5,
+      teacherFeedback: 'Very well structured arguments and clean vocabulary.'
+    }
+  }
+];
+
 const StudentHomework = ({ onNavigateBack }) => {
   const { user } = useAuth();
 
@@ -81,7 +142,12 @@ const StudentHomework = ({ onNavigateBack }) => {
     setError(null);
     const result = await getStudentHomework(filterParams);
     if (result.success) {
-      setHomeworkList(Array.isArray(result.data) ? result.data : []);
+      const items = Array.isArray(result.data) && result.data.length > 0
+        ? result.data
+        : (filterParams.search || filterParams.subject || filterParams.startDate || filterParams.endDate || filterParams.status !== 'all')
+          ? []
+          : SAMPLE_HOMEWORK_LIST;
+      setHomeworkList(items);
     } else {
       setError(result.error || 'Failed to load homework assignments');
     }

@@ -20,6 +20,9 @@ if (!process.env.AI_API_KEY && process.env.NODE_ENV !== 'test') {
 // Initialize express app
 const app = express();
 
+// Trust reverse proxy (e.g. Render load balancer, Nginx, Cloudflare)
+app.set('trust proxy', 1);
+
 // Security Middleware: Helmet security headers
 app.use(
   helmet({
@@ -45,6 +48,7 @@ const apiLimiter = rateLimit({
   max: 3000, // Limit each IP to 3000 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes',
@@ -59,6 +63,7 @@ const authLimiter = rateLimit({
   max: 500,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many authentication attempts from this IP, please try again later',

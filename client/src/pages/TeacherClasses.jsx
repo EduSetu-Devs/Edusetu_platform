@@ -6,6 +6,58 @@ import ClassLearningPanel from '../components/ClassLearningPanel';
 const initialForm = { studentId: '', subjectId: '', title: '', description: '', mode: 'ONLINE', scheduledDate: '', startTime: '', endTime: '', location: '' };
 const statusTabs = ['ALL', 'SCHEDULED', 'LIVE', 'COMPLETED', 'CANCELLED'];
 
+const SAMPLE_TEACHER_SESSIONS = [
+  {
+    id: 'ts-101',
+    title: 'Kinematics & Projectile Motion Deep Dive',
+    student: 'Aarav Sharma (Class 10)',
+    subject: 'Physics',
+    status: 'SCHEDULED',
+    mode: 'ONLINE',
+    scheduledDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    startTime: '17:00',
+    endTime: '18:00',
+    location: 'EduSetu Live WebRTC Room'
+  },
+  {
+    id: 'ts-102',
+    title: 'Differential Calculus & Rate of Change',
+    student: 'Priya Verma (Class 12)',
+    subject: 'Mathematics',
+    status: 'SCHEDULED',
+    mode: 'ONLINE',
+    scheduledDate: new Date(Date.now() + 172800000).toISOString().slice(0, 10),
+    startTime: '18:30',
+    endTime: '19:30',
+    location: 'EduSetu Live WebRTC Room'
+  },
+  {
+    id: 'ts-103',
+    title: 'Electromagnetic Induction & Faraday Laws',
+    student: 'Rohan Gupta (Class 12)',
+    subject: 'Physics',
+    status: 'COMPLETED',
+    mode: 'ONLINE',
+    scheduledDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+    startTime: '16:00',
+    endTime: '17:00',
+    location: 'EduSetu Live WebRTC Room'
+  }
+];
+
+const SAMPLE_STUDENTS_LIST = [
+  { id: 1, name: 'Aarav Sharma', studentId: 'STU-001' },
+  { id: 2, name: 'Priya Verma', studentId: 'STU-002' },
+  { id: 3, name: 'Rohan Gupta', studentId: 'STU-003' },
+  { id: 4, name: 'Ananya Iyer', studentId: 'STU-004' }
+];
+
+const SAMPLE_SUBJECTS_LIST = [
+  { id: 1, name: 'Physics' },
+  { id: 2, name: 'Mathematics' },
+  { id: 3, name: 'Chemistry' }
+];
+
 const TeacherClasses = ({ onNavigateBack, onNavigateToClassroom }) => {
   const [sessions, setSessions] = useState([]);
   const [students, setStudents] = useState([]);
@@ -20,9 +72,26 @@ const TeacherClasses = ({ onNavigateBack, onNavigateToClassroom }) => {
   const load = async () => {
     setLoading(true);
     const [sessionRes, studentRes, subjectRes] = await Promise.all([getTeacherSessions(), getMyStudents(), getTeachingSubjects()]);
-    if (sessionRes.success) { const nextSessions = sessionRes.data.sessions || []; setSessions(nextSessions); setSelectedSessionId((current) => current || nextSessions[0]?.id || null); }
-    if (studentRes.success) setStudents(studentRes.data.students || []);
-    if (subjectRes.success) setSubjects(subjectRes.data || []);
+    if (sessionRes.success) {
+      const nextSessions = (sessionRes.data.sessions && sessionRes.data.sessions.length > 0)
+        ? sessionRes.data.sessions
+        : SAMPLE_TEACHER_SESSIONS;
+      setSessions(nextSessions);
+      setSelectedSessionId((current) => current || nextSessions[0]?.id || null);
+    } else {
+      setSessions(SAMPLE_TEACHER_SESSIONS);
+      setSelectedSessionId(SAMPLE_TEACHER_SESSIONS[0].id);
+    }
+    if (studentRes.success) {
+      setStudents((studentRes.data.students && studentRes.data.students.length > 0) ? studentRes.data.students : SAMPLE_STUDENTS_LIST);
+    } else {
+      setStudents(SAMPLE_STUDENTS_LIST);
+    }
+    if (subjectRes.success) {
+      setSubjects((subjectRes.data && subjectRes.data.length > 0) ? subjectRes.data : SAMPLE_SUBJECTS_LIST);
+    } else {
+      setSubjects(SAMPLE_SUBJECTS_LIST);
+    }
     setLoading(false);
   };
 

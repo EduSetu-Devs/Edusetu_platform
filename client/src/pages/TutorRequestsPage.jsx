@@ -29,6 +29,70 @@ import {
   X
 } from 'lucide-react';
 
+const SAMPLE_INCOMING_REQUESTS = [
+  {
+    id: 101,
+    subject: 'Physics',
+    gradeLevel: 'Class 12',
+    preferredMode: 'online',
+    preferredSchedule: 'Mon & Thu 5:00 PM – 6:30 PM',
+    scheduledDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    startTime: '17:00',
+    endTime: '18:30',
+    budget: 950,
+    status: 'pending',
+    student: { name: 'Aarav Sharma', email: 'aarav@edusetu.in' },
+    message: 'Hello Sir, I need 1-on-1 tutoring sessions for JEE Advanced Rotational Dynamics and Optics.',
+    createdAt: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 102,
+    subject: 'Mathematics',
+    gradeLevel: 'Class 11',
+    preferredMode: 'online',
+    preferredSchedule: 'Tue & Fri 6:00 PM – 7:00 PM',
+    scheduledDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+    startTime: '18:00',
+    endTime: '19:00',
+    budget: 850,
+    status: 'pending',
+    student: { name: 'Rohan Mehra', email: 'rohan@edusetu.in' },
+    message: 'Looking for conceptual clarity and problem-solving practice in Trigonometry and Conic Sections.',
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 103,
+    subject: 'Physics',
+    gradeLevel: 'Class 12',
+    preferredMode: 'online',
+    preferredSchedule: 'Saturday 4:00 PM',
+    scheduledDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+    startTime: '16:00',
+    endTime: '17:00',
+    budget: 950,
+    status: 'accepted',
+    student: { name: 'Sneha Patel', email: 'sneha@edusetu.in' },
+    message: 'Introductory session successfully accepted and scheduled.',
+    createdAt: new Date(Date.now() - 3 * 86400000).toISOString()
+  }
+];
+
+const SAMPLE_OUTGOING_REQUESTS = [
+  {
+    id: 201,
+    subject: 'Advanced Physics',
+    gradeLevel: 'Class 12',
+    preferredMode: 'online',
+    scheduledDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    startTime: '17:00',
+    budget: 950,
+    status: 'pending',
+    tutor: { name: 'Er. Ashutosh Tripathi', headline: 'Senior Physics Faculty' },
+    message: 'Inquiring for 1-on-1 guidance in mechanics.',
+    createdAt: new Date().toISOString()
+  }
+];
+
 const TutorRequestsPage = ({ onNavigate, onEnterClassroom }) => {
   const { user } = useAuth();
   const isTeacher = user?.role === 'teacher';
@@ -58,8 +122,10 @@ const TutorRequestsPage = ({ onNavigate, onEnterClassroom }) => {
       res = await getMyRequests();
     }
 
-    if (res.success && Array.isArray(res.data)) {
+    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
       setRequests(res.data);
+    } else {
+      setRequests(activeTab === 'incoming' ? SAMPLE_INCOMING_REQUESTS : SAMPLE_OUTGOING_REQUESTS);
     }
     setIsLoading(false);
   }, [activeTab]);

@@ -99,6 +99,7 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
   });
 
   const [otpCode, setOtpCode] = useState('');
+  const [devOtp, setDevOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localErrors, setLocalErrors] = useState({});
@@ -172,7 +173,12 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage(`Verification OTP sent to ${formData.email}! Please check your email (or server console in development mode).`);
+      const generatedOtp = result.data?.data?.devOtp || result.data?.devOtp;
+      if (generatedOtp) {
+        setDevOtp(generatedOtp);
+        setOtpCode(generatedOtp);
+      }
+      setSuccessMessage(`Verification OTP generated for ${formData.email}!`);
       setStep('otp');
     }
   };
@@ -207,7 +213,12 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     });
     setIsSubmitting(false);
     if (result.success) {
-      setSuccessMessage(`A new verification OTP has been sent to ${formData.email}.`);
+      const generatedOtp = result.data?.data?.devOtp || result.data?.devOtp;
+      if (generatedOtp) {
+        setDevOtp(generatedOtp);
+        setOtpCode(generatedOtp);
+      }
+      setSuccessMessage(`A new verification OTP has been generated for ${formData.email}.`);
     }
   };
 
@@ -512,7 +523,31 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
             </p>
           </div>
 
-          {successMessage && (
+          {devOtp && (
+            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  Your Verification Code:
+                </span>
+                <span className="text-base font-black font-mono text-indigo-700 bg-white px-3 py-1 rounded-xl border border-indigo-200 tracking-widest">
+                  {devOtp}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpCode(devOtp);
+                  if (localErrors.otp) setLocalErrors((prev) => ({ ...prev, otp: '' }));
+                }}
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <span>Click to Auto-fill Code ({devOtp}) ⚡</span>
+              </button>
+            </div>
+          )}
+
+          {successMessage && !devOtp && (
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start space-x-2.5 text-xs text-emerald-800 animate-fadeIn">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <div>

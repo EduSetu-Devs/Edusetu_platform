@@ -540,11 +540,14 @@ const sendRegistrationOtp = async (req, res) => {
     });
 
     // Send email
-    await emailService.sendOtpEmail(normalizedEmail, otp, name.trim());
+    const sendResult = await emailService.sendOtpEmail(normalizedEmail, otp, name.trim());
 
-    return successResponse(res, 200, 'OTP sent successfully to your email address', {
+    return successResponse(res, 200, sendResult?.devMode
+      ? `OTP code generated! (Dev Mode: ${otp})`
+      : 'OTP sent successfully to your email address', {
       email: normalizedEmail,
-      expiresInMinutes: 10
+      expiresInMinutes: 10,
+      devOtp: sendResult?.devMode ? otp : undefined
     });
   } catch (error) {
     console.error('[Send Registration OTP Error]:', error.message);

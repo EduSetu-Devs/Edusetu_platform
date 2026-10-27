@@ -28,7 +28,8 @@ import {
   X,
   RefreshCw,
   Phone,
-  Mail
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 
 const SAMPLE_TEACHER_CONVERSATIONS = [
@@ -64,7 +65,7 @@ const SAMPLE_TEACHER_MESSAGES_MAP = {
   ]
 };
 
-const TeacherMessages = () => {
+const TeacherMessages = ({ onNavigateBack }) => {
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
@@ -276,7 +277,19 @@ const TeacherMessages = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto my-6 px-4 space-y-6">
+    <div className="max-w-6xl mx-auto my-6 px-4 space-y-6 animate-fadeIn">
+      {/* Back Button */}
+      {onNavigateBack && (
+        <div>
+          <button
+            onClick={onNavigateBack}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>← Back to Teacher Dashboard</span>
+          </button>
+        </div>
+      )}
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">

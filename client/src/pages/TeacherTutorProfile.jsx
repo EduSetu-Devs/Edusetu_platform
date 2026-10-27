@@ -23,10 +23,11 @@ import {
   MapPin,
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft
 } from 'lucide-react';
 
-const TeacherTutorProfile = ({ onNavigate }) => {
+const TeacherTutorProfile = ({ onNavigate, onNavigateBack }) => {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('general'); // general | subjects | availability | verification
@@ -219,9 +220,21 @@ const TeacherTutorProfile = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
+    <div className="min-h-screen bg-slate-50 py-8 animate-fadeIn">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
+        {onNavigateBack && (
+          <div>
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>← Back to Teacher Dashboard</span>
+            </button>
+          </div>
+        )}
+
         {/* Header Strip */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">

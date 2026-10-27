@@ -363,7 +363,7 @@ function AppContent() {
         {/* VIEW 12: Teacher Messages (Protected - Teacher Role Only) */}
         {currentView === 'teacher-messages' && (
           <ProtectedRoute allowedRoles={['teacher']} onNavigateToLogin={() => setCurrentView('login')}>
-            <TeacherMessages />
+            <TeacherMessages onNavigateBack={() => setCurrentView('teacher-dashboard')} />
           </ProtectedRoute>
         )}
 
@@ -382,7 +382,7 @@ function AppContent() {
         {/* VIEW 14: Parent Messages (Protected - Parent Role Only) */}
         {currentView === 'parent-messages' && (
           <ProtectedRoute allowedRoles={['parent']} onNavigateToLogin={() => setCurrentView('login')}>
-            <ParentMessages />
+            <ParentMessages onNavigateBack={() => setCurrentView('parent-dashboard')} />
           </ProtectedRoute>
         )}
 
@@ -406,7 +406,7 @@ function AppContent() {
         )}
         {currentView === 'admin-marketplace' && (
           <ProtectedRoute allowedRoles={['admin']} onNavigateToLogin={() => navigate('login-admin')}>
-            <AdminMarketplacePage />
+            <AdminMarketplacePage onNavigateBack={() => setCurrentView('admin-dashboard')} />
           </ProtectedRoute>
         )}
 
@@ -421,6 +421,7 @@ function AppContent() {
         {currentView === 'find-tutors' && (
           <FindTutorsPage
             onNavigate={navigate}
+            onNavigateBack={() => setCurrentView(user?.role === 'parent' ? 'parent-dashboard' : user?.role === 'teacher' ? 'teacher-dashboard' : user?.role === 'student' ? 'student-dashboard' : 'home')}
             onSelectTutor={(id) => navigateToTutor(id)}
             onCompareTutors={() => navigate('compare-tutors')}
             compareList={compareList}
@@ -450,14 +451,21 @@ function AppContent() {
         {/* PHASE 5: VIEW 21: Teacher Tutor Profile Management */}
         {currentView === 'teacher-tutor-profile' && (
           <ProtectedRoute allowedRoles={['teacher']} onNavigateToLogin={() => navigate('login')}>
-            <TeacherTutorProfile onNavigate={navigate} />
+            <TeacherTutorProfile
+              onNavigate={navigate}
+              onNavigateBack={() => setCurrentView('teacher-dashboard')}
+            />
           </ProtectedRoute>
         )}
 
         {/* PHASE 5: VIEW 22: Tutor Booking Requests (Teacher incoming or Student/Parent outgoing) */}
         {(currentView === 'teacher-tutor-requests' || currentView === 'my-tutor-requests') && (
           <ProtectedRoute allowedRoles={['teacher', 'student', 'parent']} onNavigateToLogin={() => navigate('login')}>
-            <TutorRequestsPage onNavigate={navigate} onEnterClassroom={navigateToClassroom} />
+            <TutorRequestsPage
+              onNavigate={navigate}
+              onNavigateBack={() => setCurrentView(user?.role === 'teacher' ? 'teacher-dashboard' : user?.role === 'parent' ? 'parent-dashboard' : 'student-dashboard')}
+              onEnterClassroom={navigateToClassroom}
+            />
           </ProtectedRoute>
         )}
         {currentView === 'my-bookings' && (
@@ -469,7 +477,10 @@ function AppContent() {
         {/* PHASE 5: VIEW 23: School & Institution Portal */}
         {currentView === 'school-portal' && (
           <ProtectedRoute onNavigateToLogin={() => navigate('login')}>
-            <SchoolPortal onSelectTutor={(id) => navigateToTutor(id)} />
+            <SchoolPortal
+              onSelectTutor={(id) => navigateToTutor(id)}
+              onNavigateBack={() => setCurrentView(user?.role === 'admin' ? 'admin-dashboard' : user?.role === 'teacher' ? 'teacher-dashboard' : user?.role === 'parent' ? 'parent-dashboard' : user?.role === 'student' ? 'student-dashboard' : 'home')}
+            />
           </ProtectedRoute>
         )}
 

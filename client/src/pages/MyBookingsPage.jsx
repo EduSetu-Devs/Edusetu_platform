@@ -159,7 +159,15 @@ const MyBookingsPage = ({ onNavigateToClassroom, onNavigateBack }) => {
   return (
     <div className="max-w-5xl mx-auto my-8 px-4 space-y-6">
       <div>
-        {onNavigateBack && <button onClick={onNavigateBack} className="mb-2 text-xs font-semibold text-indigo-600">← Back</button>}
+        {onNavigateBack && (
+          <button
+            onClick={onNavigateBack}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-1.5 rounded-xl transition-colors shadow-xs mb-3"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>← Back to Dashboard</span>
+          </button>
+        )}
         <h1 className="text-3xl font-black text-slate-900">{title}</h1>
         <p className="mt-1 text-sm text-slate-500">Marketplace bookings are teaching sessions. Pending requests need tutor confirmation before class.</p>
       </div>

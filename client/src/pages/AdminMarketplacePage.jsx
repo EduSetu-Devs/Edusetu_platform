@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { getAdminMarketplaceBookings, getAdminMarketplaceReports, updateAdminMarketplaceReport } from '../services/adminService';
 
 const SAMPLE_MARKETPLACE_BOOKINGS = [
@@ -61,7 +62,7 @@ const SAMPLE_MARKETPLACE_REPORTS = [
   }
 ];
 
-const AdminMarketplacePage = () => {
+const AdminMarketplacePage = ({ onNavigateBack }) => {
   const [bookings, setBookings] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +99,18 @@ const AdminMarketplacePage = () => {
   };
 
   return (
-    <div className="mx-auto my-8 max-w-6xl space-y-6 px-4">
+    <div className="mx-auto my-8 max-w-6xl space-y-6 px-4 animate-fadeIn">
+      {onNavigateBack && (
+        <div>
+          <button
+            onClick={onNavigateBack}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>← Back to Admin Console</span>
+          </button>
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-black text-slate-900">Tutor Marketplace Monitoring</h1>
         <p className="mt-1 text-sm text-slate-500">Review booking records and reported issues. Academic grades and attendance are not editable here.</p>

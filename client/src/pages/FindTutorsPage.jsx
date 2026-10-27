@@ -27,7 +27,8 @@ import {
   GraduationCap,
   RefreshCw,
   Video,
-  Building
+  Building,
+  ArrowLeft
 } from 'lucide-react';
 
 const INDIAN_CITIES_SUGGESTIONS = [
@@ -53,7 +54,7 @@ const QUICK_DISCOVERY_TAGS = [
   { label: '⭐ Top Rated (4.9+)', set: { minRating: '4.9' } }
 ];
 
-const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareList = [], setCompareList }) => {
+const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTutors, compareList = [], setCompareList }) => {
   const { user, isAuthenticated } = useAuth();
 
   // Filters State
@@ -342,6 +343,18 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
           </div>
         )}
         
+        {onNavigateBack && (
+          <div className="mb-4">
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>← Back to Dashboard / Home</span>
+            </button>
+          </div>
+        )}
+
         {/* Header Banner */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white p-8 sm:p-10 mb-8 shadow-xl shadow-emerald-900/10">
           <div className="relative z-10 max-w-3xl">

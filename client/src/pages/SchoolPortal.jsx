@@ -9,7 +9,8 @@ import {
   Save,
   AlertCircle,
   FileText,
-  Bookmark
+  Bookmark,
+  ArrowLeft
 } from 'lucide-react';
 
 const SAMPLE_FACULTY_CANDIDATES = [
@@ -112,7 +113,7 @@ const DEFAULT_SCHOOL_PROFILE = {
   requiredQualifications: 'M.Sc / B.Ed / Ph.D with 3+ years experience'
 };
 
-const SchoolPortal = ({ onSelectTutor }) => {
+const SchoolPortal = ({ onSelectTutor, onNavigateBack }) => {
   const [activeTab, setActiveTab] = useState('tutors'); // tutors | shortlisted | profile
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState(null);
@@ -213,8 +214,20 @@ const SchoolPortal = ({ onSelectTutor }) => {
     ? shortlistedCandidates
     : candidates;
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
+    <div className="min-h-screen bg-slate-50 py-8 animate-fadeIn">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        
+        {onNavigateBack && (
+          <div>
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>← Back to Dashboard / Home</span>
+            </button>
+          </div>
+        )}
         
         {/* Header Strip */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

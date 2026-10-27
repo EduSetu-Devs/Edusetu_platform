@@ -56,8 +56,7 @@ import {
   MessageSquare,
   School,
   Search,
-  Building,
-  ArrowLeftRight
+  Building
 } from 'lucide-react';
 
 const routeToView = (pathname) => {
@@ -131,16 +130,9 @@ const adminTabToPath = {
   tutors: '/admin/tutors', analytics: '/admin/analytics', notifications: '/admin/notifications', settings: '/admin/settings'
 };
 
-const HERO_ROLE_OPTIONS = [
-  { role: 'admin', label: 'Admin', emoji: '🛡️', email: 'admin.demo@edusetu.in', view: 'admin-dashboard', color: 'border-amber-200 hover:bg-amber-50 text-amber-900' },
-  { role: 'teacher', label: 'Teacher', emoji: '👨‍🏫', email: 'tawap55774@goldvester.com', view: 'teacher-dashboard', color: 'border-indigo-200 hover:bg-indigo-50 text-indigo-900' },
-  { role: 'student', label: 'Student', emoji: '👨‍🎓', email: 'student.demo@edusetu.in', view: 'student-dashboard', color: 'border-blue-200 hover:bg-blue-50 text-blue-900' },
-  { role: 'parent', label: 'Parent', emoji: '👨‍👩‍👧', email: 'parent.demo@edusetu.in', view: 'parent-dashboard', color: 'border-emerald-200 hover:bg-emerald-50 text-emerald-900' },
-  { role: 'school', label: 'School', emoji: '🏫', email: 'school.demo@edusetu.in', view: 'school-portal', color: 'border-teal-200 hover:bg-teal-50 text-teal-900' }
-];
 
 function AppContent() {
-  const { isAuthenticated, user, isLoading: isAuthLoading, login } = useAuth();
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const [route, setRoute] = useState(() => routeToView(window.location.pathname));
   const { view: currentView, adminTab } = route;
   const [backendHealth, setBackendHealth] = useState(null);
@@ -205,13 +197,6 @@ function AppContent() {
       navigate('admin-dashboard');
     } else {
       navigate('profile');
-    }
-  };
-
-  const handleHeroRoleSwitch = async (target) => {
-    const res = await login(target.email, 'EduSetu@123');
-    if (res.success) {
-      navigate(target.view);
     }
   };
 
@@ -647,39 +632,6 @@ function AppContent() {
                     </button>
                   </>
                 )}
-              </div>
-
-              {/* Quick 1-Click Role Switcher Bar */}
-              <div className="pt-6 w-full max-w-2xl mx-auto animate-fadeIn">
-                <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-center sm:text-left">
-                    <span className="text-xs font-bold text-slate-700 flex items-center justify-center sm:justify-start gap-1.5">
-                      <ArrowLeftRight className="w-4 h-4 text-indigo-600" />
-                      <span>Switch / Test Any Role:</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-medium">1-Click Instant Persona Switch</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {HERO_ROLE_OPTIONS.map((opt) => {
-                      const isActive = user?.role === opt.role;
-                      return (
-                        <button
-                          key={opt.role}
-                          onClick={() => handleHeroRoleSwitch(opt)}
-                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all shadow-2xs flex flex-col items-center justify-center gap-1 active:scale-95 cursor-pointer ${
-                            isActive
-                              ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-indigo-400'
-                              : `bg-white ${opt.color}`
-                          }`}
-                        >
-                          <span className="text-base">{opt.emoji}</span>
-                          <span className="leading-none">{opt.label}</span>
-                          {isActive && <span className="text-[9px] text-emerald-400 font-bold uppercase">Active</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             </section>
 

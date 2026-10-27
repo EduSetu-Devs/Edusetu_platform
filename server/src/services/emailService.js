@@ -1,4 +1,9 @@
-const nodemailer = require('nodemailer');
+let nodemailer = null;
+try {
+  nodemailer = require('nodemailer');
+} catch (e) {
+  console.warn('[EmailService] nodemailer not installed or unavailable; fallback to console OTP mode.');
+}
 
 class EmailService {
   constructor() {
@@ -7,6 +12,10 @@ class EmailService {
   }
 
   initTransporter() {
+    if (!nodemailer) {
+      console.log('[EmailService] nodemailer not available. Running in Development Console Mode (OTPs will be logged to console).');
+      return;
+    }
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
     if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
       try {

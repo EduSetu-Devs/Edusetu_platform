@@ -50,9 +50,6 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
               <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 EduSetu
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Step 7B • Notifications Active
-              </span>
             </div>
             <p className="text-[11px] text-slate-500 hidden sm:block">Education Communication Platform</p>
           </div>
@@ -69,29 +66,18 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
             Overview
           </button>
 
-          {/* Quick Access: Choose Account Type / Register */}
-          <button
-            onClick={() => onNavigate('register')}
-            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
-              currentView === 'register' ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200' : 'text-slate-600 hover:text-indigo-600'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Role Portals</span>
-          </button>
-
-          {/* Phase 5: Find Tutors Marketplace */}
-          <button
-            onClick={() => onNavigate('find-tutors')}
-            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
-              currentView === 'find-tutors' || currentView.startsWith('tutor-') || currentView === 'compare-tutors'
-                ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shadow-2xs'
-                : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/50'
-            }`}
-          >
-            <Search className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Find Tutors</span>
-          </button>
+          {/* Quick Access: Choose Account Type / Register (Only when logged out) */}
+          {!isAuthenticated && (
+            <button
+              onClick={() => onNavigate('register')}
+              className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                currentView === 'register' ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200' : 'text-slate-600 hover:text-indigo-600'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Role Portals</span>
+            </button>
+          )}
 
           {/* Student Links */}
           {isAuthenticated && user?.role === 'student' && (
@@ -283,41 +269,15 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
           )}
         </div>
 
-        {/* Right Section: Notification Bell, Auth Controls & Server Status */}
+        {/* Right Section: Notification Bell, Auth Controls & Profile */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           
-          {/* Server Status Pill */}
-          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-medium text-slate-700">
-            <span className="relative flex h-2 w-2">
-              {isChecking ? (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              ) : backendConnected ? (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              ) : (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              )}
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                isChecking ? 'bg-amber-500' : backendConnected ? 'bg-emerald-500' : 'bg-rose-500'
-              }`}></span>
-            </span>
-            <span>{backendConnected ? 'API Online' : 'API Offline'}</span>
-          </div>
-
           {/* Global Notification Bell (Authenticated Users) */}
           {isAuthenticated && <NotificationBell />}
 
           {/* Auth Buttons */}
           {isAuthenticated && user ? (
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => onNavigate('register')}
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all shadow-2xs"
-                title="Open role account selector"
-              >
-                <Sparkles className="w-3 h-3 text-indigo-600" />
-                <span>Switch / Select Role</span>
-              </button>
-
               <button
                 onClick={() => {
                   if (user.role === 'student') onNavigate('student-dashboard');

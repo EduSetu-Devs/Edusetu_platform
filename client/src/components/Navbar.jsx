@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import {
@@ -18,7 +18,10 @@ import {
   Sparkles,
   Search,
   Building,
-  Inbox
+  Inbox,
+  ArrowLeftRight,
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
 
 
@@ -30,8 +33,44 @@ const roleBadges = {
   admin: 'bg-amber-100 text-amber-800 border-amber-200'
 };
 
+const DEMO_ROLE_OPTIONS = [
+  { role: 'admin', title: 'Admin Console', subtitle: 'Central Governance', email: 'admin.demo@edusetu.in', emoji: '🛡️', view: 'admin-dashboard' },
+  { role: 'teacher', title: 'Teacher Portal', subtitle: 'Dr. Anand Kumar', email: 'tawap55774@goldvester.com', emoji: '👨‍🏫', view: 'teacher-dashboard' },
+  { role: 'student', title: 'Student Portal', subtitle: 'Aarav Sharma (Class 10)', email: 'student.demo@edusetu.in', emoji: '👨‍🎓', view: 'student-dashboard' },
+  { role: 'parent', title: 'Parent Portal', subtitle: 'Sunita Sharma (Ward)', email: 'parent.demo@edusetu.in', emoji: '👨‍👩‍👧', view: 'parent-dashboard' },
+  { role: 'school', title: 'School Portal', subtitle: 'DPS Academy', email: 'school.demo@edusetu.in', emoji: '🏫', view: 'school-portal' }
+];
+
 const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, login } = useAuth();
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setRoleMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleRoleSwitch = async (item) => {
+    if (user?.role === item.role) {
+      setRoleMenuOpen(false);
+      onNavigate(item.view);
+      return;
+    }
+    setIsSwitching(true);
+    const res = await login(item.email, 'EduSetu@123');
+    setIsSwitching(false);
+    setRoleMenuOpen(false);
+    if (res.success) {
+      onNavigate(item.view);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -278,6 +317,83 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
           {/* Auth Buttons */}
           {isAuthenticated && user ? (
             <div className="flex items-center space-x-2">
+              {/* Switch Role Dropdown Button */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setRoleMenuOpen(!roleMenuOpen)}
+                  disabled={isSwitching}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Switch Role"
+                >
+                  {isSwitching ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                  ) : (
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-600" />
+                  )}
+                  <span>Switch Role</span>
+                  <ChevronDown className={`w-3 h-3 text-indigo-500 transition-transform ${roleMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {roleMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 space-y-1 animate-fadeIn">
+                    <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Role</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-slate-100 text-slate-700">
+                        {user.role}
+                      </span>
+                    </div>
+
+                    <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                      Switch Role Instantly
+                    </p>
+
+                    {DEMO_ROLE_OPTIONS.map((item) => {
+                      const isCurrent = user.role === item.role;
+                      return (
+                        <button
+                          key={item.role}
+                          type="button"
+                          onClick={() => handleRoleSwitch(item)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                            isCurrent
+                              ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-100'
+                              : 'text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <span className="text-base">{item.emoji}</span>
+                            <div className="text-left">
+                              <span className="block leading-tight font-bold">{item.title}</span>
+                              <span className="text-[10px] text-slate-400 block">{item.subtitle}</span>
+                            </div>
+                          </div>
+                          {isCurrent && (
+                            <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-md font-bold">
+                              Active
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    <div className="pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoleMenuOpen(false);
+                          onNavigate('register');
+                        }}
+                        className="w-full text-center py-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                      >
+                        All Role Portals / Register →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* User Chip */}
               <button
                 onClick={() => {
                   if (user.role === 'student') onNavigate('student-dashboard');

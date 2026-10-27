@@ -606,17 +606,18 @@ function AppContent() {
                 ) : (
                   <>
                     <button
-                      onClick={() => setCurrentView('login')}
-                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center space-x-2"
+                      onClick={() => setCurrentView('register')}
+                      className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm rounded-2xl shadow-lg shadow-indigo-500/25 ring-4 ring-indigo-500/15 transition-all hover:scale-[1.03] flex items-center space-x-2"
                     >
-                      <span>Sign In with Demo Roles</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                      <span>Choose Role & Create Account 🚀</span>
                     </button>
                     <button
-                      onClick={() => setCurrentView('register')}
-                      className="px-6 py-3 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-sm rounded-xl shadow-xs transition-all"
+                      onClick={() => setCurrentView('login')}
+                      className="px-6 py-3.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-sm rounded-2xl shadow-xs transition-all flex items-center space-x-2"
                     >
-                      Create Account
+                      <span>Sign In to Your Role</span>
+                      <ArrowRight className="w-4 h-4 text-slate-400" />
                     </button>
                   </>
                 )}

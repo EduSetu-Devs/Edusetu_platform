@@ -33,10 +33,23 @@ import {
   CheckSquare,
   FileSpreadsheet,
   CalendarCheck,
-  MessageSquare
+  MessageSquare,
+  Inbox
 } from 'lucide-react';
 
-const TeacherDashboard = ({ onLogout, onNavigateToStudents, onNavigateToAttendance, onNavigateToHomework, onNavigateToMarks, onNavigateToClasses, onNavigateToMessages, onNavigateToAI }) => {
+const TeacherDashboard = ({
+  onLogout,
+  onNavigateToStudents,
+  onNavigateToAttendance,
+  onNavigateToHomework,
+  onNavigateToMarks,
+  onNavigateToClasses,
+  onNavigateToMessages,
+  onNavigateToAI,
+  onNavigateToTutorProfile,
+  onNavigateToRequests,
+  onNavigateToBookings
+}) => {
   const { user, logout } = useAuth();
 
   const [profile, setProfile] = useState(null);
@@ -654,6 +667,108 @@ const TeacherDashboard = ({ onLogout, onNavigateToStudents, onNavigateToAttendan
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* Private Tutoring & Marketplace Hub */}
+      <section className="space-y-4 pt-4 border-t border-slate-200">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-indigo-600" />
+            1-on-1 Tutoring & Marketplace Portal
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage your public teacher profile on the EduSetu marketplace, set hourly rates, review student booking requests, and launch tutoring classrooms.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {/* Card 1: Tutor Profile */}
+          <div
+            onClick={onNavigateToTutorProfile}
+            className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50/50 to-white border border-indigo-200/80 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all flex flex-col justify-between space-y-4 cursor-pointer group"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center border border-indigo-300 group-hover:scale-105 transition-transform">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    Public Tutor Profile
+                  </h3>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Configure hourly rates (₹/hr), teaching mode (online/offline), subjects offered, and weekly availability slots.
+                </p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Marketplace Active
+              </span>
+              <span className="text-[10px] font-bold text-indigo-600">Edit Profile &rarr;</span>
+            </div>
+          </div>
+
+          {/* Card 2: Incoming Requests */}
+          <div
+            onClick={onNavigateToRequests}
+            className="p-6 rounded-3xl bg-gradient-to-br from-teal-50/50 to-white border border-teal-200/80 shadow-sm hover:shadow-md hover:border-teal-400 transition-all flex flex-col justify-between space-y-4 cursor-pointer group"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center border border-teal-300 group-hover:scale-105 transition-transform">
+                <Inbox className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
+                    Booking Requests
+                  </h3>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Respond to new tutor inquiries and proposals sent by students and parents across education hubs.
+                </p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+                Inquiries Inbox
+              </span>
+              <span className="text-[10px] font-bold text-teal-600">Review Requests &rarr;</span>
+            </div>
+          </div>
+
+          {/* Card 3: Active Bookings */}
+          <div
+            onClick={onNavigateToBookings}
+            className="p-6 rounded-3xl bg-gradient-to-br from-amber-50/50 to-white border border-amber-200/80 shadow-sm hover:shadow-md hover:border-amber-400 transition-all flex flex-col justify-between space-y-4 cursor-pointer group"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-300 group-hover:scale-105 transition-transform">
+                <CalendarCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
+                    Tutoring Bookings
+                  </h3>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Manage active tutoring schedule, reschedule sessions, review student contracts, and launch classroom.
+                </p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                Live Sessions
+              </span>
+              <span className="text-[10px] font-bold text-amber-600">Open Bookings &rarr;</span>
+            </div>
+          </div>
         </div>
       </section>
 

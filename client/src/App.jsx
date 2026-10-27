@@ -303,6 +303,9 @@ function AppContent() {
               onNavigateToMessages={() => setCurrentView('teacher-messages')}
               onNavigateToClasses={() => setCurrentView('teacher-classes')}
               onNavigateToAI={() => setCurrentView('teacher-ai')}
+              onNavigateToTutorProfile={() => setCurrentView('teacher-tutor-profile')}
+              onNavigateToRequests={() => setCurrentView('teacher-tutor-requests')}
+              onNavigateToBookings={() => setCurrentView('my-bookings')}
             />
           </ProtectedRoute>
         )}

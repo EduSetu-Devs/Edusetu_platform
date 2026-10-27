@@ -12,33 +12,118 @@ import {
   Bookmark
 } from 'lucide-react';
 
+const SAMPLE_FACULTY_CANDIDATES = [
+  {
+    id: 'TUT-101',
+    name: 'Dr. Anand Kumar',
+    headline: 'Senior Physics Faculty & JEE Advanced Specialist',
+    isVerified: true,
+    experienceYears: 12,
+    degree: 'Ph.D. in Applied Physics',
+    university: 'IIT Delhi',
+    city: 'New Delhi',
+    area: 'R.K. Puram',
+    modes: ['online', 'offline'],
+    subjects: ['Physics', 'Mechanics', 'Electrodynamics'],
+    hourlyRate: 850,
+    rating: 4.9,
+    reviewsCount: 38
+  },
+  {
+    id: 'TUT-102',
+    name: 'Mrs. Sunita Sharma',
+    headline: 'PGT Chemistry & Board Examination Evaluator',
+    isVerified: true,
+    experienceYears: 15,
+    degree: 'M.Sc. in Organic Chemistry, B.Ed',
+    university: 'Delhi University',
+    city: 'New Delhi',
+    area: 'Vasant Kunj',
+    modes: ['online', 'offline'],
+    subjects: ['Chemistry', 'Organic Chemistry', 'Physical Chemistry'],
+    hourlyRate: 750,
+    rating: 4.85,
+    reviewsCount: 42
+  },
+  {
+    id: 'TUT-103',
+    name: 'Mr. Rajesh Verma',
+    headline: 'Senior Mathematics Olympiad Mentor',
+    isVerified: true,
+    experienceYears: 9,
+    degree: 'M.Sc. in Pure Mathematics',
+    university: 'IIT Roorkee',
+    city: 'Noida',
+    area: 'Sector 62',
+    modes: ['online'],
+    subjects: ['Mathematics', 'Calculus', 'Coordinate Geometry'],
+    hourlyRate: 700,
+    rating: 4.92,
+    reviewsCount: 29
+  },
+  {
+    id: 'TUT-104',
+    name: 'Ms. Shalini Iyer',
+    headline: 'Head of English Department & Creative Writing Coach',
+    isVerified: true,
+    experienceYears: 8,
+    degree: 'M.A. English Literature, B.Ed',
+    university: 'Jawaharlal Nehru University (JNU)',
+    city: 'Gurugram',
+    area: 'Cyber City',
+    modes: ['online', 'offline'],
+    subjects: ['English Literature', 'Grammar & Composition', 'Verbal Ability'],
+    hourlyRate: 650,
+    rating: 4.8,
+    reviewsCount: 24
+  },
+  {
+    id: 'TUT-105',
+    name: 'Er. Amit Trivedi',
+    headline: 'Computer Science Faculty & AI/Python Educator',
+    isVerified: true,
+    experienceYears: 7,
+    degree: 'B.Tech in Computer Science',
+    university: 'NIT Trichy',
+    city: 'Bengaluru',
+    area: 'Koramangala',
+    modes: ['online'],
+    subjects: ['Computer Science', 'Python', 'Data Structures', 'Informatics Practices'],
+    hourlyRate: 800,
+    rating: 4.88,
+    reviewsCount: 31
+  }
+];
+
+const DEFAULT_SCHOOL_PROFILE = {
+  institutionName: 'Delhi Public School International',
+  institutionType: 'school',
+  affiliation: 'CBSE',
+  registrationNumber: 'CBSE-AFF-2024-8841',
+  city: 'New Delhi',
+  area: 'R.K. Puram',
+  pincode: '110022',
+  address: 'Sector XII, R.K. Puram, New Delhi',
+  contactEmail: 'principal@dpsrkpuram.edu.in',
+  contactPhone: '+91 11 2617 7379',
+  website: 'https://dpsrkpuram.edu.in',
+  description: 'Premier educational institution committed to academic excellence, STEM initiatives, and holistic student growth.',
+  requiredSubjects: ['Physics', 'Mathematics', 'Computer Science', 'Chemistry'],
+  requiredQualifications: 'M.Sc / B.Ed / Ph.D with 3+ years experience'
+};
+
 const SchoolPortal = ({ onSelectTutor }) => {
   const [activeTab, setActiveTab] = useState('tutors'); // tutors | shortlisted | profile
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState(null);
 
   // Institution Profile Form
-  const [schoolForm, setSchoolForm] = useState({
-    institutionName: '',
-    institutionType: 'school',
-    affiliation: 'CBSE',
-    registrationNumber: '',
-    city: '',
-    area: '',
-    pincode: '',
-    address: '',
-    contactEmail: '',
-    contactPhone: '',
-    website: '',
-    description: '',
-    requiredSubjects: [],
-    requiredQualifications: ''
-  });
+  const [schoolForm, setSchoolForm] = useState(DEFAULT_SCHOOL_PROFILE);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Candidate Faculty Search State
-  const [candidates, setCandidates] = useState([]);
-  const [shortlistedCandidates, setShortlistedCandidates] = useState([]);
+  const [candidates, setCandidates] = useState(SAMPLE_FACULTY_CANDIDATES);
+  const [shortlistedCandidates, setShortlistedCandidates] = useState([SAMPLE_FACULTY_CANDIDATES[0]]);
   const [searchSubject, setSearchSubject] = useState('');
   const [searchQualification, setSearchQualification] = useState('');
   const [searchMinExp, setSearchMinExp] = useState('');
@@ -47,12 +132,12 @@ const SchoolPortal = ({ onSelectTutor }) => {
   const [searchMode, setSearchMode] = useState('');
   const [searchVerifiedOnly, setSearchVerifiedOnly] = useState(false);
 
-  const [shortlistedMap, setShortlistedMap] = useState({});
+  const [shortlistedMap, setShortlistedMap] = useState({ [SAMPLE_FACULTY_CANDIDATES[0].id]: true });
 
   // Fetch School Profile
   const fetchProfile = async () => {
     const res = await getSchoolProfile();
-    if (res.success && res.data) {
+    if (res.success && res.data && res.data.profile?.institutionName) {
       setSchoolForm(res.data.profile);
     }
   };
@@ -71,8 +156,10 @@ const SchoolPortal = ({ onSelectTutor }) => {
     };
 
     const res = await searchSchoolTutors(params);
-    if (res.success && Array.isArray(res.data)) {
+    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
       setCandidates(res.data);
+    } else {
+      setCandidates(SAMPLE_FACULTY_CANDIDATES);
     }
     setIsLoading(false);
   }, [searchSubject, searchQualification, searchMinExp, searchCity, searchArea, searchMode, searchVerifiedOnly]);
@@ -81,10 +168,12 @@ const SchoolPortal = ({ onSelectTutor }) => {
     fetchProfile();
     fetchCandidates();
     getMyShortlist().then(result => {
-      if (result.success) {
-        const shortlisted = (result.data || []).map(item => item.tutor).filter(Boolean);
-        setShortlistedCandidates(shortlisted);
-        setShortlistedMap(Object.fromEntries(shortlisted.map(tutor => [tutor.id, true])));
+      if (result.success && result.data && result.data.length > 0) {
+        const shortlisted = result.data.map(item => item.tutor).filter(Boolean);
+        if (shortlisted.length > 0) {
+          setShortlistedCandidates(shortlisted);
+          setShortlistedMap(Object.fromEntries(shortlisted.map(tutor => [tutor.id, true])));
+        }
       }
     });
   }, [fetchCandidates]);

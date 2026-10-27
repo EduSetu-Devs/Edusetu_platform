@@ -40,6 +40,9 @@ import {
   CalendarCheck,
   FileSpreadsheet,
   Printer,
+  Smartphone,
+  Send,
+  MessageCircle,
   ArrowRight,
   TrendingUp,
   History,
@@ -178,7 +181,11 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
   const [isAcademicLoading, setIsAcademicLoading] = useState(false);
 
   // Modals & Drawers State
-  const [activeModal, setActiveModal] = useState(null); // 'attendance_history' | 'homework_history' | 'marks_history' | 'child_profile'
+  const [activeModal, setActiveModal] = useState(null);
+  const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [whatsAppSent, setWhatsAppSent] = useState(false);
+   // 'attendance_history' | 'homework_history' | 'marks_history' | 'child_profile'
   const [historyData, setHistoryData] = useState(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
@@ -891,6 +898,20 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                       <History className="w-3.5 h-3.5" />
                       <span>View History &rarr;</span>
                     </button>
+                    {academicOverview?.attendance?.absent > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAbsenceModal(true);
+                          setWhatsAppSent(false);
+                        }}
+                        className="w-full mt-1.5 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Smartphone className="w-3 h-3 text-rose-600" />
+                        <span>⚠️ {academicOverview.attendance.absent} Absences · WhatsApp Notice</span>
+                      </button>
+                    )}
+  
                   </div>
 
                   {/* Card 2: Homework Card */}
@@ -1329,6 +1350,114 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
         </div>
       )}
 
+
+      {/* Parent WhatsApp / SMS Absence Alert Modal */}
+      {showAbsenceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+            
+            {/* WhatsApp Header */}
+            <div className="p-4 bg-[#075e54] text-white flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-xs">
+                  ES
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold leading-tight">EduSetu Official Alerts</h3>
+                    <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold">
+                      ✓ Verified
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-100">Automated Parent Dispatch System</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAbsenceModal(false)}
+                className="p-1 rounded-xl text-white/70 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Body (WhatsApp doodle style) */}
+            <div className="p-4 bg-[#efeae2] space-y-3 min-h-[220px] text-xs">
+              <div className="text-center">
+                <span className="px-2 py-1 rounded-md bg-white/80 text-[10px] text-slate-500 font-semibold shadow-2xs">
+                  Today · Automated School Broadcast
+                </span>
+              </div>
+
+              {/* Message Bubble */}
+              <div className="max-w-[85%] bg-white rounded-2xl rounded-tl-xs p-3.5 shadow-sm text-slate-800 space-y-2 border border-slate-200">
+                <div className="flex items-center gap-1.5 text-rose-600 font-bold text-[11px]">
+                  <span>⚠️ UNPLANNED ABSENCE NOTICE</span>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-700">
+                  Dear Parent / Guardian of <strong>{activeKid?.name || 'Student'}</strong> (ID: {activeKid?.studentId || 'STU001'}),
+                </p>
+                <p className="text-xs leading-relaxed text-slate-700">
+                  Your ward was recorded <strong>ABSENT</strong> during today's morning roll call. If this absence was planned, kindly submit a medical note or leave slip via this portal.
+                </p>
+                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>EduSetu ERP Notification</span>
+                  <span className="font-bold text-[#075e54]">09:15 AM ✓✓</span>
+                </div>
+              </div>
+
+              {whatsAppSent && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Resent to parent registered phone (+91 98765 43210) via WhatsApp API.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-white border-t border-slate-100 space-y-2">
+              <button
+                type="button"
+                disabled={isSendingWhatsApp || whatsAppSent}
+                onClick={() => {
+                  setIsSendingWhatsApp(true);
+                  setTimeout(() => {
+                    setIsSendingWhatsApp(false);
+                    setWhatsAppSent(true);
+                  }, 1000);
+                }}
+                className="w-full py-2.5 px-4 bg-[#25d366] hover:bg-[#20ba59] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {isSendingWhatsApp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Transmitting to Parent WhatsApp...</span>
+                  </>
+                ) : whatsAppSent ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Delivered to Parent WhatsApp</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Simulate Resend to WhatsApp</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAbsenceModal(false)}
+                className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+              >
+                Close & Acknowledge
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+  
     </div>
   );
 };

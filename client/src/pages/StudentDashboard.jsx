@@ -13,6 +13,7 @@ import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
 import { subscribeToSessionEvents } from '../services/socket';
 import { generateReportCardPDF } from '../utils/reportCardGenerator';
+import { generateCertificatePDF } from '../utils/certificateGenerator';
 import CheckoutModal from '../components/CheckoutModal';
 import {
   getStudentEnrolledCourses,
@@ -228,6 +229,18 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   }
 
   const studentName = profile?.name || user?.name || 'Student';
+  
+  const handleDownloadCertificate = (course) => {
+    generateCertificatePDF({
+      studentName,
+      rollNumber: profile?.rollNumber || profile?.studentId || 'STU-1001',
+      courseTitle: course?.title || 'Academic Curriculum Mastery Batch',
+      subject: course?.subject || 'Academic Excellence',
+      gradeLevel: course?.gradeLevel || profile?.className || 'Class 10',
+      instructor: course?.teacher?.name || 'EduSetu Senior Faculty'
+    });
+  };
+  
   const handleDownloadReportCard = () => {
     generateReportCardPDF({
       studentName,
@@ -760,14 +773,23 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100">
+                <div className="pt-2 border-t border-slate-100 flex gap-2">
                   <button
                     type="button"
                     onClick={onNavigateToClasses}
-                    className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5"
+                    className="flex-1 py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5"
                   >
-                    <span>Go to Class Room</span>
+                    <span>Class Room</span>
                     <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadCertificate(c)}
+                    className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1"
+                    title="Download Official Course Completion Certificate"
+                  >
+                    <Award className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Certificate</span>
                   </button>
                 </div>
               </div>

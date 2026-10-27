@@ -31,6 +31,7 @@ import {
   Briefcase,
   Users,
   CheckSquare,
+  Plus,
   FileSpreadsheet,
   CalendarCheck,
   MessageSquare,
@@ -56,6 +57,19 @@ const TeacherDashboard = ({
   const [dashboardData, setDashboardData] = useState(null);
   const [studentCount, setStudentCount] = useState(0);
   const [activeHomeworkCount, setActiveHomeworkCount] = useState(0);
+  const [teacherCourses, setTeacherCourses] = useState([]);
+  const [isCreateCourseModalOpen, setIsCreateCourseModalOpen] = useState(false);
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [newCourseForm, setNewCourseForm] = useState({
+    title: '',
+    subject: 'Mathematics',
+    gradeLevel: 'Class 10',
+    schedule: 'Mon, Wed, Fri · 5:00 PM - 6:30 PM',
+    price: 999,
+    totalLessons: 24,
+    description: ''
+  });
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,11 +91,12 @@ const TeacherDashboard = ({
     setIsLoading(true);
     setFeedback(null);
 
-    const [profRes, dashRes, studentsRes, hwRes] = await Promise.all([
+    const [profRes, dashRes, studentsRes, hwRes, coursesRes] = await Promise.all([
       getTeacherProfile(),
       getTeacherDashboard(),
       getMyStudents(),
-      getMyHomework({ status: 'active' })
+      getMyHomework({ status: 'active' }),
+      getTeacherCourses()
     ]);
 
     if (profRes.success) {
@@ -115,6 +130,11 @@ const TeacherDashboard = ({
       setActiveHomeworkCount(3);
     }
 
+    
+    if (coursesRes && coursesRes.success && Array.isArray(coursesRes.data?.courses)) {
+      setTeacherCourses(coursesRes.data.courses);
+    }
+  
     setIsLoading(false);
   };
 
@@ -790,6 +810,140 @@ const TeacherDashboard = ({
         </div>
       </section>
 
+
+      {/* Create Course Batch Modal */}
+      {isCreateCourseModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-indigo-600 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black">Create New Academic Batch</h3>
+                <p className="text-xs text-indigo-100 mt-0.5">Publish a course batch for students to enroll</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateCourseModalOpen(false)}
+                className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCourse} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Course / Batch Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={newCourseForm.title}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, title: e.target.value })}
+                  placeholder="e.g. Class 10 Advanced Coordinate Geometry"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Subject *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCourseForm.subject}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, subject: e.target.value })}
+                    placeholder="e.g. Mathematics"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Grade Level *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCourseForm.gradeLevel}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, gradeLevel: e.target.value })}
+                    placeholder="e.g. Class 10"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Schedule & Timings *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCourseForm.schedule}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, schedule: e.target.value })}
+                    placeholder="e.g. Mon, Wed, Fri · 5:00 PM"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Course Fee (₹) [0 = Free]</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newCourseForm.price}
+                    onChange={(e) => setNewCourseForm({ ...newCourseForm, price: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Total Lessons</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newCourseForm.totalLessons}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, totalLessons: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Description & Syllabus Topics</label>
+                <textarea
+                  rows="3"
+                  value={newCourseForm.description}
+                  onChange={(e) => setNewCourseForm({ ...newCourseForm, description: e.target.value })}
+                  placeholder="Outline topics covered, target exams, and learning outcomes..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                ></textarea>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateCourseModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCourse}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                >
+                  {isCreatingCourse ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Publishing Batch...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Publish Course Batch</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+  
     </div>
   );
 };

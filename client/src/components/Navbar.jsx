@@ -344,11 +344,11 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
                   logout();
                   onNavigate('home');
                 }}
-                title="Sign Out"
-                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors text-xs font-bold"
+                title="Sign Out of EduSetu"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors text-xs font-bold shadow-2xs"
               >
                 <LogOut className="w-3.5 h-3.5 text-rose-600" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span>Log Out</span>
               </button>
             </div>
           ) : (

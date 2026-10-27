@@ -194,25 +194,36 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
             </p>
           </div>
 
-          {/* Quick Profile Summary Badge */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center space-x-4 shrink-0">
-            <div className="w-12 h-12 rounded-xl bg-white text-indigo-600 flex items-center justify-center font-bold text-xl shadow-md">
-              {studentName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-sm">{studentName}</span>
-                <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold uppercase">
-                  Student
-                </span>
+          {/* Quick Profile Summary Badge & Logout */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-xl bg-white text-indigo-600 flex items-center justify-center font-bold text-xl shadow-md">
+                {studentName.charAt(0).toUpperCase()}
               </div>
-              <p className="text-xs text-blue-200 mt-0.5 font-mono">
-                ID: {profile?.studentId || 'STU-001'}
-              </p>
-              <p className="text-xs text-blue-200">
-                {profile?.className || 'Class Not Set'} {profile?.section ? `• Sec ${profile.section}` : ''}
-              </p>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-sm">{studentName}</span>
+                  <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold uppercase">
+                    Student
+                  </span>
+                </div>
+                <p className="text-xs text-blue-200 mt-0.5 font-mono">
+                  ID: {profile?.studentId || 'STU-001'}
+                </p>
+                <p className="text-xs text-blue-200">
+                  {profile?.className || 'Class Not Set'} {profile?.section ? `• Sec ${profile.section}` : ''}
+                </p>
+              </div>
             </div>
+
+            <button
+              onClick={handleLogout}
+              title="Sign Out of Student Portal"
+              className="px-3.5 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-100 border border-rose-300/30 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 self-stretch sm:self-auto"
+            >
+              <LogOut className="w-4 h-4 text-rose-300" />
+              <span>Log Out</span>
+            </button>
           </div>
         </div>
 

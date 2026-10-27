@@ -39,6 +39,7 @@ import {
   GraduationCap,
   CalendarCheck,
   FileSpreadsheet,
+  Printer,
   ArrowRight,
   TrendingUp,
   History,
@@ -365,6 +366,23 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     }
   };
 
+  
+  const handleDownloadChildReportCard = () => {
+    if (!activeKid) return;
+    generateReportCardPDF({
+      studentName: activeKid.name,
+      className: activeKid.className || 'Class 10',
+      section: activeKid.section || 'A',
+      rollNumber: activeKid.rollNumber || '1001',
+      admissionId: activeKid.studentId || 'EDU-2026-9042',
+      dateOfBirth: activeKid.dateOfBirth ? activeKid.dateOfBirth.slice(0, 10) : '2008-05-14',
+      performance: academicOverview?.marks || null,
+      attendancePercentage: activeKid.attendancePercentage || 94,
+      totalDays: 180,
+      presentDays: Math.round(180 * ((activeKid.attendancePercentage || 94) / 100))
+    });
+  };
+  
   const handleOpenMarksHistory = async () => {
     const activeKid = children[selectedChildIndex];
     if (!activeKid) return;

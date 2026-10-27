@@ -329,6 +329,102 @@ const notifyForMessage = async (messageRecord, conversation, senderUser) => {
 };
 
 /**
+ * Helper to notify Teacher when a student submits homework
+ */
+const notifyForHomeworkSubmission = async (homework, submission, studentProfile) => {
+  try {
+    if (!homework || !homework.assignedBy || !submission) return;
+
+    let studentName = 'A student';
+    if (studentProfile) {
+      if (studentProfile.user && studentProfile.user.name) {
+        studentName = studentProfile.user.name;
+      } else if (studentProfile.userId) {
+        const u = await User.findByPk(studentProfile.userId, { attributes: ['id', 'name'] });
+        if (u && u.name) studentName = u.name;
+      }
+    }
+
+    await createNotification({
+      recipientUserId: homework.assignedBy,
+      type: 'HOMEWORK',
+      title: 'Homework Submitted',
+      message: `${studentName} has submitted assignment "${homework.title}" (${homework.subject || 'General'}).`,
+      relatedEntityType: 'homework_submission',
+      relatedEntityId: submission.id
+    });
+  } catch (error) {
+    console.error('[NotificationService notifyForHomeworkSubmission Error]:', error.message);
+  }
+};
+
+/**
+ * Helper to notify Student and Parents when a teacher grades homework
+ */
+const notifyForHomeworkGraded = async (homework, submission, studentProfile) => {
+  try {
+    if (!homework || !submission || !studentProfile) return;
+
+    const student = await StudentProfile.findByPk(studentProfile.id, {
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'name'] },
+        {
+          model: ParentStudent,
+          as: 'parentStudents',
+          include: [
+            {
+              model: ParentProfile,
+              as: 'parentProfile',
+              include: [{ model: User, as: 'user', attributes: ['id', 'name'] }]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!student) return;
+
+    const maxMarks = Number(homework.maxMarks) || 20;
+    const scoreText = `${submission.marksObtained}/${maxMarks}`;
+    const feedbackText = submission.teacherFeedback ? ` Feedback: "${submission.teacherFeedback}"` : '';
+    const notifs = [];
+
+    // 1. Notify Student
+    if (student.userId) {
+      notifs.push({
+        recipientUserId: student.userId,
+        type: 'MARKS',
+        title: 'Homework Evaluated',
+        message: `Your homework for "${homework.title}" (${homework.subject}) has been evaluated. Score: ${scoreText}.${feedbackText}`,
+        relatedEntityType: 'homework_submission',
+        relatedEntityId: submission.id
+      });
+    }
+
+    // 2. Notify Parents
+    if (student.parentStudents && student.parentStudents.length > 0) {
+      student.parentStudents.forEach((ps) => {
+        const parentUserId = ps.parentProfile?.userId;
+        if (parentUserId) {
+          notifs.push({
+            recipientUserId: parentUserId,
+            type: 'MARKS',
+            title: 'Homework Evaluated',
+            message: `Homework for ${student.user?.name || 'your child'} in "${homework.title}" (${homework.subject}) was evaluated: ${scoreText}.${feedbackText}`,
+            relatedEntityType: 'homework_submission',
+            relatedEntityId: submission.id
+          });
+        }
+      });
+    }
+
+    await createBulkNotifications(notifs);
+  } catch (error) {
+    console.error('[NotificationService notifyForHomeworkGraded Error]:', error.message);
+  }
+};
+
+/**
  * Query paginated notifications for a user
  */
 const getUserNotifications = async (
@@ -456,6 +552,8 @@ module.exports = {
   createNotification,
   createBulkNotifications,
   notifyForHomework,
+  notifyForHomeworkSubmission,
+  notifyForHomeworkGraded,
   notifyForAttendance,
   notifyForMarks,
   notifyForMessage,

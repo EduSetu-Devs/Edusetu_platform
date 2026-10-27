@@ -112,3 +112,18 @@ export const subscribeToNotifications = (callback) => {
     s.off('notification:new', callback);
   };
 };
+
+/**
+ * Subscribe to real-time teaching session events
+ */
+export const subscribeToSessionEvents = ({ onStarted, onEnded }) => {
+  const s = getSocket();
+  if (!s) return () => {};
+
+  if (onStarted) s.on('session:started', onStarted);
+  if (onEnded) s.on('session:completed', onEnded);
+  return () => {
+    if (onStarted) s.off('session:started', onStarted);
+    if (onEnded) s.off('session:completed', onEnded);
+  };
+};

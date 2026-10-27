@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { Homework, HomeworkSubmission, SubmissionAttachment, StudentProfile, User, sequelize } = require('../models');
 const { cleanupUploadedFiles } = require('../middleware/submissionUpload');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
+const { notifyForHomeworkSubmission } = require('../services/notificationService');
 
 /**
  * Validates a YYYY-MM-DD date string
@@ -376,6 +377,11 @@ const submitHomework = async (req, res) => {
     }
 
     await transaction.commit();
+
+    // Notify teacher asynchronously about the new submission
+    notifyForHomeworkSubmission(homework, submission, studentProfile).catch((err) =>
+      console.error('[Notification Error on submitHomework]:', err.message)
+    );
 
     return successResponse(res, 201, 'Homework submitted successfully', {
       id: submission.id,

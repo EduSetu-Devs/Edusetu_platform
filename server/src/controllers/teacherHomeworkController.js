@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const { User, StudentProfile, TeacherProfile, Homework, HomeworkSubmission, SubmissionAttachment, sequelize } = require('../models');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
-const { notifyForHomework } = require('../services/notificationService');
+const { notifyForHomework, notifyForHomeworkGraded } = require('../services/notificationService');
 const { SUBMISSION_UPLOAD_DIR } = require('../middleware/submissionUpload');
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -698,6 +698,18 @@ const gradeSubmission = async (req, res) => {
     submission.gradedBy = req.user.id;
     submission.status = 'reviewed';
     await submission.save();
+
+    // Notify Student and linked Parents about their grade
+    (async () => {
+      try {
+        const studentProfile = await StudentProfile.findByPk(submission.studentId);
+        if (studentProfile) {
+          await notifyForHomeworkGraded(homework, submission, studentProfile);
+        }
+      } catch (err) {
+        console.error('[Notification Error on gradeSubmission]:', err.message);
+      }
+    })();
 
     return successResponse(res, 200, 'Submission grade saved successfully', {
       id: submission.id,

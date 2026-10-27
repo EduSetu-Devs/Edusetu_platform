@@ -6,10 +6,14 @@ import {
   getStudentDashboard,
   getStudentAttendanceSummary,
   getStudentHomework,
-  getStudentPerformance
+  getStudentPerformance,
+  getStudentSessions
 } from '../services/studentService';
 import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
+import { subscribeToSessionEvents } from '../services/socket';
+import { generateReportCardPDF } from '../utils/reportCardGenerator';
+import CheckoutModal from '../components/CheckoutModal';
 import {
   getStudentEnrolledCourses,
   getAllCourses,
@@ -38,10 +42,13 @@ import {
   ArrowRight,
   Percent,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Printer,
+  Video,
+  Radio
 } from 'lucide-react';
 
-const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomework, onNavigateToMarks, onNavigateToClasses, onNavigateToTutors, onNavigateToAI }) => {
+const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomework, onNavigateToMarks, onNavigateToClasses, onNavigateToTutors, onNavigateToAI, onNavigateToClassroom }) => {
   const { user, logout } = useAuth();
   
   const [profile, setProfile] = useState(null);
@@ -62,6 +69,8 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const [isCoursesModalOpen, setIsCoursesModalOpen] = useState(false);
   const [enrollingCourseId, setEnrollingCourseId] = useState(null);
   const [courseFeedback, setCourseFeedback] = useState(null);
+  const [liveSession, setLiveSession] = useState(null);
+  const [checkoutCourse, setCheckoutCourse] = useState(null);
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -78,7 +87,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const loadStudentData = async () => {
     setIsLoading(true);
     setFeedback(null);
-    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes] = await Promise.all([
+    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes, sessionsRes] = await Promise.all([
       getStudentProfile(),
       getStudentDashboard(),
       getStudentAttendanceSummary(),
@@ -219,10 +228,65 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   }
 
   const studentName = profile?.name || user?.name || 'Student';
+  const handleDownloadReportCard = () => {
+    generateReportCardPDF({
+      studentName,
+      className: profile?.className || 'Class 10',
+      section: profile?.section || 'A',
+      rollNumber: profile?.rollNumber || '1001',
+      admissionId: profile?.studentId || 'EDU-2026-9042',
+      dateOfBirth: profile?.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : '2008-05-14',
+      performance,
+      attendancePercentage: attendanceSummary?.percentage || 92.5,
+      totalDays: attendanceSummary?.totalDays || 180,
+      presentDays: attendanceSummary?.presentDays || 166
+    });
+  };
+
+  const handleConfirmCheckout = async (txnId) => {
+    if (checkoutCourse) {
+      await handleEnrollCourse(checkoutCourse.id);
+    }
+  };
+  
 
   return (
     <div className="max-w-6xl mx-auto my-6 px-4 space-y-8">
       
+      
+      {/* Pulsing Live Class In Progress Banner */}
+      {liveSession && (
+        <div className="rounded-3xl bg-gradient-to-r from-rose-600 via-rose-500 to-indigo-600 p-5 text-white shadow-xl border border-rose-300/40 animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <span className="relative flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-white"></span>
+            </span>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-wider">
+                  🔴 LIVE NOW
+                </span>
+                <h3 className="text-base font-black tracking-tight">{liveSession.title || 'Live Classroom Session'}</h3>
+              </div>
+              <p className="text-xs text-rose-100 font-medium mt-0.5">
+                Instructor: <strong className="text-white">{liveSession.teacher || 'Faculty'}</strong> · Subject: {liveSession.subject || 'Academic Session'} · Mode: {liveSession.mode}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 w-full md:w-auto">
+            <button
+              onClick={() => onNavigateToClassroom ? onNavigateToClassroom(liveSession.id) : onNavigateToClasses()}
+              className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-white text-rose-600 hover:bg-rose-50 font-black text-xs shadow-md transition-all flex items-center justify-center space-x-2"
+            >
+              <span>🚀 Join Live Classroom</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+  
       {/* Top Welcome Banner */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -261,6 +325,16 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
               </div>
             </div>
 
+            
+            <button
+              onClick={handleDownloadReportCard}
+              title="Print official CBSE Progress Report Card"
+              className="px-4 py-2.5 bg-white text-indigo-700 hover:bg-blue-50 rounded-2xl text-xs font-black shadow-md transition-all flex items-center justify-center space-x-2 self-stretch sm:self-auto"
+            >
+              <Printer className="w-4 h-4 text-indigo-600" />
+              <span>Report Card</span>
+            </button>
+  
             <button
               onClick={handleLogout}
               title="Sign Out of Student Portal"
@@ -1043,7 +1117,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                             <button
                               type="button"
                               disabled={isEnrolling}
-                              onClick={() => handleEnrollCourse(course.id)}
+                              onClick={() => { if (Number(course.price) > 0) { setCheckoutCourse(course); } else { handleEnrollCourse(course.id); } }}
                               className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                               {isEnrolling ? (
@@ -1081,6 +1155,19 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
         </div>
       )}
 
+
+      {/* Commercial Checkout Modal */}
+      <CheckoutModal
+        isOpen={Boolean(checkoutCourse)}
+        onClose={() => setCheckoutCourse(null)}
+        itemTitle={checkoutCourse?.title || 'Academic Course Batch'}
+        itemSubtitle={`${checkoutCourse?.subject || 'Subject'} · ${checkoutCourse?.gradeLevel || 'Grade 10'}`}
+        instructor={checkoutCourse?.teacher?.name || 'EduSetu Senior Faculty'}
+        schedule={checkoutCourse?.schedule || 'Weekly Interactive Batches'}
+        price={checkoutCourse?.price || 999}
+        onConfirmPayment={handleConfirmCheckout}
+      />
+  
     </div>
   );
 };

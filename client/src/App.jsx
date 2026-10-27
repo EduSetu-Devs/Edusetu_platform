@@ -252,6 +252,7 @@ function AppContent() {
               onNavigateToMarks={() => setCurrentView('student-marks')}
               onNavigateToClasses={() => setCurrentView('student-classes')}
               onNavigateToAI={() => setCurrentView('student-ai')}
+              onNavigateToClassroom={navigateToClassroom}
             />
           </ProtectedRoute>
         )}

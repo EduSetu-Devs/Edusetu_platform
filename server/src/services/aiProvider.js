@@ -823,19 +823,21 @@ Return strictly valid JSON:
     const promptContent = this.formatTaskPrompt(task, payload);
     const candidateModels = [
       process.env.AI_MODEL,
-      'google/gemini-2.0-flash-exp:free',
-      'meta-llama/llama-3.2-3b-instruct:free',
-      'meta-llama/llama-3.1-8b-instruct:free',
-      'qwen/qwen-2.5-7b-instruct:free',
-      'mistralai/mistral-7b-instruct:free',
-      'cohere/north-mini-code:free'
+      'openrouter/free',
+      'nvidia/nemotron-3.5-lightning:free',
+      'dots-studio/dots-3-note-preview:free',
+      'cohere/north-mini-code:free',
+      'liquid/lfm-2.5-2.6b:free'
     ].filter(Boolean);
+
+    // Ensure unique models preserving cascade priority order
+    const uniqueModels = [...new Set(candidateModels)];
 
     let lastError = null;
 
-    for (const modelName of candidateModels) {
+    for (const modelName of uniqueModels) {
       try {
-        const response = await fetch(process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -857,11 +859,6 @@ Return strictly valid JSON:
         });
 
         if (!response.ok) {
-          if (response.status === 429) {
-            console.warn(`[AI] Model ${modelName} rate-limited (HTTP 429), trying next candidate...`);
-            continue;
-          }
-
           let providerError = {};
           try {
             const parsed = await response.json();
@@ -870,7 +867,7 @@ Return strictly valid JSON:
               status: response.status,
               providerCode: typeof errorBody.code === 'string' ? errorBody.code : undefined,
               providerType: typeof errorBody.type === 'string' ? errorBody.type : undefined,
-              message: `AI provider request failed (HTTP ${response.status})`
+              message: typeof errorBody.message === 'string' ? errorBody.message : `AI provider request failed (HTTP ${response.status})`
             };
           } catch {
             providerError = {
@@ -879,26 +876,39 @@ Return strictly valid JSON:
             };
           }
 
-          const err = new Error(providerError.message);
-          err.status = providerError.status;
-          if (providerError.providerCode) err.providerCode = providerError.providerCode;
-          if (providerError.providerType) err.providerType = providerError.providerType;
-          throw err;
+          // If unauthorized (invalid API key), halt immediately so credentials can be corrected
+          if (response.status === 401) {
+            const err = new Error(providerError.message);
+            err.status = 401;
+            if (providerError.providerCode) err.providerCode = providerError.providerCode;
+            if (providerError.providerType) err.providerType = providerError.providerType;
+            throw err;
+          }
+
+          // For all other errors (429 rate-limit, 404 deprecated model, 500/502/503 upstream overload), fallback to next candidate
+          console.warn(`[AI Cascade] Model "${modelName}" returned HTTP ${response.status} (${providerError.message || 'error'}), cascading to next free model...`);
+          lastError = new Error(providerError.message);
+          lastError.status = response.status;
+          continue;
         }
 
         const body = await response.json();
         const content = body.choices?.[0]?.message?.content || '{}';
         try {
           return JSON.parse(content);
-        } catch (error) {
+        } catch (parseErr) {
           const match = content.match(/\{[\s\S]*\}/);
           if (match) {
             try { return JSON.parse(match[0]); } catch (inner) { /* fall through */ }
           }
-          throw new Error('AI provider returned invalid JSON');
+          console.warn(`[AI Cascade] Model "${modelName}" returned non-JSON content, cascading to next model...`);
+          lastError = new Error('AI provider returned invalid JSON');
+          continue;
         }
       } catch (err) {
+        if (err.status === 401) throw err;
         lastError = err;
+        console.warn(`[AI Cascade] Exception calling model "${modelName}": ${err.message}, trying next fallback...`);
       }
     }
 

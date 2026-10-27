@@ -182,17 +182,17 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
     setPage(1);
   };
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     setRecommendationLoading(true);
     setRecommendationError('');
-    const eligibleChildren = (assignmentEligibility?.children || []).filter(child => child.canRequest);
+    const childrenList = assignmentEligibility?.children || [];
     const params = {
       subject: subject || undefined,
       budget: maxRate || undefined,
       language: preferredLanguage || undefined,
       availability: availability || undefined,
       studentProfileId: user?.role === 'parent'
-        ? recommendationStudentId || eligibleChildren[0]?.studentProfileId
+        ? (recommendationStudentId || childrenList[0]?.studentProfileId)
         : undefined
     };
     const result = await getRecommendedTutors(params);
@@ -205,7 +205,13 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
       setRecommendationsLoaded(false);
     }
     setRecommendationLoading(false);
-  };
+  }, [subject, maxRate, preferredLanguage, availability, recommendationStudentId, assignmentEligibility, user?.role]);
+
+  useEffect(() => {
+    if (isAuthenticated && ['student', 'parent'].includes(user?.role)) {
+      fetchRecommendations();
+    }
+  }, [isAuthenticated, user?.role, fetchRecommendations]);
 
   // Compare Toggle
   const handleToggleCompare = (tutor) => {
@@ -594,15 +600,15 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
                 <p className="mt-1 text-sm text-slate-500">Ranked from teacher profiles using your marketplace filters and linked student’s class.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                {user?.role === 'parent' && (
+                {user?.role === 'parent' && (assignmentEligibility?.children || []).length > 0 && (
                   <label className="text-xs font-semibold text-slate-600">
                     For child
                     <select
-                      value={recommendationStudentId || String((assignmentEligibility?.children || []).find(child => child.canRequest)?.studentProfileId || '')}
+                      value={recommendationStudentId || String((assignmentEligibility?.children || [])[0]?.studentProfileId || '')}
                       onChange={event => setRecommendationStudentId(event.target.value)}
                       className="mt-1 block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal"
                     >
-                      {(assignmentEligibility?.children || []).filter(child => child.canRequest).map(child => (
+                      {(assignmentEligibility?.children || []).map(child => (
                         <option key={child.studentProfileId} value={child.studentProfileId}>{child.name} · Class {child.className || 'not set'}</option>
                       ))}
                     </select>
@@ -620,7 +626,7 @@ const FindTutorsPage = ({ onNavigate, onSelectTutor, onCompareTutors, compareLis
                 </label>
                 <button
                   type="button"
-                  disabled={recommendationLoading || eligibilityLoading || (user?.role === 'student' && !assignmentEligibility?.canRequest) || (user?.role === 'parent' && !(assignmentEligibility?.children || []).some(child => child.canRequest))}
+                  disabled={recommendationLoading}
                   onClick={fetchRecommendations}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >

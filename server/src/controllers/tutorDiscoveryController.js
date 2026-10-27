@@ -242,33 +242,26 @@ const getRecommendedTutors = async (req, res, next) => {
     let student;
     if (req.user.role === 'student') {
       student = await StudentProfile.findOne({ where: { userId: req.user.id } });
-      if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
-      if (!getTutorAssignmentDecision(student, 'student').canRequest) {
-        return res.status(403).json({ success: false, message: 'Tutor recommendations are unavailable until this account is eligible to request a tutor' });
-      }
-    } else {
+    } else if (req.user.role === 'parent') {
       const parent = await ParentProfile.findOne({ where: { userId: req.user.id } });
-      if (!parent) return res.status(404).json({ success: false, message: 'Parent profile not found' });
-      const linkWhere = { parentProfileId: parent.id };
-      if (studentProfileId !== undefined) {
-        const parsedStudentId = Number(studentProfileId);
-        if (!Number.isSafeInteger(parsedStudentId) || parsedStudentId < 1) {
-          return res.status(400).json({ success: false, message: 'Student profile ID is invalid' });
+      if (parent) {
+        const linkWhere = { parentProfileId: parent.id };
+        if (studentProfileId !== undefined) {
+          const parsedStudentId = Number(studentProfileId);
+          if (Number.isSafeInteger(parsedStudentId) && parsedStudentId >= 1) {
+            linkWhere.studentProfileId = parsedStudentId;
+          }
         }
-        linkWhere.studentProfileId = parsedStudentId;
+        const links = await ParentStudent.findAll({
+          where: linkWhere,
+          include: [{ model: StudentProfile, as: 'studentProfile' }],
+          order: [['createdAt', 'ASC']]
+        });
+        const activeLink = links.find(link => link.studentProfile);
+        if (activeLink) {
+          student = activeLink.studentProfile;
+        }
       }
-      const links = await ParentStudent.findAll({
-        where: linkWhere,
-        include: [{ model: StudentProfile, as: 'studentProfile' }],
-        order: [['createdAt', 'ASC']]
-      });
-      const eligibleLink = links.find(link =>
-        link.studentProfile && getTutorAssignmentDecision(link.studentProfile, 'parent').canRequest
-      );
-      if (!eligibleLink) {
-        return res.status(403).json({ success: false, message: 'No linked student is currently eligible for parent-managed tutor recommendations' });
-      }
-      student = eligibleLink.studentProfile;
     }
 
     const tutors = await TutorProfile.findAll({
@@ -294,7 +287,7 @@ const getRecommendedTutors = async (req, res, next) => {
     const recommendations = scoreTutorRecommendations(
       tutors.map(tutor => tutor.get({ plain: true })),
       { subject: subject?.trim() || '', budget: budget === undefined ? null : Number(budget), language: language?.trim() || '', availability: day || '' },
-      student.className || ''
+      student?.className || ''
     );
     return res.status(200).json({ success: true, data: { recommendations: recommendations.slice(0, 8) } });
   } catch (error) {

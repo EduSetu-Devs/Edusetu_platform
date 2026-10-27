@@ -88,69 +88,89 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const loadStudentData = async () => {
     setIsLoading(true);
     setFeedback(null);
-    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes, sessionsRes] = await Promise.all([
-      getStudentProfile(),
-      getStudentDashboard(),
-      getStudentAttendanceSummary(),
-      getStudentHomework(),
-      getStudentPerformance(),
-      getTutorAssignmentEligibility(),
-      getStudentEnrolledCourses(),
-      getAllCourses()
-    ]);
+    try {
+      const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes, sessionsRes] = await Promise.allSettled([
+        getStudentProfile(),
+        getStudentDashboard(),
+        getStudentAttendanceSummary(),
+        getStudentHomework(),
+        getStudentPerformance(),
+        getTutorAssignmentEligibility(),
+        getStudentEnrolledCourses(),
+        getAllCourses(),
+        getStudentSessions()
+      ]);
 
-    if (eligibilityRes.success) {
-      setAssignmentEligibility(eligibilityRes.data);
-      setEligibilityError('');
-    } else {
-      setEligibilityError(eligibilityRes.error);
+      const prof = profRes.status === 'fulfilled' ? profRes.value : null;
+      const dash = dashRes.status === 'fulfilled' ? dashRes.value : null;
+      const att = attRes.status === 'fulfilled' ? attRes.value : null;
+      const hw = hwRes.status === 'fulfilled' ? hwRes.value : null;
+      const perf = perfRes.status === 'fulfilled' ? perfRes.value : null;
+      const eligibility = eligibilityRes.status === 'fulfilled' ? eligibilityRes.value : null;
+      const enrolled = enrolledRes.status === 'fulfilled' ? enrolledRes.value : null;
+      const allCourses = allCoursesRes.status === 'fulfilled' ? allCoursesRes.value : null;
+      const sessions = sessionsRes.status === 'fulfilled' ? sessionsRes.value : null;
+
+      if (eligibility && eligibility.success) {
+        setAssignmentEligibility(eligibility.data);
+        setEligibilityError('');
+      } else if (eligibility) {
+        setEligibilityError(eligibility.error);
+      }
+
+      if (enrolled && enrolled.success && Array.isArray(enrolled.data?.courses)) {
+        setEnrolledCourses(enrolled.data.courses);
+      }
+
+      if (allCourses && allCourses.success && Array.isArray(allCourses.data?.courses)) {
+        setAvailableCourses(allCourses.data.courses);
+      }
+
+      if (prof && prof.success && prof.data) {
+        setProfile(prof.data);
+        setEditForm({
+          name: prof.data.name || '',
+          phone: prof.data.phone || '',
+          className: prof.data.className || '',
+          section: prof.data.section || '',
+          rollNumber: prof.data.rollNumber || '',
+          dateOfBirth: prof.data.dateOfBirth ? prof.data.dateOfBirth.slice(0, 10) : '',
+          gender: prof.data.gender || '',
+          address: prof.data.address || ''
+        });
+      }
+
+      if (dash && dash.success && dash.data) {
+        setDashboardSummary(dash.data);
+      }
+
+      if (att && att.success && att.data) {
+        setAttendanceSummary(att.data);
+      }
+
+      if (hw && hw.success && Array.isArray(hw.data)) {
+        const active = hw.data.filter((h) => h.status === 'active').length;
+        const pending = hw.data.filter((h) => h.submissionStatus === 'pending' && h.status === 'active').length;
+        setHomeworkStats({
+          total: hw.data.length,
+          active,
+          pending
+        });
+      }
+
+      if (perf && perf.success && perf.data) {
+        setPerformance(perf.data);
+      }
+
+      if (sessions && sessions.success && Array.isArray(sessions.data?.sessions)) {
+        const live = sessions.data.sessions.find((s) => s.status === 'LIVE');
+        setLiveSession(live || null);
+      }
+    } catch (err) {
+      console.warn('[StudentDashboard loadData Error]:', err.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (enrolledRes.success && Array.isArray(enrolledRes.data?.courses)) {
-      setEnrolledCourses(enrolledRes.data.courses);
-    }
-
-    if (allCoursesRes.success && Array.isArray(allCoursesRes.data?.courses)) {
-      setAvailableCourses(allCoursesRes.data.courses);
-    }
-
-    if (profRes.success) {
-      setProfile(profRes.data);
-      setEditForm({
-        name: profRes.data.name || '',
-        phone: profRes.data.phone || '',
-        className: profRes.data.className || '',
-        section: profRes.data.section || '',
-        rollNumber: profRes.data.rollNumber || '',
-        dateOfBirth: profRes.data.dateOfBirth ? profRes.data.dateOfBirth.slice(0, 10) : '',
-        gender: profRes.data.gender || '',
-        address: profRes.data.address || ''
-      });
-    }
-
-    if (dashRes.success) {
-      setDashboardSummary(dashRes.data);
-    }
-
-    if (attRes.success) {
-      setAttendanceSummary(attRes.data);
-    }
-
-    if (hwRes.success && Array.isArray(hwRes.data)) {
-      const active = hwRes.data.filter((h) => h.status === 'active').length;
-      const pending = hwRes.data.filter((h) => h.submissionStatus === 'pending' && h.status === 'active').length;
-      setHomeworkStats({
-        total: hwRes.data.length,
-        active,
-        pending
-      });
-    }
-
-    if (perfRes.success) {
-      setPerformance(perfRes.data);
-    }
-
-    setIsLoading(false);
   };
 
   const handleEnrollCourse = async (courseId) => {

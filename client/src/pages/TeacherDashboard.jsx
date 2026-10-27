@@ -91,51 +91,60 @@ const TeacherDashboard = ({
     setIsLoading(true);
     setFeedback(null);
 
-    const [profRes, dashRes, studentsRes, hwRes, coursesRes] = await Promise.all([
-      getTeacherProfile(),
-      getTeacherDashboard(),
-      getMyStudents(),
-      getMyHomework({ status: 'active' }),
-      getTeacherCourses()
-    ]);
+    try {
+      const [profRes, dashRes, studentsRes, hwRes, coursesRes] = await Promise.allSettled([
+        getTeacherProfile(),
+        getTeacherDashboard(),
+        getMyStudents(),
+        getMyHomework({ status: 'active' }),
+        getTeacherCourses()
+      ]);
 
-    if (profRes.success) {
-      setProfile(profRes.data);
-      setEditForm({
-        name: profRes.data.name || '',
-        phone: profRes.data.phone || '',
-        department: profRes.data.department || '',
-        designation: profRes.data.designation || '',
-        subjects: Array.isArray(profRes.data.subjects) ? profRes.data.subjects.join(', ') : profRes.data.subjects || '',
-        className: profRes.data.className || '',
-        section: profRes.data.section || '',
-        qualification: profRes.data.qualification || '',
-        experience: profRes.data.experience || ''
-      });
-    }
+      const prof = profRes.status === 'fulfilled' ? profRes.value : null;
+      const dash = dashRes.status === 'fulfilled' ? dashRes.value : null;
+      const students = studentsRes.status === 'fulfilled' ? studentsRes.value : null;
+      const hw = hwRes.status === 'fulfilled' ? hwRes.value : null;
+      const courses = coursesRes.status === 'fulfilled' ? coursesRes.value : null;
 
-    if (dashRes.success) {
-      setDashboardData(dashRes.data);
-    }
+      if (prof && prof.success && prof.data) {
+        setProfile(prof.data);
+        setEditForm({
+          name: prof.data.name || '',
+          phone: prof.data.phone || '',
+          department: prof.data.department || '',
+          designation: prof.data.designation || '',
+          subjects: Array.isArray(prof.data.subjects) ? prof.data.subjects.join(', ') : prof.data.subjects || '',
+          className: prof.data.className || '',
+          section: prof.data.section || '',
+          qualification: prof.data.qualification || '',
+          experience: prof.data.experience || ''
+        });
+      }
 
-    if (studentsRes.success) {
-      setStudentCount(studentsRes.data.count || 28);
-    } else {
-      setStudentCount(28);
-    }
+      if (dash && dash.success && dash.data) {
+        setDashboardData(dash.data);
+      }
 
-    if (hwRes.success) {
-      setActiveHomeworkCount(hwRes.data.count || 3);
-    } else {
-      setActiveHomeworkCount(3);
-    }
+      if (students && students.success && students.data) {
+        setStudentCount(students.data.count || 28);
+      } else {
+        setStudentCount(28);
+      }
 
-    
-    if (coursesRes && coursesRes.success && Array.isArray(coursesRes.data?.courses)) {
-      setTeacherCourses(coursesRes.data.courses);
+      if (hw && hw.success && hw.data) {
+        setActiveHomeworkCount(hw.data.count || 3);
+      } else {
+        setActiveHomeworkCount(3);
+      }
+
+      if (courses && courses.success && Array.isArray(courses.data?.courses)) {
+        setTeacherCourses(courses.data.courses);
+      }
+    } catch (err) {
+      console.warn('[TeacherDashboard loadData Error]:', err.message);
+    } finally {
+      setIsLoading(false);
     }
-  
-    setIsLoading(false);
   };
 
   useEffect(() => {

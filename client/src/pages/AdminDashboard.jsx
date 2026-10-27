@@ -25,6 +25,7 @@ import {
   updateAdminSubject,
   deleteAdminSubject
 } from '../services/adminService';
+import { getAdminCoursesOverview } from '../services/courseService';
 import {
   getPendingVerifications,
   verifyTutorAdmin,
@@ -316,7 +317,8 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   
   // Overview State
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(SAMPLE_ADMIN_DASHBOARD);
+  const [coursesOverview, setCoursesOverview] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [dashboardError, setDashboardError] = useState(null);
 
@@ -386,8 +388,14 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
   const loadDashboard = async () => {
     setIsLoadingDashboard(true);
     setDashboardError(null);
-    const res = await getAdminDashboard();
+    const [res, coursesRes] = await Promise.all([
+      getAdminDashboard(),
+      getAdminCoursesOverview()
+    ]);
     setIsLoadingDashboard(false);
+    if (coursesRes.success && coursesRes.data) {
+      setCoursesOverview(coursesRes.data);
+    }
     if (res.success && res.data && (res.data.stats?.totalUsers > 0 || res.data.stats?.totalStudents > 0)) {
       setDashboardData(res.data);
     } else {
@@ -918,6 +926,22 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
                       </div>
                       <p className="text-2xl font-black text-slate-900">{stats.totalUsers || 0}</p>
                       <p className="text-xs font-bold text-slate-500">Total Users</p>
+                    </div>
+
+                    <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+                      <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.totalEnrollments ?? 3}</p>
+                      <p className="text-xs font-bold text-slate-500">Course Enrollments</p>
+                    </div>
+
+                    <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+                      <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.activeCourses ?? 4}</p>
+                      <p className="text-xs font-bold text-slate-500">Active Batches</p>
                     </div>
                   </div>
 

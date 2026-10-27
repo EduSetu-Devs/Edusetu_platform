@@ -34,6 +34,8 @@ const TutorShortlist = require('./TutorShortlist');
 const SchoolProfile = require('./SchoolProfile');
 const TutorBookingReport = require('./TutorBookingReport');
 const EmailVerificationOTP = require('./EmailVerificationOTP');
+const Course = require('./Course');
+const CourseEnrollment = require('./CourseEnrollment');
 
 // 1. User <-> StudentProfile (1 : 1)
 User.hasOne(StudentProfile, {
@@ -632,6 +634,57 @@ SchoolProfile.belongsTo(User, {
   onUpdate: 'CASCADE'
 });
 
+// Course & Enrollment Relationships
+TeacherProfile.hasMany(Course, {
+  foreignKey: 'teacherProfileId',
+  as: 'courses',
+  onDelete: 'SET NULL',
+  onUpdate: 'CASCADE'
+});
+
+Course.belongsTo(TeacherProfile, {
+  foreignKey: 'teacherProfileId',
+  as: 'teacher'
+});
+
+Course.hasMany(CourseEnrollment, {
+  foreignKey: 'courseId',
+  as: 'enrollments',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+
+CourseEnrollment.belongsTo(Course, {
+  foreignKey: 'courseId',
+  as: 'course'
+});
+
+StudentProfile.hasMany(CourseEnrollment, {
+  foreignKey: 'studentProfileId',
+  as: 'courseEnrollments',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+
+CourseEnrollment.belongsTo(StudentProfile, {
+  foreignKey: 'studentProfileId',
+  as: 'studentProfile'
+});
+
+StudentProfile.belongsToMany(Course, {
+  through: CourseEnrollment,
+  foreignKey: 'studentProfileId',
+  otherKey: 'courseId',
+  as: 'enrolledCourses'
+});
+
+Course.belongsToMany(StudentProfile, {
+  through: CourseEnrollment,
+  foreignKey: 'courseId',
+  otherKey: 'studentProfileId',
+  as: 'enrolledStudents'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -668,5 +721,7 @@ module.exports = {
   TutorShortlist,
   SchoolProfile,
   TutorBookingReport,
-  EmailVerificationOTP
+  EmailVerificationOTP,
+  Course,
+  CourseEnrollment
 };

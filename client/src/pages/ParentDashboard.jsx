@@ -13,6 +13,7 @@ import {
 } from '../services/parentService';
 import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
+import { getChildEnrolledCourses } from '../services/courseService';
 import {
   HeartHandshake,
   User,
@@ -172,6 +173,7 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
   // Child Academic Dashboard Data
   const [academicOverview, setAcademicOverview] = useState(null);
   const [subjectMarksData, setSubjectMarksData] = useState(null);
+  const [childCourses, setChildCourses] = useState([]);
   const [isAcademicLoading, setIsAcademicLoading] = useState(false);
 
   // Modals & Drawers State
@@ -262,13 +264,21 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     setIsAcademicLoading(true);
     setAcademicOverview(null);
     setSubjectMarksData(null);
+    setChildCourses([]);
 
-    const [overviewRes, marksRes] = await Promise.all([
+    const [overviewRes, marksRes, coursesRes] = await Promise.all([
       getAcademicOverview(studentId),
-      getChildMarks(studentId)
+      getChildMarks(studentId),
+      getChildEnrolledCourses(studentId)
     ]);
 
     setIsAcademicLoading(false);
+
+    if (coursesRes.success && Array.isArray(coursesRes.data?.courses)) {
+      setChildCourses(coursesRes.data.courses);
+    } else {
+      setChildCourses([]);
+    }
 
     if (overviewRes.success && overviewRes.data) {
       setAcademicOverview(overviewRes.data);

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { User, StudentProfile, TeacherProfile, Attendance, Marks, Homework, HomeworkSubmission } = require('../models');
+const { User, StudentProfile, TeacherProfile, Attendance, Marks, Homework, HomeworkSubmission, Course, CourseEnrollment } = require('../models');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 const { calculatePercentage, calculateGrade } = require('../utils/gradeCalculator');
 
@@ -49,17 +49,39 @@ const getAuthorizedStudentProfile = async (teacherProfile, studentIdParam) => {
     return { authorized: false, notFound: true };
   }
 
-  // Authorization Check: Student must match teacher's assigned class and section
+  // Authorization Check: Student must match teacher's assigned class/section OR be enrolled in teacher's course
+  let matchesClassSection = true;
   if (teacherProfile.className && teacherProfile.className.trim()) {
     if (studentProfile.className !== teacherProfile.className.trim()) {
-      return { authorized: false, notFound: false, studentProfile };
+      matchesClassSection = false;
     }
   }
 
   if (teacherProfile.section && teacherProfile.section.trim()) {
     if (studentProfile.section !== teacherProfile.section.trim()) {
-      return { authorized: false, notFound: false, studentProfile };
+      matchesClassSection = false;
     }
+  }
+
+  if (!matchesClassSection) {
+    // Check if student is actively enrolled in one of this teacher's courses
+    const teacherCourseIds = await Course.findAll({
+      where: { teacherProfileId: teacherProfile.id },
+      attributes: ['id']
+    });
+    if (teacherCourseIds.length > 0) {
+      const isEnrolledInCourse = await CourseEnrollment.findOne({
+        where: {
+          courseId: teacherCourseIds.map(c => c.id),
+          studentProfileId: studentProfile.id,
+          status: 'active'
+        }
+      });
+      if (isEnrolledInCourse) {
+        return { authorized: true, notFound: false, studentProfile };
+      }
+    }
+    return { authorized: false, notFound: false, studentProfile };
   }
 
   return { authorized: true, notFound: false, studentProfile };
@@ -86,21 +108,61 @@ const getMyStudents = async (req, res) => {
       studentWhereClause.section = teacherProfile.section.trim();
     }
 
+    // Also find students enrolled in any of this teacher's active courses
+    let enrolledStudentIds = [];
+    const teacherCourses = await Course.findAll({
+      where: { teacherProfileId: teacherProfile.id },
+      attributes: ['id']
+    });
+    if (teacherCourses.length > 0) {
+      const enrollments = await CourseEnrollment.findAll({
+        where: {
+          courseId: teacherCourses.map((c) => c.id),
+          status: 'active'
+        },
+        attributes: ['studentProfileId']
+      });
+      enrolledStudentIds = enrollments.map((e) => e.studentProfileId);
+    }
+
+    let combinedStudentFilter = {};
+    const hasClassSectionFilter = Object.keys(studentWhereClause).length > 0;
+
+    if (hasClassSectionFilter && enrolledStudentIds.length > 0) {
+      combinedStudentFilter = {
+        [Op.or]: [
+          studentWhereClause,
+          { id: enrolledStudentIds }
+        ]
+      };
+    } else if (hasClassSectionFilter) {
+      combinedStudentFilter = studentWhereClause;
+    } else if (enrolledStudentIds.length > 0) {
+      combinedStudentFilter = { id: enrolledStudentIds };
+    }
+
     const userWhereClause = {};
 
     // 2. Handle Search Query
     if (search && search.trim()) {
       const searchTerm = search.trim();
-      studentWhereClause[Op.or] = [
+      const searchOr = [
         { studentId: { [Op.like]: `%${searchTerm}%` } },
         { '$user.name$': { [Op.like]: `%${searchTerm}%` } },
         { '$user.email$': { [Op.like]: `%${searchTerm}%` } }
       ];
+      if (Object.keys(combinedStudentFilter).length > 0) {
+        combinedStudentFilter = {
+          [Op.and]: [combinedStudentFilter, { [Op.or]: searchOr }]
+        };
+      } else {
+        combinedStudentFilter = { [Op.or]: searchOr };
+      }
     }
 
     // 3. Fetch Authorized Students
     const students = await StudentProfile.findAll({
-      where: studentWhereClause,
+      where: combinedStudentFilter,
       include: [
         {
           model: User,

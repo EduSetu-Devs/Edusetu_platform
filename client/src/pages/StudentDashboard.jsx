@@ -11,6 +11,11 @@ import {
 import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
 import {
+  getStudentEnrolledCourses,
+  getAllCourses,
+  enrollInCourse
+} from '../services/courseService';
+import {
   GraduationCap,
   User,
   Mail,
@@ -50,6 +55,13 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message }
+  
+  // Real-world Course & Enrollment States
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [isCoursesModalOpen, setIsCoursesModalOpen] = useState(false);
+  const [enrollingCourseId, setEnrollingCourseId] = useState(null);
+  const [courseFeedback, setCourseFeedback] = useState(null);
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -66,13 +78,15 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const loadStudentData = async () => {
     setIsLoading(true);
     setFeedback(null);
-    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes] = await Promise.all([
+    const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes] = await Promise.all([
       getStudentProfile(),
       getStudentDashboard(),
       getStudentAttendanceSummary(),
       getStudentHomework(),
       getStudentPerformance(),
-      getTutorAssignmentEligibility()
+      getTutorAssignmentEligibility(),
+      getStudentEnrolledCourses(),
+      getAllCourses()
     ]);
 
     if (eligibilityRes.success) {
@@ -80,6 +94,14 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
       setEligibilityError('');
     } else {
       setEligibilityError(eligibilityRes.error);
+    }
+
+    if (enrolledRes.success && Array.isArray(enrolledRes.data?.courses)) {
+      setEnrolledCourses(enrolledRes.data.courses);
+    }
+
+    if (allCoursesRes.success && Array.isArray(allCoursesRes.data?.courses)) {
+      setAvailableCourses(allCoursesRes.data.courses);
     }
 
     if (profRes.success) {
@@ -119,6 +141,29 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
     }
 
     setIsLoading(false);
+  };
+
+  const handleEnrollCourse = async (courseId) => {
+    setEnrollingCourseId(courseId);
+    setCourseFeedback(null);
+    const res = await enrollInCourse(courseId);
+    setEnrollingCourseId(null);
+    if (res.success) {
+      setCourseFeedback({ type: 'success', message: res.message || 'Successfully enrolled in course!' });
+      // Refresh enrolled & available courses
+      const [refreshedEnrolled, refreshedAll] = await Promise.all([
+        getStudentEnrolledCourses(),
+        getAllCourses()
+      ]);
+      if (refreshedEnrolled.success && Array.isArray(refreshedEnrolled.data?.courses)) {
+        setEnrolledCourses(refreshedEnrolled.data.courses);
+      }
+      if (refreshedAll.success && Array.isArray(refreshedAll.data?.courses)) {
+        setAvailableCourses(refreshedAll.data.courses);
+      }
+    } else {
+      setCourseFeedback({ type: 'error', message: res.error || 'Failed to enroll in course' });
+    }
   };
 
   useEffect(() => {
@@ -527,6 +572,136 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
         )}
       </section>
 
+      {/* Real-world Enrolled Courses & Academic Batches Section */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-bold text-slate-900">My Enrolled Courses & Academic Batches</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Active enrolled curriculum batches, lesson progression, and live educator schedules
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsCoursesModalOpen(true);
+              setCourseFeedback(null);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Explore & Enroll in Courses</span>
+          </button>
+        </div>
+
+        {courseFeedback && (
+          <div className={`p-4 rounded-2xl border text-xs sm:text-sm flex items-center space-x-3 transition-all ${
+            courseFeedback.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}>
+            {courseFeedback.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            )}
+            <span className="font-semibold">{courseFeedback.message}</span>
+          </div>
+        )}
+
+        {enrolledCourses.length === 0 ? (
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">No Enrolled Courses Yet</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Join active academic courses taught by verified educators. Enrolling will link your progress directly with your teachers and parents.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsCoursesModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+            >
+              <span>Browse Course Catalog</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {enrolledCourses.map((c) => (
+              <div
+                key={c.enrollmentId || c.courseId}
+                className="bg-white border border-slate-200 hover:border-indigo-300 rounded-3xl p-6 shadow-xs transition-all flex flex-col justify-between space-y-4 group"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider border border-indigo-100">
+                      {c.subject} · {c.gradeLevel}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                      Active
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      {c.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                      {c.description || 'Comprehensive curriculum with practice problem sheets and doubt solver access.'}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600">
+                      <span>Instructor:</span>
+                      <strong className="text-slate-800">{c.teacher?.name || 'EduSetu Faculty'}</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-600">
+                      <span>Schedule:</span>
+                      <span className="font-semibold text-indigo-700">{c.schedule || 'Flexible'}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-600">Course Progress</span>
+                      <span className="font-black text-indigo-700">{c.progress || 0}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(5, c.progress || 0)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-right">
+                      {c.completedLessons || 0} of {c.totalLessons || 24} Lessons Completed
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={onNavigateToClasses}
+                    className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5"
+                  >
+                    <span>Go to Class Room</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Feature Modules (Attendance, Homework, Marks, Classes & Notices) */}
       <section className="space-y-4">
         <div>
@@ -774,6 +949,137 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
           </div>
         </div>
       </section>
+
+      {/* Explore & Enroll in Courses Modal */}
+      {isCoursesModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-fadeIn">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900">Explore Academic Courses & Batches</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Enroll in curriculum-aligned batches. Progress links directly to your educator and parent dashboards.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCoursesModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              {availableCourses.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">Loading available courses...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableCourses.map((course) => {
+                    const alreadyEnrolled = enrolledCourses.some((e) => (e.courseId || e.id) === course.id);
+                    const isEnrolling = enrollingCourseId === course.id;
+
+                    return (
+                      <div
+                        key={course.id}
+                        className={`rounded-2xl border p-5 flex flex-col justify-between transition-all ${
+                          alreadyEnrolled
+                            ? 'bg-slate-50/80 border-slate-200'
+                            : 'bg-white border-slate-200 hover:border-indigo-400 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                              {course.subject} · {course.gradeLevel}
+                            </span>
+                            <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {course.price > 0 ? `₹${course.price}` : 'Free'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900 leading-snug">{course.title}</h4>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                              {course.description}
+                            </p>
+                          </div>
+
+                          <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span>Faculty:</span>
+                              <strong className="text-slate-800">{course.teacher?.name || 'EduSetu Senior Faculty'}</strong>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Schedule:</span>
+                              <span className="font-semibold text-indigo-700">{course.schedule}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Batch Size:</span>
+                              <span className="text-slate-500">{course.enrolledCount || 0} Students Enrolled</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 mt-3 border-t border-slate-100">
+                          {alreadyEnrolled ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-default"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Enrolled in Batch</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isEnrolling}
+                              onClick={() => handleEnrollCourse(course.id)}
+                              className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {isEnrolling ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Enrolling...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>Enroll in Course</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 text-right">
+              <button
+                type="button"
+                onClick={() => setIsCoursesModalOpen(false)}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

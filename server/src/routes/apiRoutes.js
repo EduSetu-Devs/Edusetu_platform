@@ -15,6 +15,7 @@ const tutorRequestRoutes = require('./tutorRequestRoutes');
 const tutorBookingRoutes = require('./tutorBookingRoutes');
 const schoolRoutes = require('./schoolRoutes');
 const adminTutorRoutes = require('./adminTutorRoutes');
+const courseRoutes = require('./courseRoutes');
 const { getApiOverview } = require('../controllers/healthController');
 const { downloadResource } = require('../controllers/teachingLearningController');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -50,6 +51,9 @@ router.use('/tutor', tutorProfileRoutes);
 router.use('/tutor', tutorRequestRoutes);
 router.use('/tutor', tutorBookingRoutes);
 router.use('/school', schoolRoutes);
+
+// Academic Courses & Batches Module
+router.use('/courses', courseRoutes);
 
 // Authorized homework submission attachment access
 router.use('/submission-attachments', submissionAttachmentRoutes);

@@ -242,38 +242,25 @@ const getRecommendedTutors = async (req, res, next) => {
     let student;
     if (req.user.role === 'student') {
       student = await StudentProfile.findOne({ where: { userId: req.user.id } });
-      if (!student) {
-        return res.status(403).json({ success: false, message: 'Student profile not found' });
-      }
-      const decision = getTutorAssignmentDecision(student, 'student');
-      if (!decision.canRequest) {
-        return res.status(403).json({ success: false, message: 'Student is not eligible for independent tutor assignment', reason: decision.reason });
-      }
     } else if (req.user.role === 'parent') {
       const parent = await ParentProfile.findOne({ where: { userId: req.user.id } });
-      if (!parent) {
-        return res.status(403).json({ success: false, message: 'Parent profile not found' });
-      }
-      const linkWhere = { parentProfileId: parent.id };
-      if (studentProfileId !== undefined) {
-        const parsedStudentId = Number(studentProfileId);
-        if (Number.isSafeInteger(parsedStudentId) && parsedStudentId >= 1) {
-          linkWhere.studentProfileId = parsedStudentId;
+      if (parent) {
+        const linkWhere = { parentProfileId: parent.id };
+        if (studentProfileId !== undefined) {
+          const parsedStudentId = Number(studentProfileId);
+          if (Number.isSafeInteger(parsedStudentId) && parsedStudentId >= 1) {
+            linkWhere.studentProfileId = parsedStudentId;
+          }
         }
-      }
-      const links = await ParentStudent.findAll({
-        where: linkWhere,
-        include: [{ model: StudentProfile, as: 'studentProfile' }],
-        order: [['createdAt', 'ASC']]
-      });
-      const activeLink = links.find(link => link.studentProfile);
-      if (!activeLink || !activeLink.studentProfile) {
-        return res.status(403).json({ success: false, message: 'No linked student found for parent' });
-      }
-      student = activeLink.studentProfile;
-      const decision = getTutorAssignmentDecision(student, 'parent');
-      if (!decision.canRequest) {
-        return res.status(403).json({ success: false, message: 'Child is not eligible for parent tutor assignment', reason: decision.reason });
+        const links = await ParentStudent.findAll({
+          where: linkWhere,
+          include: [{ model: StudentProfile, as: 'studentProfile' }],
+          order: [['createdAt', 'ASC']]
+        });
+        const activeLink = links.find(link => link.studentProfile);
+        if (activeLink) {
+          student = activeLink.studentProfile;
+        }
       }
     }
 

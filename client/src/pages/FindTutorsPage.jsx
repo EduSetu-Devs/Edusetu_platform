@@ -201,7 +201,11 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
       setRecommendations(result.data?.recommendations || []);
       setRecommendationsLoaded(true);
     } else {
-      setRecommendationError(result.error);
+      if (!result.error?.toLowerCase().includes('not eligible')) {
+        setRecommendationError(result.error);
+      } else {
+        setRecommendationError('');
+      }
       setRecommendations([]);
       setRecommendationsLoaded(false);
     }
@@ -648,7 +652,9 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
                 </button>
               </div>
             </div>
-            {recommendationError && <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{recommendationError}</p>}
+            {recommendationError && !recommendationError.toLowerCase().includes('not eligible') && (
+              <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{recommendationError}</p>
+            )}
             {recommendationsLoaded && recommendations.length === 0 && !recommendationError && (
               <p className="mt-4 text-sm text-slate-500">No available teacher profiles were found. Try changing your preferences.</p>
             )}

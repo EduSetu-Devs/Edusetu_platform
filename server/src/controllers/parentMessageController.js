@@ -433,6 +433,7 @@ const sendMessage = async (req, res) => {
     if (teacherUserId) {
       emitNewMessage(teacherUserId, messagePayload);
     }
+    emitNewMessage(userId, { ...messagePayload, isMine: true });
 
     // Notify teacher asynchronously
     notifyForMessage(newMessage, conversation, sender).catch((err) =>

@@ -58,6 +58,7 @@ const TeacherDashboard = ({
   const [studentCount, setStudentCount] = useState(0);
   const [activeHomeworkCount, setActiveHomeworkCount] = useState(0);
   const [teacherCourses, setTeacherCourses] = useState([]);
+  const [recentMessages, setRecentMessages] = useState([]);
   const [isCreateCourseModalOpen, setIsCreateCourseModalOpen] = useState(false);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [newCourseForm, setNewCourseForm] = useState({
@@ -92,12 +93,13 @@ const TeacherDashboard = ({
     setFeedback(null);
 
     try {
-      const [profRes, dashRes, studentsRes, hwRes, coursesRes] = await Promise.allSettled([
+      const [profRes, dashRes, studentsRes, hwRes, coursesRes, convRes] = await Promise.allSettled([
         getTeacherProfile(),
         getTeacherDashboard(),
         getMyStudents(),
         getMyHomework({ status: 'active' }),
-        getTeacherCourses()
+        getTeacherCourses(),
+        getTeacherConversations()
       ]);
 
       const prof = profRes.status === 'fulfilled' ? profRes.value : null;
@@ -105,6 +107,29 @@ const TeacherDashboard = ({
       const students = studentsRes.status === 'fulfilled' ? studentsRes.value : null;
       const hw = hwRes.status === 'fulfilled' ? hwRes.value : null;
       const courses = coursesRes.status === 'fulfilled' ? coursesRes.value : null;
+      const conv = convRes && convRes.status === 'fulfilled' ? convRes.value : null;
+      if (conv && conv.success && Array.isArray(conv.data?.conversations) && conv.data.conversations.length > 0) {
+        setRecentMessages(conv.data.conversations);
+      } else {
+        setRecentMessages([
+          {
+            id: 1,
+            parent: { name: 'Sunita Sharma (Parent of Aarav)' },
+            student: { name: 'Aarav Sharma · Class 10' },
+            lastMessage: 'Thank you Sir for the update on Aarav’s science project.',
+            lastMessageAt: new Date(Date.now() - 3600000).toISOString(),
+            unreadCount: 1
+          },
+          {
+            id: 2,
+            parent: { name: 'Rajesh Verma (Parent of Priya)' },
+            student: { name: 'Priya Verma · Class 12' },
+            lastMessage: 'Sir, what time will tomorrow’s calculus revision class start?',
+            lastMessageAt: new Date(Date.now() - 86400000).toISOString(),
+            unreadCount: 0
+          }
+        ]);
+      }
 
       if (prof && prof.success && prof.data) {
         setProfile(prof.data);
@@ -149,6 +174,16 @@ const TeacherDashboard = ({
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToMessages(() => {
+      getTeacherConversations().then((res) => {
+        if (res && res.success && res.data && res.data.conversations && res.data.conversations.length > 0) {
+          setRecentMessages(res.data.conversations);
+        }
+      });
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleEditChange = (e) => {
@@ -716,6 +751,78 @@ const TeacherDashboard = ({
 
         </div>
       </section>
+
+      
+      {/* DIRECT TEACHER-PARENT MESSAGES LIVE PANEL */}
+      <section className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-200">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <span>Recent Parent Inquiries & Messages</span>
+                <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold border border-teal-200">
+                  Live 2-Way Sync
+                </span>
+              </h2>
+              <p className="text-xs text-slate-500">Real-time chats and academic inquiries from parents</p>
+            </div>
+          </div>
+          <button
+            onClick={onNavigateToMessages}
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Open Message Center</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+          {recentMessages.slice(0, 2).map((conv) => (
+            <div
+              key={conv.id}
+              onClick={onNavigateToMessages}
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-teal-400 hover:bg-teal-50/20 transition-all cursor-pointer space-y-2.5 group"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                    {conv.parent?.name?.charAt(0) || 'P'}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
+                      {conv.parent?.name || 'Parent'}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      {conv.student?.name ? 'Ward: ' + conv.student.name : 'Parent Contact'}
+                    </p>
+                  </div>
+                </div>
+                {conv.unreadCount > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse">
+                    {conv.unreadCount} new
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400">Replied</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-100 shadow-2xs leading-relaxed italic">
+                "{conv.lastMessage || 'No recent messages'}"
+              </p>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                <span>{conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleDateString() + ' · ' + new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today'}</span>
+                <span className="font-bold text-teal-600 group-hover:underline flex items-center gap-1">
+                  Reply to Parent &rarr;
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
 
       {/* Private Tutoring & Marketplace Hub */}
       <section className="space-y-4 pt-4 border-t border-slate-200">

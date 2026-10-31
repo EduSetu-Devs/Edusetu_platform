@@ -130,9 +130,23 @@ const searchTutors = async (req, res, next) => {
     };
 
     if (subject && subject.trim() !== '') {
-      subjectInclude.where = {
-        subjectName: { [Op.like]: `%${subject.trim()}%` }
-      };
+      const raw = subject.trim();
+      const kw = raw.toLowerCase();
+      const synonyms = [raw, kw];
+      if (kw.includes('math')) synonyms.push('mathematics', 'math', 'maths');
+      if (kw.includes('bio')) synonyms.push('biology', 'bio', 'zoology', 'botany');
+      if (kw.includes('phy')) synonyms.push('physics', 'phy');
+      if (kw.includes('chem')) synonyms.push('chemistry', 'chem');
+      if (kw.includes('code') || kw.includes('python') || kw.includes('cs') || kw.includes('comp')) synonyms.push('computer science', 'python', 'coding');
+      if (kw.includes('sst') || kw.includes('social')) synonyms.push('social studies', 'history', 'geography');
+      if (kw.includes('account') || kw.includes('commerce')) synonyms.push('accountancy', 'economics', 'commerce');
+
+      const uniqueSynonyms = [...new Set(synonyms)];
+      const orConditions = uniqueSynonyms.map(s => ({
+        subjectName: { [Op.like]: `%${s}%` }
+      }));
+
+      subjectInclude.where = { [Op.or]: orConditions };
       subjectInclude.required = true; // inner join when filtering by subject
     }
 
@@ -224,8 +238,8 @@ const searchTutors = async (req, res, next) => {
 
 const getRecommendedTutors = async (req, res, next) => {
   try {
-    const { subject, budget, language, availability, studentProfileId } = req.query;
-    if ([subject, language, availability].some(value => value !== undefined && typeof value !== 'string')) {
+    const { subject, budget, language, availability, studentProfileId, city, area, teachingMode } = req.query;
+    if ([subject, language, availability, city, area, teachingMode].some(value => value !== undefined && typeof value !== 'string')) {
       return res.status(400).json({ success: false, message: 'Recommendation preferences must be text values' });
     }
     if (subject?.trim().length > 100 || language?.trim().length > 50) {
@@ -286,7 +300,15 @@ const getRecommendedTutors = async (req, res, next) => {
 
     const recommendations = scoreTutorRecommendations(
       tutors.map(tutor => tutor.get({ plain: true })),
-      { subject: subject?.trim() || '', budget: budget === undefined ? null : Number(budget), language: language?.trim() || '', availability: day || '' },
+      {
+        subject: subject?.trim() || '',
+        city: city?.trim() || '',
+        area: area?.trim() || '',
+        teachingMode: teachingMode?.trim() || '',
+        budget: budget === undefined ? null : Number(budget),
+        language: language?.trim() || '',
+        availability: day || ''
+      },
       student?.className || ''
     );
     return res.status(200).json({ success: true, data: { recommendations: recommendations.slice(0, 8) } });

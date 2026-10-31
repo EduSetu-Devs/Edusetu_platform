@@ -189,6 +189,9 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
     const childrenList = assignmentEligibility?.children || [];
     const params = {
       subject: subject || undefined,
+      city: city || undefined,
+      area: area || undefined,
+      teachingMode: teachingMode || undefined,
       budget: maxRate || undefined,
       language: preferredLanguage || undefined,
       availability: availability || undefined,
@@ -210,7 +213,7 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
       setRecommendationsLoaded(false);
     }
     setRecommendationLoading(false);
-  }, [subject, maxRate, preferredLanguage, availability, recommendationStudentId, assignmentEligibility, user?.role]);
+  }, [subject, city, area, teachingMode, maxRate, preferredLanguage, availability, recommendationStudentId, assignmentEligibility, user?.role]);
 
   useEffect(() => {
     if (isAuthenticated && ['student', 'parent'].includes(user?.role)) {
@@ -656,7 +659,11 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
               <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{recommendationError}</p>
             )}
             {recommendationsLoaded && recommendations.length === 0 && !recommendationError && (
-              <p className="mt-4 text-sm text-slate-500">No available teacher profiles were found. Try changing your preferences.</p>
+              <p className="mt-4 text-sm text-slate-500">
+                {city || subject || area
+                  ? `No teacher profiles found matching your search "${[subject, city, area].filter(Boolean).join(', ')}". Try broadening your search or resetting filters.`
+                  : 'No available teacher profiles were found. Try changing your preferences.'}
+              </p>
             )}
             {recommendations.length > 0 && (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -666,8 +673,20 @@ const FindTutorsPage = ({ onNavigate, onNavigateBack, onSelectTutor, onCompareTu
                       <div>
                         <h3 className="font-bold text-slate-900">{tutor.name}</h3>
                         <p className="text-sm text-slate-600">{tutor.headline}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {tutor.experienceYears} years’ experience · {tutor.rating ? `${tutor.rating.toFixed(1)}★` : 'No reviews'} · {tutor.hourlyRate ? `₹${tutor.hourlyRate}/hr` : 'Fee not listed'}
+                        <p className="mt-1 text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                          <span>{tutor.experienceYears} years’ exp</span>
+                          <span>·</span>
+                          <span>{tutor.rating ? `${tutor.rating.toFixed(1)}★` : 'No reviews'}</span>
+                          <span>·</span>
+                          <span>{tutor.hourlyRate ? `₹${tutor.hourlyRate}/hr` : 'Fee not listed'}</span>
+                          {(tutor.city || tutor.area) && (
+                            <>
+                              <span>·</span>
+                              <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                📍 {tutor.area ? `${tutor.area}, ` : ''}{tutor.city}
+                              </span>
+                            </>
+                          )}
                         </p>
                       </div>
                       {tutor.isVerified && <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-label="Verified teacher profile" />}

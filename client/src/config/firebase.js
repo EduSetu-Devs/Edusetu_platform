@@ -26,8 +26,24 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Firebase Authentication Helpers
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+// Firebase Authentication Helpers: popup with fallback to redirect
+export const signInWithGoogle = async () => {
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (popupErr) {
+    console.warn('[Firebase Google Auth] Popup failed, checking fallback:', popupErr);
+    // If popup is blocked, restricted, or throws internal-error due to cross-origin iframe blocking
+    if (popupErr.code === 'auth/internal-error' || popupErr.code === 'auth/popup-blocked') {
+      try {
+        const { signInWithRedirect } = await import('firebase/auth');
+        return await signInWithRedirect(auth, googleProvider);
+      } catch (redirectErr) {
+        throw popupErr;
+      }
+    }
+    throw popupErr;
+  }
+};
 export const loginWithEmailFirebase = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const registerWithEmailFirebase = (email, password) => createUserWithEmailAndPassword(auth, email, password);
 export const resetPasswordFirebase = (email) => sendPasswordResetEmail(auth, email);

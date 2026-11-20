@@ -187,20 +187,28 @@ function AppContent() {
   };
 
   const handleLoginSuccess = (loggedInUser) => {
-    if (loggedInUser.role === 'student') {
+    const role = loggedInUser?.role || user?.role;
+    if (role === 'student') {
       navigate('student-dashboard');
-    } else if (loggedInUser.role === 'teacher') {
+    } else if (role === 'teacher') {
       navigate('teacher-dashboard');
-    } else if (loggedInUser.role === 'parent') {
+    } else if (role === 'parent') {
       navigate('parent-dashboard');
-    } else if (loggedInUser.role === 'school') {
+    } else if (role === 'school') {
       navigate('school-portal');
-    } else if (loggedInUser.role === 'admin') {
+    } else if (role === 'admin') {
       navigate('admin-dashboard');
     } else {
       navigate('profile');
     }
   };
+
+  // Automatic redirect if user becomes authenticated while on login/register view
+  useEffect(() => {
+    if (isAuthenticated && user && (currentView === 'login' || currentView === 'login-admin' || currentView === 'register')) {
+      handleLoginSuccess(user);
+    }
+  }, [isAuthenticated, user, currentView]);
 
   if (isAuthLoading) {
     return (

@@ -126,16 +126,16 @@ export const AuthProvider = ({ children }) => {
       setAuthError(result.error);
       return { success: false, error: result.error };
     } catch (err) {
-      console.error('[Firebase Google Sign-In Error]:', err);
+      console.error('[Firebase Google Sign-In Error Code]:', err.code, err.message);
       let userFriendlyMsg = 'Google sign-in was cancelled or encountered an error.';
       if (err.code === 'auth/popup-closed-by-user') {
         userFriendlyMsg = 'Google sign-in popup was closed before completing.';
       } else if (err.code === 'auth/unauthorized-domain') {
-        userFriendlyMsg = 'This domain is not authorized in Firebase Console (Authorized Domains).';
-      } else if (err.code === 'auth/internal-error' || err.message?.includes('internal-error')) {
-        userFriendlyMsg = 'Google authentication provider is not enabled in Firebase Console. Please enable Google in Firebase Authentication -> Sign-in method.';
+        userFriendlyMsg = 'This domain (edusetu-platform.onrender.com) is not authorized in Firebase Console -> Authentication -> Settings -> Authorized domains.';
+      } else if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+        userFriendlyMsg = 'Google sign-in is not allowed. Please verify Google is Enabled under Sign-in method in Firebase Console.';
       } else if (err.message) {
-        userFriendlyMsg = err.message;
+        userFriendlyMsg = `Google sign-in notice: ${err.message}`;
       }
       setAuthError(userFriendlyMsg);
       return { success: false, error: userFriendlyMsg };

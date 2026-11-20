@@ -1,18 +1,38 @@
 /**
- * EduSetu Certificate of Course Completion Generator
- * Generates an authentic, high-resolution printable completion credential.
+ * EduSetu Course Completion Certificate Generator
+ * Generates a printable completion credential from recorded course data.
+ * Only courses marked complete by the platform reach this generator.
  */
+
+const escapeHtml = (str) =>
+  String(str ?? '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+
+const displayValue = (value) => {
+  if (value === null || value === undefined || value === '') return 'Not recorded';
+  return escapeHtml(value);
+};
+
 export const generateCertificatePDF = ({
-  studentName = 'Aarav Sharma',
-  rollNumber = 'STU-1001',
-  courseTitle = 'Complete Class 10 Board Exam Mastery Batch',
-  subject = 'Mathematics & Science',
-  gradeLevel = 'Class 10',
-  instructor = 'Er. Ashutosh Tripathi',
+  studentName,
+  rollNumber,
+  courseTitle,
+  subject,
+  gradeLevel,
+  instructor,
   completionDate = null,
   certificateId = null
 }) => {
-  const certId = certificateId || `EDU-CERT-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+  if (!studentName || !courseTitle) {
+    alert('Certificate details are incomplete. Please contact your school administrator.');
+    return;
+  }
+
   const issueDate = completionDate || new Date().toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'long',
@@ -21,7 +41,7 @@ export const generateCertificatePDF = ({
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Please allow popups to view and download the official Course Certificate.');
+    alert('Please allow popups to view and download the course certificate.');
     return;
   }
 
@@ -30,7 +50,7 @@ export const generateCertificatePDF = ({
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>EduSetu Certificate - ${studentName} - ${courseTitle}</title>
+      <title>EduSetu Certificate - ${escapeHtml(studentName)} - ${escapeHtml(courseTitle)}</title>
       <style>
         @page {
           size: A4 landscape;
@@ -206,56 +226,56 @@ export const generateCertificatePDF = ({
     </head>
     <body>
       <div class="actions-bar">
-        <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       </div>
 
       <div class="cert-container">
-        <div class="watermark">EduSetu Verified</div>
-        
+        <div class="watermark">EduSetu</div>
+
         <div class="cert-inner-border">
-          <div class="header-tag">National Academic Excellence Initiative</div>
-          <h1 class="academy-name">EDUDETU ACADEMY OF ADVANCED LEARNING</h1>
-          <div class="academy-tagline">Affiliated with Central Board of Secondary Education · Accredited Portal</div>
+          <div class="header-tag">EduSetu Online Learning</div>
+          <h1 class="academy-name">EduSetu</h1>
+          <div class="academy-tagline">Course Completion Record</div>
 
           <div class="cert-title-block">
             <div class="cert-title">Certificate of Course Completion</div>
           </div>
 
-          <div class="cert-intro">This credential of academic achievement is proudly awarded to</div>
-          
-          <div class="student-name">${studentName}</div>
+          <div class="cert-intro">This certificate is awarded to</div>
+
+          <div class="student-name">${escapeHtml(studentName)}</div>
 
           <div class="cert-body">
-            for successfully completing the rigorous academic curriculum, live interactive lessons, problem-solving workshops, and term assessments for the batch:
+            for successfully completing the course:
             <br />
-            <span class="highlight" style="font-size: 16px; color: #312e81;">"${courseTitle}"</span>
+            <span class="highlight" style="font-size: 16px; color: #312e81;">"${escapeHtml(courseTitle)}"</span>
             <br />
-            <span style="font-size: 13px; color: #64748b;">Specialization: ${subject} · Level: ${gradeLevel} · Roll ID: ${rollNumber}</span>
+            <span style="font-size: 13px; color: #64748b;">
+              ${subject ? `Subject: ${escapeHtml(subject)} · ` : ''}${gradeLevel ? `Level: ${escapeHtml(gradeLevel)} · ` : ''}Roll ID: ${displayValue(rollNumber)}
+            </span>
           </div>
 
-          <div class="badge-seal">
-            ⭐ Grade: A+ (Pass with Distinction) · 100% Attendance Verified
-          </div>
+          <div class="badge-seal">Course completion recorded by EduSetu</div>
 
           <div class="footer-signatures">
             <div class="sig-block">
-              <div class="sig-line">${instructor}</div>
-              <div class="sig-role">Lead Faculty & Educator</div>
+              <div class="sig-line">${escapeHtml(instructor || 'EduSetu Academic Team')}</div>
+              <div class="sig-role">Course Educator</div>
             </div>
 
             <div class="sig-block">
               <div style="font-size: 20px; font-weight: 900; color: #4338ca; margin-bottom: 4px;">EduSetu</div>
-              <div class="sig-line">${issueDate}</div>
-              <div class="sig-role">Date of Award</div>
+              <div class="sig-line">${escapeHtml(issueDate)}</div>
+              <div class="sig-role">Date of Issue</div>
             </div>
 
             <div class="sig-block">
-              <div class="sig-line">Dr. Rajeshwari Sen</div>
-              <div class="sig-role">Dean of Academic Affairs</div>
+              <div class="sig-line">EduSetu Academic Records</div>
+              <div class="sig-role">Issuing Authority</div>
             </div>
           </div>
 
-          <div class="cert-id-tag">Credential Verification ID: ${certId} · Securely Sealed on TiDB Cloud</div>
+          ${certificateId ? `<div class="cert-id-tag">Certificate ID: ${escapeHtml(certificateId)}</div>` : ''}
         </div>
       </div>
     </body>

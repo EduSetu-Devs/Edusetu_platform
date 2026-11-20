@@ -91,12 +91,24 @@ const User = sequelize.define(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
+    },
+    termsAcceptedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    privacyAcceptedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   },
   {
     tableName: 'users',
     timestamps: true, // Automatically manages createdAt and updatedAt
     underscored: false,
+    indexes: [
+      { fields: ['role'] },
+      { fields: ['isActive'] }
+    ],
     hooks: {
       beforeCreate: async (user) => {
         if (user.password && !user.password.startsWith('$2a$') && !user.password.startsWith('$2b$')) {

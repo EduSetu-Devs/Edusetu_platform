@@ -1,60 +1,99 @@
 /**
- * EduSetu CBSE / National Academy Academic Report Card Generator
- * Creates an authentic, printable academic progress transcript with zero external dependencies.
+ * EduSetu Academic Progress Report Generator
+ * Creates a printable academic progress transcript with zero external dependencies.
+ * All academic values come from the caller; nothing is fabricated when data is missing.
  */
+
+const escapeHtml = (str) =>
+  String(str ?? '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+
+const displayValue = (value) => {
+  if (value === null || value === undefined || value === '') return 'Not recorded';
+  return escapeHtml(value);
+};
+
+const toNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const sessionLabel = () => {
+  const now = new Date();
+  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${startYear}-${startYear + 1}`;
+};
+
 export const generateReportCardPDF = ({
-  studentName = 'Student',
-  className = 'Class 10',
-  section = 'A',
-  rollNumber = '1001',
-  admissionId = 'EDU-2026-9042',
-  dateOfBirth = '2008-05-14',
+  studentName,
+  className,
+  section,
+  rollNumber,
+  admissionId,
+  dateOfBirth,
   performance = null,
-  attendancePercentage = 92.5,
-  totalDays = 180,
-  presentDays = 166
+  attendancePercentage = null,
+  totalDays = null,
+  presentDays = null
 }) => {
-  const subjects = performance?.subjects && performance.subjects.length > 0
-    ? performance.subjects
-    : [
-        { subject: 'Mathematics', totalMaxMarks: 100, totalObtainedMarks: 94, percentage: 94, grade: 'A+' },
-        { subject: 'Science (Physics/Chem/Bio)', totalMaxMarks: 100, totalObtainedMarks: 89, percentage: 89, grade: 'A' },
-        { subject: 'English Language & Literature', totalMaxMarks: 100, totalObtainedMarks: 92, percentage: 92, grade: 'A+' },
-        { subject: 'Social Science', totalMaxMarks: 100, totalObtainedMarks: 86, percentage: 86, grade: 'A' },
-        { subject: 'Computer Applications & AI', totalMaxMarks: 100, totalObtainedMarks: 98, percentage: 98, grade: 'A+' }
-      ];
+  const subjects = Array.isArray(performance?.subjects) ? performance.subjects.filter(Boolean) : [];
 
-  const totalMax = performance?.totalMaxMarks || subjects.reduce((acc, s) => acc + (Number(s.totalMaxMarks) || 100), 0);
-  const totalObt = performance?.totalObtainedMarks || subjects.reduce((acc, s) => acc + (Number(s.totalObtainedMarks) || 0), 0);
-  const overallPct = performance?.overallPercentage || (totalMax > 0 ? Math.round((totalObt / totalMax) * 100) : 92);
-  const overallGrd = performance?.overallGrade || (overallPct >= 90 ? 'A+' : overallPct >= 80 ? 'A' : 'B+');
+  const hasSubjectMarks = subjects.length > 0;
+  const totalMax = performance?.totalMaxMarks != null
+    ? toNumber(performance.totalMaxMarks)
+    : (hasSubjectMarks ? subjects.reduce((acc, s) => acc + (toNumber(s.totalMaxMarks) ?? 0), 0) : null);
+  const totalObt = performance?.totalObtainedMarks != null
+    ? toNumber(performance.totalObtainedMarks)
+    : (hasSubjectMarks ? subjects.reduce((acc, s) => acc + (toNumber(s.totalObtainedMarks) ?? 0), 0) : null);
+  const overallPct = performance?.overallPercentage != null
+    ? toNumber(performance.overallPercentage)
+    : (totalMax && totalObt != null ? Math.round((totalObt / totalMax) * 100) : null);
+  const overallGrd = performance?.overallGrade || null;
 
-  const rowsHtml = subjects.map((s, idx) => `
+  const rowsHtml = hasSubjectMarks
+    ? subjects.map((s, idx) => {
+        const maxMarks = toNumber(s.totalMaxMarks);
+        const obtainedMarks = toNumber(s.totalObtainedMarks);
+        const percentage = s.percentage != null
+          ? toNumber(s.percentage)
+          : (maxMarks && obtainedMarks != null ? Math.round((obtainedMarks / maxMarks) * 100) : null);
+
+        return `
     <tr>
       <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e293b;">
-        ${idx + 1}. ${s.subject}
+        ${idx + 1}. ${escapeHtml(s.subject || 'Unnamed subject')}
       </td>
       <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #64748b;">
-        ${s.totalMaxMarks || 100}
+        ${maxMarks ?? '—'}
       </td>
       <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: 700; color: #0f172a;">
-        ${s.totalObtainedMarks || 0}
+        ${obtainedMarks ?? '—'}
       </td>
       <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: 600; color: #4338ca;">
-        ${s.percentage}%
+        ${percentage != null ? `${percentage}%` : '—'}
       </td>
       <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: 800; color: #047857;">
-        ${s.grade}
-      </td>
-      <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; font-weight: 700; color: #059669;">
-        QUALIFIED
+        ${escapeHtml(s.grade || '—')}
       </td>
     </tr>
-  `).join('');
+  `;
+      }).join('')
+    : `
+    <tr>
+      <td colspan="5" style="padding: 18px 14px; text-align: center; color: #64748b; font-style: italic;">
+        No subject evaluations have been recorded for this student yet.
+      </td>
+    </tr>
+  `;
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Please allow popups to view and download the official Report Card.');
+    alert('Please allow popups to view and download the report card.');
     return;
   }
 
@@ -69,7 +108,7 @@ export const generateReportCardPDF = ({
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>EduSetu Report Card - ${studentName}</title>
+      <title>EduSetu Report Card - ${escapeHtml(studentName || 'Student')}</title>
       <style>
         @page {
           size: A4 portrait;
@@ -231,6 +270,7 @@ export const generateReportCardPDF = ({
           border-radius: 0 8px 8px 0;
           font-size: 12.5px;
           margin-bottom: 36px;
+          min-height: 42px;
         }
         .remarks-box strong {
           color: #1e1b4b;
@@ -273,49 +313,46 @@ export const generateReportCardPDF = ({
     </head>
     <body>
       <div class="actions-bar">
-        <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       </div>
 
       <div class="container">
-        <div class="watermark">EduSetu Verified</div>
+        <div class="watermark">EduSetu Report</div>
 
-        <!-- School Official Header -->
         <div class="school-header">
-          <span class="school-badge">Affiliation No. 2130894 · School Code: 71204</span>
-          <h1 class="school-name">EDUDETU SENIOR SECONDARY ACADEMY</h1>
-          <p class="school-sub">Recognized by Central Board of Secondary Education (CBSE) · New Delhi, India</p>
-          <div class="report-title-badge">CUMULATIVE ACADEMIC PROGRESS REPORT (SESSION 2026-2027)</div>
+          <span class="school-badge">EduSetu Academic Records</span>
+          <h1 class="school-name">Academic Progress Report</h1>
+          <p class="school-sub">Generated from school-verified records on ${escapeHtml(currentDate)}</p>
+          <div class="report-title-badge">SESSION ${escapeHtml(sessionLabel())}</div>
         </div>
 
-        <!-- Student Demographic Grid -->
         <div class="info-grid">
           <div class="info-item">
             <span class="info-label">Student Name:</span>
-            <span class="info-value">${studentName}</span>
+            <span class="info-value">${displayValue(studentName)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Roll Number:</span>
-            <span class="info-value">${rollNumber}</span>
+            <span class="info-value">${displayValue(rollNumber)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Class & Section:</span>
-            <span class="info-value">${className} - Section ${section}</span>
+            <span class="info-value">${displayValue(className)}${section ? ` - Section ${escapeHtml(section)}` : ''}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Admission ID:</span>
-            <span class="info-value">${admissionId}</span>
+            <span class="info-value">${displayValue(admissionId)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Date of Birth:</span>
-            <span class="info-value">${dateOfBirth}</span>
+            <span class="info-value">${displayValue(dateOfBirth)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Issue Date:</span>
-            <span class="info-value">${currentDate}</span>
+            <span class="info-value">${escapeHtml(currentDate)}</span>
           </div>
         </div>
 
-        <!-- Scholastic Performance Table -->
         <table>
           <thead>
             <tr>
@@ -324,50 +361,49 @@ export const generateReportCardPDF = ({
               <th style="text-align: center;">Marks Scored</th>
               <th style="text-align: center;">Percentage</th>
               <th style="text-align: center;">Grade</th>
-              <th style="text-align: center;">Status</th>
             </tr>
           </thead>
           <tbody>
             ${rowsHtml}
+            ${hasSubjectMarks ? `
             <tr class="total-row">
               <td style="padding: 12px 14px; text-transform: uppercase;">Aggregate Scholastic Total</td>
-              <td style="padding: 12px 14px; text-align: center;">${totalMax}</td>
-              <td style="padding: 12px 14px; text-align: center; color: #4338ca;">${totalObt}</td>
-              <td style="padding: 12px 14px; text-align: center; color: #4338ca;">${overallPct}%</td>
-              <td style="padding: 12px 14px; text-align: center; color: #047857;">${overallGrd}</td>
-              <td style="padding: 12px 14px; text-align: center; color: #059669;">PASSED</td>
+              <td style="padding: 12px 14px; text-align: center;">${totalMax ?? '—'}</td>
+              <td style="padding: 12px 14px; text-align: center; color: #4338ca;">${totalObt ?? '—'}</td>
+              <td style="padding: 12px 14px; text-align: center; color: #4338ca;">${overallPct != null ? `${overallPct}%` : '—'}</td>
+              <td style="padding: 12px 14px; text-align: center; color: #047857;">${escapeHtml(overallGrd || '—')}</td>
             </tr>
+            ` : ''}
           </tbody>
         </table>
 
-        <!-- Metrics & Attendance Summary Cards -->
         <div class="summary-cards">
           <div class="card">
             <div class="card-lbl">Overall Attendance</div>
-            <div class="card-val" style="color: #059669;">${attendancePercentage}%</div>
-            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">${presentDays} of ${totalDays} Working Days</div>
+            <div class="card-val" style="color: #059669;">${attendancePercentage != null ? `${escapeHtml(attendancePercentage)}%` : 'Not recorded'}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
+              ${presentDays != null && totalDays != null ? `${escapeHtml(presentDays)} of ${escapeHtml(totalDays)} Working Days` : 'Attendance summary unavailable'}
+            </div>
           </div>
           <div class="card">
             <div class="card-lbl">Cumulative Grade</div>
-            <div class="card-val">${overallGrd}</div>
-            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Grade Point: ${(overallPct / 9.5).toFixed(1)} / 10</div>
+            <div class="card-val">${escapeHtml(overallGrd || 'Not recorded')}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Based on recorded subject evaluations</div>
           </div>
           <div class="card">
-            <div class="card-lbl">Final Result</div>
-            <div class="card-val" style="color: #047857; font-size: 15px; margin-top: 8px;">DISTINCTION</div>
-            <div style="font-size: 10px; color: #059669; font-weight: 700; margin-top: 2px;">Promoted to Next Grade</div>
+            <div class="card-lbl">Cumulative Percentage</div>
+            <div class="card-val" style="color: #047857;">${overallPct != null ? `${overallPct}%` : 'Not recorded'}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">This report reflects only recorded marks</div>
           </div>
         </div>
 
-        <!-- Qualitative Remarks -->
         <div class="remarks-box">
-          <strong>Educator's Evaluation & Remarks:</strong>
+          <strong>Class Teacher Remarks:</strong>
           <span style="color: #334155; margin-left: 6px;">
-            ${studentName} has demonstrated exceptional scholastic competence and critical reasoning throughout this term. Displays exemplary discipline, active live classroom participation, and strong homework submission consistency.
+            Remarks are issued by the school. Contact the class teacher for qualitative feedback.
           </span>
         </div>
 
-        <!-- Official Signatures -->
         <div class="signatures">
           <div class="sig-block">
             <div class="sig-line">Class Teacher Signature</div>

@@ -25,6 +25,7 @@ const ClassFeedback = require('./ClassFeedback');
 const AIChatHistory = require('./AIChatHistory');
 const AIQuestionCache = require('./AIQuestionCache');
 const AISafetyLog = require('./AISafetyLog');
+const AIUsageDaily = require('./AIUsageDaily');
 const TutorProfile = require('./TutorProfile');
 const TutorSubject = require('./TutorSubject');
 const TutorAvailability = require('./TutorAvailability');
@@ -467,6 +468,9 @@ ClassFeedback.belongsTo(User, { foreignKey: 'authorUserId', as: 'author' });
 User.hasMany(AIChatHistory, { foreignKey: 'userId', as: 'aiChatHistory', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 AIChatHistory.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+User.hasMany(AIUsageDaily, { foreignKey: 'userId', as: 'aiUsage', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+AIUsageDaily.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 // Phase 5: Tutor Marketplace & Discovery System Associations
 
 // User <-> TutorProfile (1 : 1)
@@ -713,6 +717,7 @@ module.exports = {
   AIChatHistory,
   AIQuestionCache,
   AISafetyLog,
+  AIUsageDaily,
   TutorProfile,
   TutorSubject,
   TutorAvailability,

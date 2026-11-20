@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AIChatHistory } = require('./src/models');
-const { askDoubt } = require('./src/controllers/aiController');
+const { askDoubt, studentPractice } = require('./src/controllers/aiController');
 
 const makeResponse = () => ({
   statusCode: 200,
@@ -80,6 +80,61 @@ test('study assistant returns and persists a configured LLM answer', async (t) =
   assert.deepEqual(res.body.data, answer);
   assert.equal(AIChatHistory.create.mock.calls.length, 1);
   assert.equal(AIChatHistory.create.mock.calls[0].arguments[0].userId, 10);
+});
+
+test('study assistant fails closed in production when the provider returns malformed output', async (t) => {
+  const originals = {
+    NODE_ENV: process.env.NODE_ENV,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    AI_API_KEY: process.env.AI_API_KEY,
+    AI_MODEL: process.env.AI_MODEL
+  };
+  t.after(() => {
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  process.env.NODE_ENV = 'production';
+  process.env.AI_PROVIDER = 'openai';
+  process.env.AI_API_KEY = 'test-key';
+  process.env.AI_MODEL = 'test-model';
+
+  t.mock.method(global, 'fetch', async () => ({
+    ok: true,
+    json: async () => ({ choices: [{ message: { content: JSON.stringify({ unexpected: true }) } }] })
+  }));
+  const create = t.mock.method(AIChatHistory, 'create', async (record) => record);
+
+  const res = makeResponse();
+  await askDoubt({ body: { question: 'What is photosynthesis?' }, user: { id: 10 } }, res);
+
+  assert.equal(res.statusCode, 502);
+  assert.match(res.body.message, /invalid response/i);
+  assert.equal(create.mock.calls.length, 0);
+});
+
+test('practice generation fails closed in production when AI is not configured', async (t) => {
+  const originals = {
+    NODE_ENV: process.env.NODE_ENV,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    AI_API_KEY: process.env.AI_API_KEY
+  };
+  t.after(() => {
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  process.env.NODE_ENV = 'production';
+  delete process.env.AI_PROVIDER;
+  delete process.env.AI_API_KEY;
+
+  const res = makeResponse();
+  await studentPractice({ body: { subject: 'Mathematics', topic: 'Algebra' }, user: { id: 10 } }, res);
+
+  assert.equal(res.statusCode, 503);
+  assert.match(res.body.message, /not configured/i);
 });
 
 test('study assistant logs provider status and safe error codes without response secrets', async (t) => {

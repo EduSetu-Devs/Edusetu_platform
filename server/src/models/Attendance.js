@@ -75,6 +75,12 @@ const Attendance = sequelize.define(
         unique: true,
         name: 'unique_student_date_subject',
         fields: ['studentProfileId', 'date', 'subject']
+      },
+      {
+        fields: ['date']
+      },
+      {
+        fields: ['markedBy']
       }
     ]
   }

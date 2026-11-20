@@ -820,6 +820,15 @@ Return strictly valid JSON:
   async generate(task, payload) {
     if (!process.env.AI_API_KEY) throw new Error('AI provider is not configured');
 
+    const configuredTimeout = parseInt(process.env.AI_TIMEOUT_MS, 10);
+    const timeoutMs = Number.isFinite(configuredTimeout)
+      ? Math.min(60000, Math.max(2000, configuredTimeout))
+      : 15000;
+    const configuredMaxTokens = parseInt(process.env.AI_MAX_TOKENS, 10);
+    const maxTokens = Number.isFinite(configuredMaxTokens)
+      ? Math.min(4000, Math.max(100, configuredMaxTokens))
+      : 1500;
+
     const promptContent = this.formatTaskPrompt(task, payload);
     const candidateModels = [
       process.env.AI_MODEL,
@@ -835,10 +844,11 @@ Return strictly valid JSON:
 
     let lastError = null;
 
-    for (const modelName of uniqueModels) {
+    for (const modelName of uniqueModels.slice(0, 3)) {
       try {
         const response = await fetch(process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
+          signal: AbortSignal.timeout(timeoutMs),
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${process.env.AI_API_KEY}`,
@@ -848,6 +858,7 @@ Return strictly valid JSON:
           body: JSON.stringify({
             model: modelName,
             temperature: 0.3,
+            max_tokens: maxTokens,
             messages: [
               {
                 role: 'system',

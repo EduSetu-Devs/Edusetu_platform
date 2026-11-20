@@ -95,6 +95,12 @@ const HomeworkSubmission = sequelize.define(
         unique: true,
         name: 'unique_homework_student_submission',
         fields: ['homeworkId', 'studentId']
+      },
+      {
+        fields: ['studentId']
+      },
+      {
+        fields: ['status']
       }
     ]
   }

@@ -51,23 +51,6 @@ const calculateGradeLocal = (percentage) => {
   return 'F';
 };
 
-const SAMPLE_MARKS_STUDENTS = [
-  { studentProfileId: 1, studentId: 'STU-001', name: 'Aarav Sharma', rollNumber: '101', maxMarks: 100, obtainedMarks: 94, currentMarks: 94, grade: 'A+' },
-  { studentProfileId: 2, studentId: 'STU-002', name: 'Priya Verma', rollNumber: '102', maxMarks: 100, obtainedMarks: 88, currentMarks: 88, grade: 'A' },
-  { studentProfileId: 3, studentId: 'STU-003', name: 'Rohan Gupta', rollNumber: '103', maxMarks: 100, obtainedMarks: 82, currentMarks: 82, grade: 'B+' },
-  { studentProfileId: 4, studentId: 'STU-004', name: 'Ananya Iyer', rollNumber: '104', maxMarks: 100, obtainedMarks: 91, currentMarks: 91, grade: 'A+' },
-  { studentProfileId: 5, studentId: 'STU-005', name: 'Kabir Mehta', rollNumber: '105', maxMarks: 100, obtainedMarks: 76, currentMarks: 76, grade: 'B' }
-];
-
-const SAMPLE_MARKS_SUMMARY = {
-  totalStudents: 5,
-  gradedStudents: 5,
-  averageMarks: 86.2,
-  highestMarks: 94,
-  lowestMarks: 76,
-  passPercentage: 100
-};
-
 const TeacherMarks = ({ onNavigateBack }) => {
   const { user } = useAuth();
 
@@ -105,7 +88,7 @@ const TeacherMarks = ({ onNavigateBack }) => {
       setProfile(profRes.data);
     }
 
-    if (rosterRes.success && rosterRes.data?.students && rosterRes.data.students.length > 0) {
+    if (rosterRes.success && rosterRes.data?.students) {
       setStudents(
         rosterRes.data.students.map((s) => ({
           ...s,
@@ -114,14 +97,17 @@ const TeacherMarks = ({ onNavigateBack }) => {
       );
       setIsDirty(false);
     } else {
-      setStudents(SAMPLE_MARKS_STUDENTS);
+      setStudents([]);
       setIsDirty(false);
+      if (!rosterRes.success) {
+        setFeedback({ type: 'error', message: rosterRes.error || 'Failed to load class marks' });
+      }
     }
 
     if (sumRes.success && sumRes.data) {
       setSummary(sumRes.data);
     } else {
-      setSummary(SAMPLE_MARKS_SUMMARY);
+      setSummary(null);
     }
   };
 

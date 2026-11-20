@@ -2,65 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { getMyChildren, getChildSessions } from '../services/parentService';
 
-const SAMPLE_CHILDREN = [
-  { studentId: 'STU-1024', name: 'Aarav Sharma' },
-  { studentId: 'STU-1088', name: 'Ananya Sharma' }
-];
-
-const SAMPLE_SESSIONS = [
-  {
-    sessionId: 'SES-001',
-    topic: 'Newtonian Dynamics & Friction Incline Planes',
-    subject: 'Physics',
-    teacher: 'Dr. Anand Kumar (IIT Delhi)',
-    status: 'Completed',
-    scheduledDate: '26 Oct 2026, 04:00 PM',
-    studentAttendanceStatus: 'Present',
-    studentAttendanceMinutes: 60,
-    feedback: {
-      understandingLevel: 'Excellent (A+)',
-      feedback: 'Aarav demonstrated a clear grasp of free-body diagrams and solved challenging pulley tension problems independently.'
-    },
-    note: {
-      content: 'Class Notes: Covered equilibrium equations ΣF=0, static friction limit fs ≤ μsN, kinetic friction. Homework: Q12-18 from Chapter 4.'
-    }
-  },
-  {
-    sessionId: 'SES-002',
-    topic: 'Calculus: Derivatives of Trigonometric Functions',
-    subject: 'Mathematics',
-    teacher: 'Mr. Rajesh Verma (IIT Roorkee)',
-    status: 'Completed',
-    scheduledDate: '24 Oct 2026, 05:30 PM',
-    studentAttendanceStatus: 'Present',
-    studentAttendanceMinutes: 58,
-    feedback: {
-      understandingLevel: 'Very Good (A)',
-      feedback: 'Good pace and attention. Advised to practice the chain rule on composite trigonometric functions.'
-    },
-    note: {
-      content: 'Key Formulae verified: d/dx[sin x] = cos x, d/dx[cos x] = -sin x, d/dx[tan x] = sec²x. Solved 6 past board questions.'
-    }
-  },
-  {
-    sessionId: 'SES-003',
-    topic: 'Organic Reaction Mechanisms & Electrophilic Addition',
-    subject: 'Chemistry',
-    teacher: 'Mrs. Sunita Sharma',
-    status: 'Completed',
-    scheduledDate: '22 Oct 2026, 06:00 PM',
-    studentAttendanceStatus: 'Present',
-    studentAttendanceMinutes: 60,
-    feedback: {
-      understandingLevel: 'Proficient (B+)',
-      feedback: 'Understands Markovnikov addition well; needs a brief review of carbocation stability ordering.'
-    },
-    note: {
-      content: 'Alkene addition reactions, acid-catalyzed hydration, halogenation mechanisms documented in shared board.'
-    }
-  }
-];
-
 const ParentLearningHistory = ({ onNavigateBack }) => {
   const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState('');
@@ -69,31 +10,37 @@ const ParentLearningHistory = ({ onNavigateBack }) => {
   const [error, setError] = useState('');
 
   const loadChildren = async () => {
+    setError('');
     const result = await getMyChildren();
-    if (!result.success || !result.data?.children?.length) {
-      setChildren(SAMPLE_CHILDREN);
-      setSelected(SAMPLE_CHILDREN[0].studentId);
-      loadSessions(SAMPLE_CHILDREN[0].studentId);
+    if (!result.success) {
+      setChildren([]);
+      setSelected('');
+      setSessions([]);
+      setError(result.error || 'Failed to load linked children');
+      setLoading(false);
       return;
     }
-    const list = result.data.children;
+    const list = Array.isArray(result.data?.children) ? result.data.children : [];
     setChildren(list);
-    if (list[0]) loadSessions(list[0].studentId);
-    else {
-      setChildren(SAMPLE_CHILDREN);
-      setSelected(SAMPLE_CHILDREN[0].studentId);
-      loadSessions(SAMPLE_CHILDREN[0].studentId);
+    if (list[0]) {
+      loadSessions(list[0].studentId);
+    } else {
+      setSelected('');
+      setSessions([]);
+      setLoading(false);
     }
   };
 
   const loadSessions = async (studentId) => {
     setSelected(String(studentId));
     setLoading(true);
+    setError('');
     const result = await getChildSessions(studentId);
-    if (result.success && result.data?.sessions?.length > 0) {
-      setSessions(result.data.sessions);
+    if (result.success) {
+      setSessions(Array.isArray(result.data?.sessions) ? result.data.sessions : []);
     } else {
-      setSessions(SAMPLE_SESSIONS);
+      setSessions([]);
+      setError(result.error || 'Failed to load class history');
     }
     setLoading(false);
   };

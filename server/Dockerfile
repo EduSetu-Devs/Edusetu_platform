@@ -12,8 +12,12 @@ COPY package*.json ./
 # Install production dependencies
 RUN npm ci --omit=dev
 
-# Copy application source code
+# Copy application source code and configure permissions
 COPY . .
+RUN mkdir -p uploads/resources uploads/submissions && chown -R node:node /app
+
+# Switch to non-root user
+USER node
 
 # Expose backend REST & WebSocket port
 EXPOSE 5000

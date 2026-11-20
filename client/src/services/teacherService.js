@@ -1,5 +1,4 @@
 import apiClient from './api';
-import { getStoredToken } from './authService';
 
 /**
  * Fetch authenticated teacher profile
@@ -549,23 +548,21 @@ export const deleteHomework = async (id) => {
 };
 
 /**
- * Get direct view URL with auth token for attachments
+ * Get direct view URL for an attachment. Authentication is sent via the HttpOnly cookie.
  * @param {number|string} attachmentId
  */
 export const getAttachmentViewUrl = (attachmentId) => {
-  const token = getStoredToken();
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  return `${baseUrl}/submission-attachments/${attachmentId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`;
+  return `${baseUrl}/submission-attachments/${attachmentId}`;
 };
 
 /**
- * Get direct download URL with auth token for attachments
+ * Get direct download URL for an attachment. Authentication is sent via the HttpOnly cookie.
  * @param {number|string} attachmentId
  */
 export const getAttachmentDownloadUrl = (attachmentId) => {
-  const token = getStoredToken();
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  return `${baseUrl}/submission-attachments/${attachmentId}?download=1${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`;
+  return `${baseUrl}/submission-attachments/${attachmentId}?download=1`;
 };
 
 const normalizeAttachment = (attachment) => ({

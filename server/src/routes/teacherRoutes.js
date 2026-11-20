@@ -70,6 +70,7 @@ const {
 const { uploadClassResource } = require('../middleware/classResourceUpload');
 const rateLimit = require('express-rate-limit');
 const { teacherStudentInsights, teacherClassInsights, teacherAssignmentAnalysis } = require('../controllers/aiController');
+const aiQuota = require('../middleware/aiQuota');
 const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'AI service is temporarily busy. Please try again.' } });
 
 // All teacher routes require valid JWT authentication and 'teacher' role
@@ -97,9 +98,9 @@ router.post('/sessions/:sessionId/resources', uploadClassResource, uploadResourc
 router.put('/sessions/:sessionId/notes', saveNote);
 router.put('/sessions/:sessionId/feedback', saveFeedback);
 router.get('/sessions/:sessionId/summary', getSummary);
-router.get('/ai/students/:studentId', aiLimiter, teacherStudentInsights);
-router.get('/ai/classes/:sessionId', aiLimiter, teacherClassInsights);
-router.post('/ai/submissions/:submissionId', aiLimiter, teacherAssignmentAnalysis);
+router.get('/ai/students/:studentId', aiLimiter, aiQuota, teacherStudentInsights);
+router.get('/ai/classes/:sessionId', aiLimiter, aiQuota, teacherClassInsights);
+router.post('/ai/submissions/:submissionId', aiLimiter, aiQuota, teacherAssignmentAnalysis);
 
 // Teacher Student Management Endpoints (Step 5B)
 router.get('/students', getMyStudents);

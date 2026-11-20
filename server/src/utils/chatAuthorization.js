@@ -3,10 +3,9 @@ const hasTeacherClassAssignment = (teacher, student) => {
   const teacherClass = teacher.className?.trim();
   const teacherSection = teacher.section?.trim();
 
-  // If teacher is general faculty without specific class restriction, allow access
-  if (!teacherClass) return true;
-  if (teacherClass && student.className?.trim() && student.className.trim() !== teacherClass) return false;
-  if (teacherSection && student.section?.trim() && student.section.trim() !== teacherSection) return false;
+  if (!teacherClass) return false;
+  if (!student.className?.trim() || student.className.trim() !== teacherClass) return false;
+  if (teacherSection && (!student.section?.trim() || student.section.trim() !== teacherSection)) return false;
   return true;
 };
 
@@ -26,8 +25,7 @@ const isTeacherAssignedToStudent = async (teacher, student, TutorRequest) => {
     if (hasRequest) return true;
   }
 
-  // Allow institution-wide faculty communication for linked students
-  return true;
+  return false;
 };
 
 const isParentLinkedToStudent = (parentProfileId, studentProfileId, link) =>

@@ -74,8 +74,11 @@ const scoreTutorRecommendations = (tutors, preferences = {}, studentClass = '') 
     ? Number(preferences.budget)
     : null;
 
-  // STRICT FILTERING: Recommend ONLY what matches the user's searched location and subject
+  // STRICT FILTERING: Recommend ONLY active profiles matching searched location and subject
   const candidates = tutors.filter(tutor => {
+    if (tutor.isProfileActive === false) return false;
+    if (tutor.user && tutor.user.isActive === false) return false;
+
     const tutorCity = normalize(tutor.city);
     const tutorArea = normalize(tutor.area);
     const tutorMode = normalize(tutor.teachingMode || 'both');
@@ -230,7 +233,7 @@ const scoreTutorRecommendations = (tutors, preferences = {}, studentClass = '') 
         const secondAreaMatch = normalize(second.area).includes(prefArea) || prefArea.includes(normalize(second.area)) ? 1 : 0;
         if (firstAreaMatch !== secondAreaMatch) return secondAreaMatch - firstAreaMatch;
       }
-      return second.score - first.score || second.rating - first.rating || second.experienceYears - first.experienceYears;
+      return second.score - first.score || second.rating - first.rating || second.experienceYears - first.experienceYears || (first.id && second.id ? first.id - second.id : 0);
     });
 };
 

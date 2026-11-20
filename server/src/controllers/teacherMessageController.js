@@ -429,7 +429,6 @@ const sendMessage = async (req, res) => {
     if (parentUserId) {
       emitNewMessage(parentUserId, messagePayload);
     }
-    emitNewMessage(userId, { ...messagePayload, isMine: true });
 
     // Notify parent asynchronously
     notifyForMessage(newMessage, conversation, sender).catch((err) =>

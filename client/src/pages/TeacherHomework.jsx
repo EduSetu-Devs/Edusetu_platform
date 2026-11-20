@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import {
   getTeacherProfile,
   getMyHomework,
@@ -7,7 +6,6 @@ import {
   updateHomework,
   deleteHomework,
   getHomeworkSubmissions,
-  getSubmissionDetails,
   gradeSubmission,
   getAttachmentViewUrl,
   getAttachmentDownloadUrl,
@@ -17,13 +15,10 @@ import {
   ClipboardList,
   Plus,
   Search,
-  Filter,
   Calendar,
   Clock,
-  BookOpen,
   ArrowLeft,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   Loader2,
   Edit3,
@@ -33,9 +28,7 @@ import {
   ExternalLink,
   Users,
   X,
-  Sparkles,
   Save,
-  Check,
   Download,
   FileIcon,
   Image as ImageIcon,
@@ -44,51 +37,6 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
-
-const SAMPLE_TEACHER_HOMEWORK = [
-  {
-    id: 101,
-    title: 'Newtonian Dynamics & Free Body Diagrams',
-    subject: 'Physics',
-    className: 'Class 12',
-    section: 'A',
-    dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-    status: 'active',
-    description: 'Solve problems 1 through 10 from Chapter 5. Draw clear free-body diagrams for each scenario and calculate acceleration and tension forces.',
-    totalStudents: 28,
-    submitted: 22,
-    pending: 5,
-    late: 1
-  },
-  {
-    id: 102,
-    title: 'Complex Numbers & De Moivre Theorem',
-    subject: 'Mathematics',
-    className: 'Class 12',
-    section: 'A',
-    dueDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-    status: 'active',
-    description: 'Complete the exercise worksheet on polar form conversion and nth roots of unity. Show all algebraic steps clearly.',
-    totalStudents: 28,
-    submitted: 19,
-    pending: 9,
-    late: 0
-  },
-  {
-    id: 103,
-    title: 'Optics & Total Internal Reflection Worksheet',
-    subject: 'Physics',
-    className: 'Class 12',
-    section: 'A',
-    dueDate: new Date(Date.now() - 86400000).toISOString(),
-    status: 'closed',
-    description: 'Review ray tracing diagrams for convex/concave lenses and calculate critical angle for glass-air interface.',
-    totalStudents: 28,
-    submitted: 26,
-    pending: 0,
-    late: 2
-  }
-];
 
 const statusBadgeStyles = {
   active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -130,8 +78,6 @@ const formatDateTime = (dateStr) => {
 };
 
 const TeacherHomework = ({ onNavigateBack }) => {
-  const { user } = useAuth();
-
   const [profile, setProfile] = useState(null);
   const [homeworkList, setHomeworkList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,12 +151,10 @@ const TeacherHomework = ({ onNavigateBack }) => {
     }
 
     if (hwRes.success) {
-      const list = (hwRes.data.homework && hwRes.data.homework.length > 0)
-        ? hwRes.data.homework
-        : SAMPLE_TEACHER_HOMEWORK;
-      setHomeworkList(list);
+      setHomeworkList(Array.isArray(hwRes.data.homework) ? hwRes.data.homework : []);
     } else {
-      setHomeworkList(SAMPLE_TEACHER_HOMEWORK);
+      setHomeworkList([]);
+      setFeedback({ type: 'error', message: hwRes.error || 'Failed to load homework assignments' });
     }
   };
 

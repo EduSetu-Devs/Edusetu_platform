@@ -90,7 +90,11 @@ const StudentProfile = sequelize.define(
   },
   {
     tableName: 'student_profiles',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+      { fields: ['className', 'section'] },
+      { fields: ['rollNumber'] }
+    ]
   }
 );
 

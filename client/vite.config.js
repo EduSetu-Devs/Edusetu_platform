@@ -8,6 +8,13 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.js',
+    css: true,
+    include: ['src/test/**/*.test.{js,jsx,ts,tsx}']
+  },
   build: {
     chunkSizeWarningLimit: 1600,
     rollupOptions: {

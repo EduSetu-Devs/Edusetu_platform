@@ -1,35 +1,42 @@
-version: '3.8'
+# Production-oriented Compose stack.
+# Copy .env.docker.example to .env.docker and fill every required value:
+#   docker compose --env-file .env.docker up -d --build
+#
+# Compose intentionally has NO default passwords or signing secrets. Startup fails
+# fast if a required value is missing.
 
 services:
-  # Database Service: MySQL 8.0
   mysql:
     image: mysql:8.0
     container_name: edusetu_mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root_password_edusetu_2026
-      MYSQL_DATABASE: edusetu
-      MYSQL_USER: edusetu_user
-      MYSQL_PASSWORD: edusetu_password_2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.docker}
+      MYSQL_DATABASE: ${DB_NAME:?Set DB_NAME in .env.docker}
+      MYSQL_USER: ${DB_USER:?Set DB_USER in .env.docker}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.docker}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - edusetu_network
+    security_opt:
+      - no-new-privileges:true
 
-  # Backend Service: Node.js / Express REST API & WebSockets
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: edusetu_server
     restart: always
+    init: true
     depends_on:
       mysql:
         condition: service_healthy
@@ -38,17 +45,42 @@ services:
       PORT: 5000
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: edusetu_user
-      DB_PASSWORD: edusetu_password_2026
-      DB_NAME: edusetu
-      JWT_SECRET: edusetu_super_secret_jwt_key_docker_2026
-      CORS_ORIGIN: "*"
+      DB_USER: ${DB_USER:?Set DB_USER in .env.docker}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.docker}
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env.docker}
+      JWT_SECRET: ${JWT_SECRET:?Set a 32+ character JWT_SECRET in .env.docker}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      OTP_HASH_SECRET: ${OTP_HASH_SECRET:?Set a unique 32+ character OTP_HASH_SECRET in .env.docker}
+      ADMIN_VERIFICATION_PASSWORD: ${ADMIN_VERIFICATION_PASSWORD:?Set a 12+ character ADMIN_VERIFICATION_PASSWORD in .env.docker}
+      CLIENT_URL: ${CLIENT_URL:?Set CLIENT_URL to the public HTTPS origin}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_EXPOSE_TOKEN: "false"
+      ALLOW_UNVERIFIED_REGISTRATION: "false"
+      SEED_INDIAN_TUTORS: "false"
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_URL: ${AI_API_URL:-}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS:-800}
+      AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-20000}
+      AI_DAILY_USER_LIMIT: ${AI_DAILY_USER_LIMIT:-40}
+      AI_DAILY_GLOBAL_LIMIT: ${AI_DAILY_GLOBAL_LIMIT:-2000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - edusetu_network
+    security_opt:
+      - no-new-privileges:true
 
-  # Frontend Service: React 18 SPA served by Nginx
   client:
     build:
       context: ./client
@@ -59,12 +91,15 @@ services:
       - server
     ports:
       - "80:80"
-      - "3000:80"
     networks:
       - edusetu_network
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   mysql_data:
+    driver: local
+  uploads_data:
     driver: local
 
 networks:

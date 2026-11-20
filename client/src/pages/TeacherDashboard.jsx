@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import {
   getTeacherProfile,
   updateTeacherProfile,
-  getTeacherDashboard,
   getMyStudents,
   getMyHomework
 } from '../services/teacherService';
+import { getTeacherConversations } from '../services/teacherMessageService';
+import { subscribeToMessages } from '../services/socket';
 import {
   GraduationCap,
   User,
@@ -54,22 +55,9 @@ const TeacherDashboard = ({
   const { user, logout } = useAuth();
 
   const [profile, setProfile] = useState(null);
-  const [dashboardData, setDashboardData] = useState(null);
   const [studentCount, setStudentCount] = useState(0);
   const [activeHomeworkCount, setActiveHomeworkCount] = useState(0);
-  const [teacherCourses, setTeacherCourses] = useState([]);
   const [recentMessages, setRecentMessages] = useState([]);
-  const [isCreateCourseModalOpen, setIsCreateCourseModalOpen] = useState(false);
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
-  const [newCourseForm, setNewCourseForm] = useState({
-    title: '',
-    subject: 'Mathematics',
-    gradeLevel: 'Class 10',
-    schedule: 'Mon, Wed, Fri · 5:00 PM - 6:30 PM',
-    price: 999,
-    totalLessons: 24,
-    description: ''
-  });
   
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -93,42 +81,22 @@ const TeacherDashboard = ({
     setFeedback(null);
 
     try {
-      const [profRes, dashRes, studentsRes, hwRes, coursesRes, convRes] = await Promise.allSettled([
+      const [profRes, studentsRes, hwRes, convRes] = await Promise.allSettled([
         getTeacherProfile(),
-        getTeacherDashboard(),
         getMyStudents(),
         getMyHomework({ status: 'active' }),
-        getTeacherCourses(),
         getTeacherConversations()
       ]);
 
       const prof = profRes.status === 'fulfilled' ? profRes.value : null;
-      const dash = dashRes.status === 'fulfilled' ? dashRes.value : null;
       const students = studentsRes.status === 'fulfilled' ? studentsRes.value : null;
       const hw = hwRes.status === 'fulfilled' ? hwRes.value : null;
-      const courses = coursesRes.status === 'fulfilled' ? coursesRes.value : null;
       const conv = convRes && convRes.status === 'fulfilled' ? convRes.value : null;
-      if (conv && conv.success && Array.isArray(conv.data?.conversations) && conv.data.conversations.length > 0) {
-        setRecentMessages(conv.data.conversations);
+      if (conv && conv.success) {
+        setRecentMessages(Array.isArray(conv.data?.conversations) ? conv.data.conversations : []);
       } else {
-        setRecentMessages([
-          {
-            id: 1,
-            parent: { name: 'Sunita Sharma (Parent of Aarav)' },
-            student: { name: 'Aarav Sharma · Class 10' },
-            lastMessage: 'Thank you Sir for the update on Aarav’s science project.',
-            lastMessageAt: new Date(Date.now() - 3600000).toISOString(),
-            unreadCount: 1
-          },
-          {
-            id: 2,
-            parent: { name: 'Rajesh Verma (Parent of Priya)' },
-            student: { name: 'Priya Verma · Class 12' },
-            lastMessage: 'Sir, what time will tomorrow’s calculus revision class start?',
-            lastMessageAt: new Date(Date.now() - 86400000).toISOString(),
-            unreadCount: 0
-          }
-        ]);
+        setRecentMessages([]);
+        if (conv && conv.error) setFeedback({ type: 'error', message: conv.error });
       }
 
       if (prof && prof.success && prof.data) {
@@ -146,24 +114,16 @@ const TeacherDashboard = ({
         });
       }
 
-      if (dash && dash.success && dash.data) {
-        setDashboardData(dash.data);
-      }
-
       if (students && students.success && students.data) {
-        setStudentCount(students.data.count || 28);
+        setStudentCount(students.data.count ?? 0);
       } else {
-        setStudentCount(28);
+        setStudentCount(0);
       }
 
       if (hw && hw.success && hw.data) {
-        setActiveHomeworkCount(hw.data.count || 3);
+        setActiveHomeworkCount(hw.data.count ?? 0);
       } else {
-        setActiveHomeworkCount(3);
-      }
-
-      if (courses && courses.success && Array.isArray(courses.data?.courses)) {
-        setTeacherCourses(courses.data.courses);
+        setActiveHomeworkCount(0);
       }
     } catch (err) {
       console.warn('[TeacherDashboard loadData Error]:', err.message);
@@ -176,8 +136,8 @@ const TeacherDashboard = ({
     loadData();
     const unsubscribe = subscribeToMessages(() => {
       getTeacherConversations().then((res) => {
-        if (res && res.success && res.data && res.data.conversations && res.data.conversations.length > 0) {
-          setRecentMessages(res.data.conversations);
+        if (res && res.success) {
+          setRecentMessages(Array.isArray(res.data?.conversations) ? res.data.conversations : []);
         }
       });
     });
@@ -927,138 +887,7 @@ const TeacherDashboard = ({
       </section>
 
 
-      {/* Create Course Batch Modal */}
-      {isCreateCourseModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 bg-indigo-600 text-white flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black">Create New Academic Batch</h3>
-                <p className="text-xs text-indigo-100 mt-0.5">Publish a course batch for students to enroll</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateCourseModalOpen(false)}
-                className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateCourse} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Course / Batch Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={newCourseForm.title}
-                  onChange={(e) => setNewCourseForm({ ...newCourseForm, title: e.target.value })}
-                  placeholder="e.g. Class 10 Advanced Coordinate Geometry"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Subject *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCourseForm.subject}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, subject: e.target.value })}
-                    placeholder="e.g. Mathematics"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Grade Level *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCourseForm.gradeLevel}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, gradeLevel: e.target.value })}
-                    placeholder="e.g. Class 10"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Schedule & Timings *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCourseForm.schedule}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, schedule: e.target.value })}
-                    placeholder="e.g. Mon, Wed, Fri · 5:00 PM"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Course Fee (₹) [0 = Free]</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={newCourseForm.price}
-                    onChange={(e) => setNewCourseForm({ ...newCourseForm, price: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Total Lessons</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={newCourseForm.totalLessons}
-                  onChange={(e) => setNewCourseForm({ ...newCourseForm, totalLessons: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Description & Syllabus Topics</label>
-                <textarea
-                  rows="3"
-                  value={newCourseForm.description}
-                  onChange={(e) => setNewCourseForm({ ...newCourseForm, description: e.target.value })}
-                  placeholder="Outline topics covered, target exams, and learning outcomes..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                ></textarea>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateCourseModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreatingCourse}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-xs disabled:opacity-50"
-                >
-                  {isCreatingCourse ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Publishing Batch...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Publish Course Batch</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
   
     </div>
   );

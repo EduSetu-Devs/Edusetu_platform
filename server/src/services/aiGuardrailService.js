@@ -170,10 +170,12 @@ class AIGuardrailService {
     let cleanText = trimmed;
     let hasPII = false;
     for (const [key, regex] of Object.entries(PII_PATTERNS)) {
+      regex.lastIndex = 0;
       if (regex.test(cleanText)) {
         hasPII = true;
-        cleanText = cleanText.replace(regex, `[REDACTED_${key.toUpperCase()}]`);
+        cleanText = cleanText.replace(new RegExp(regex.source, 'g'), `[REDACTED_${key.toUpperCase()}]`);
       }
+      regex.lastIndex = 0;
     }
 
     return {
@@ -242,7 +244,9 @@ class AIGuardrailService {
     if (typeof text !== 'string') return text;
     let result = text;
     for (const [key, regex] of Object.entries(PII_PATTERNS)) {
-      result = result.replace(regex, `[REDACTED_${key.toUpperCase()}]`);
+      regex.lastIndex = 0;
+      result = result.replace(new RegExp(regex.source, 'g'), `[REDACTED_${key.toUpperCase()}]`);
+      regex.lastIndex = 0;
     }
     return result;
   }

@@ -71,6 +71,15 @@ const Conversation = sequelize.define(
         unique: true,
         name: 'unique_teacher_parent_student_conversation',
         fields: ['teacherProfileId', 'parentProfileId', 'studentProfileId']
+      },
+      {
+        fields: ['parentProfileId']
+      },
+      {
+        fields: ['studentProfileId']
+      },
+      {
+        fields: ['lastMessageAt']
       }
     ]
   }

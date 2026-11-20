@@ -14,15 +14,11 @@ import {
   unlinkParentChild,
   getAdminClasses,
   createAdminClass,
-  updateAdminClass,
   deleteAdminClass,
-  getAdminSections,
   createAdminSection,
-  updateAdminSection,
   deleteAdminSection,
   getAdminSubjects,
   createAdminSubject,
-  updateAdminSubject,
   deleteAdminSubject
 } from '../services/adminService';
 import { getAdminCoursesOverview } from '../services/courseService';
@@ -41,12 +37,10 @@ import {
   LayoutDashboard,
   Search,
   CheckCircle2,
-  XCircle,
   Edit,
   Trash2,
   Plus,
   Link,
-  Unlink,
   RefreshCw,
   Loader2,
   AlertCircle,
@@ -55,269 +49,31 @@ import {
   CalendarCheck,
   ClipboardList,
   ChevronRight,
-  UserCheck,
-  UserX,
   FileText,
-  X,
-  Bell,
-  Send,
-  Sliders,
-  Settings as SettingsIcon,
-  Mail,
-  Megaphone,
-  Check,
-  Archive,
-  PhoneCall,
-  Globe,
-  Sparkles,
-  Building2,
-  Shield
+  X
 } from 'lucide-react';
 
-const SAMPLE_ADMIN_DASHBOARD = {
-  stats: {
-    totalStudents: 148,
-    totalTeachers: 24,
-    totalParents: 112,
-    totalUsers: 284,
-    totalClasses: 12,
-    totalSections: 36,
-    totalSubjects: 18
-  },
-  analytics: {
-    attendance: {
-      overallRate: 93.8,
-      present: 139,
-      absent: 5,
-      late: 3,
-      leave: 1
-    },
-    homework: {
-      submissionRate: 91.2,
-      submitted: 135,
-      missing: 13
-    },
-    exams: {
-      classAverage: 84.6,
-      highestScore: 99,
-      lowestScore: 54
-    },
-    marks: {
-      gradeDistribution: {
-        'A+': 42,
-        A: 56,
-        'B+': 31,
-        B: 12,
-        C: 5,
-        D: 2,
-        F: 0
-      }
-    }
-  },
-  recentUsers: [
-    { id: 'USR-101', name: 'Dr. Anand Kumar', email: 'anand.kumar@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-24T10:00:00Z' },
-    { id: 'USR-102', name: 'Aarav Sharma', email: 'aarav.sharma@student.edusetu.org', role: 'student', isActive: true, createdAt: '2026-10-25T11:30:00Z' },
-    { id: 'USR-103', name: 'Ramesh Sharma', email: 'ramesh.sharma@edusetu.org', role: 'parent', isActive: true, createdAt: '2026-10-25T12:15:00Z' },
-    { id: 'USR-104', name: 'Mrs. Sunita Sharma', email: 'sunita.sharma@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-26T09:45:00Z' },
-    { id: 'USR-105', name: 'Mr. Rajesh Verma', email: 'rajesh.verma@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-26T14:20:00Z' }
-  ]
-};
-
-const SAMPLE_ADMIN_USERS = [
-  { id: 'USR-101', name: 'Dr. Anand Kumar', email: 'anand.kumar@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-24T10:00:00Z' },
-  { id: 'USR-102', name: 'Aarav Sharma', email: 'aarav.sharma@student.edusetu.org', role: 'student', isActive: true, createdAt: '2026-10-25T11:30:00Z' },
-  { id: 'USR-103', name: 'Ramesh Sharma', email: 'ramesh.sharma@edusetu.org', role: 'parent', isActive: true, createdAt: '2026-10-25T12:15:00Z' },
-  { id: 'USR-104', name: 'Mrs. Sunita Sharma', email: 'sunita.sharma@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-26T09:45:00Z' },
-  { id: 'USR-105', name: 'Mr. Rajesh Verma', email: 'rajesh.verma@edusetu.org', role: 'teacher', isActive: true, createdAt: '2026-10-26T14:20:00Z' },
-  { id: 'USR-106', name: 'Ananya Sharma', email: 'ananya.sharma@student.edusetu.org', role: 'student', isActive: true, createdAt: '2026-10-26T16:00:00Z' },
-  { id: 'USR-107', name: 'DPS International Academy', email: 'admin@dpsrkpuram.edu.in', role: 'school', isActive: true, createdAt: '2026-10-23T08:00:00Z' }
-];
-
-const SAMPLE_ADMIN_TEACHERS = [
-  { id: 'TEA-001', name: 'Dr. Anand Kumar', email: 'anand.kumar@edusetu.org', employeeId: 'EMP-014', className: 'Class 12', section: 'A', subjects: 'Physics, Mechanics' },
-  { id: 'TEA-002', name: 'Mrs. Sunita Sharma', email: 'sunita.sharma@edusetu.org', employeeId: 'EMP-009', className: 'Class 11', section: 'B', subjects: 'Chemistry' },
-  { id: 'TEA-003', name: 'Mr. Rajesh Verma', email: 'rajesh.verma@edusetu.org', employeeId: 'EMP-021', className: 'Class 10', section: 'A', subjects: 'Mathematics' },
-  { id: 'TEA-004', name: 'Ms. Shalini Iyer', email: 'shalini.iyer@edusetu.org', employeeId: 'EMP-033', className: 'Class 9', section: 'C', subjects: 'English Literature' }
-];
-
-const SAMPLE_ADMIN_STUDENTS = [
-  { id: 'STU-001', studentId: 'STU-1024', name: 'Aarav Sharma', email: 'aarav.sharma@student.edusetu.org', rollNumber: '14', className: 'Class 10', section: 'A', dateOfBirth: '2010-04-12', ageVerified: true },
-  { id: 'STU-002', studentId: 'STU-1088', name: 'Ananya Sharma', email: 'ananya.sharma@student.edusetu.org', rollNumber: '08', className: 'Class 7', section: 'B', dateOfBirth: '2013-08-25', ageVerified: true },
-  { id: 'STU-003', studentId: 'STU-1052', name: 'Rohan Mehta', email: 'rohan.mehta@student.edusetu.org', rollNumber: '22', className: 'Class 12', section: 'A', dateOfBirth: '2008-01-19', ageVerified: true },
-  { id: 'STU-004', studentId: 'STU-1065', name: 'Priya Patel', email: 'priya.patel@student.edusetu.org', rollNumber: '05', className: 'Class 11', section: 'B', dateOfBirth: '2009-11-03', ageVerified: true }
-];
-
-const SAMPLE_ADMIN_PARENTS = [
-  { id: 'PAR-001', parentId: 'PAR-8801', name: 'Ramesh Sharma', email: 'ramesh.sharma@edusetu.org', phone: '+91 98110 23456', childrenCount: 2, children: [{ name: 'Aarav Sharma', studentId: 'STU-1024' }, { name: 'Ananya Sharma', studentId: 'STU-1088' }] },
-  { id: 'PAR-002', parentId: 'PAR-8802', name: 'Sanjay Mehta', email: 'sanjay.mehta@edusetu.org', phone: '+91 98221 65432', childrenCount: 1, children: [{ name: 'Rohan Mehta', studentId: 'STU-1052' }] }
-];
-
-const SAMPLE_ADMIN_CLASSES = [
-  { id: 'CLS-001', name: 'Class 10', description: 'Secondary Board Examination Year (CBSE)', sections: [{ id: 'SEC-01', name: 'A' }, { id: 'SEC-02', name: 'B' }] },
-  { id: 'CLS-002', name: 'Class 11', description: 'Senior Secondary Science & Foundation', sections: [{ id: 'SEC-03', name: 'A' }, { id: 'SEC-04', name: 'B' }] },
-  { id: 'CLS-003', name: 'Class 12', description: 'Senior Secondary Final Board & Competitive Batches', sections: [{ id: 'SEC-05', name: 'A' }, { id: 'SEC-06', name: 'B' }] }
-];
-
-const SAMPLE_ADMIN_SUBJECTS = [
-  { id: 'SUB-001', name: 'Physics', code: 'PHY-101', description: 'Theoretical and Experimental Physics' },
-  { id: 'SUB-002', name: 'Mathematics', code: 'MTH-101', description: 'Algebra, Trigonometry, and Advanced Calculus' },
-  { id: 'SUB-003', name: 'Chemistry', code: 'CHM-101', description: 'Inorganic, Organic, and Physical Chemistry' },
-  { id: 'SUB-004', name: 'Computer Science', code: 'CS-101', description: 'Data Structures, Algorithms and Python' }
-];
-
-const SAMPLE_ADMIN_TUTOR_VERIFICATIONS = [
-  {
-    id: 'VER-001',
-    user: { name: 'Dr. Anand Kumar', email: 'anand.kumar@edusetu.org' },
-    headline: 'Senior Physics Faculty & JEE Advanced Specialist',
-    verificationStatus: 'verified',
-    degree: 'Ph.D. in Applied Physics',
-    qualifications: '12 Years Teaching Experience, Ex-IIT Delhi Researcher',
-    subjects: 'Physics, Mechanics',
-    hourlyRate: 850
-  },
-  {
-    id: 'VER-002',
-    user: { name: 'Mrs. Sunita Sharma', email: 'sunita.sharma@edusetu.org' },
-    headline: 'PGT Chemistry & Board Examination Evaluator',
-    verificationStatus: 'verified',
-    degree: 'M.Sc. Chemistry, B.Ed',
-    qualifications: '15 Years CBSE Senior Secondary Teaching',
-    subjects: 'Chemistry, Organic Chemistry',
-    hourlyRate: 750
-  },
-  {
-    id: 'VER-003',
-    user: { name: 'Vikramaditya Rao', email: 'vikram.rao@edusetu.org' },
-    headline: 'Olympiad Mathematics Coach & Quantitative Analyst',
-    verificationStatus: 'pending_verification',
-    degree: 'M.S. Mathematics, ISI Kolkata',
-    qualifications: 'International Math Olympiad Trainer (8+ Years)',
-    subjects: 'Pure Mathematics, Number Theory',
-    hourlyRate: 900
-  }
-];
-
-const SAMPLE_ADMIN_NOTIFICATIONS = [
-  {
-    id: 'NOTIF-101',
-    title: 'CBSE Board Examination Admit Cards & Schedule Release',
-    category: 'Academic',
-    priority: 'High',
-    targetAudience: 'Students & Parents',
-    body: 'Admit cards for Class 10 & 12 Board Examinations have been issued. Parents are requested to verify student details and collect countersigned copies from the school administration desk before Nov 15.',
-    timestamp: '2 hours ago',
-    date: '2026-10-27',
-    readRate: 94,
-    deliveredCount: 260,
-    status: 'Sent'
-  },
-  {
-    id: 'NOTIF-102',
-    title: 'EduSetu Student Cyber Safety & POCSO Policy Advisory',
-    category: 'Safety',
-    priority: 'Critical',
-    targetAudience: 'All Roles',
-    body: 'Mandatory advisory regarding student safety during online interactive sessions and zero-tolerance against harassment or inappropriate chat messaging. Emergency assistance helpline is operational 24/7.',
-    timestamp: '1 day ago',
-    date: '2026-10-26',
-    readRate: 98,
-    deliveredCount: 284,
-    status: 'Sent'
-  },
-  {
-    id: 'NOTIF-103',
-    title: 'Term 1 Comprehensive Parent-Teacher Meeting (PTM)',
-    category: 'Circular',
-    priority: 'Medium',
-    targetAudience: 'Parents',
-    body: 'The Term 1 PTM is scheduled for Saturday, 31st October 2026 from 9:00 AM to 1:30 PM. Parents can review academic grade reports and interactive tutor feedbacks directly via the Parent Portal.',
-    timestamp: '2 days ago',
-    date: '2026-10-25',
-    readRate: 88,
-    deliveredCount: 112,
-    status: 'Sent'
-  },
-  {
-    id: 'NOTIF-104',
-    title: 'Teacher Training: AI-Assisted Pedagogy & NEP 2020 Framework',
-    category: 'Training',
-    priority: 'Low',
-    targetAudience: 'Teachers',
-    body: 'Special capacity building workshop for all high school and middle school faculty on utilizing EduSetu AI tutor analytics to personalize remedial learning for lagging students.',
-    timestamp: '4 days ago',
-    date: '2026-10-23',
-    readRate: 100,
-    deliveredCount: 24,
-    status: 'Sent'
-  },
-  {
-    id: 'NOTIF-105',
-    title: 'Severe Rainfall Advisory: Hybrid Online Learning Mode',
-    category: 'Emergency',
-    priority: 'Critical',
-    targetAudience: 'All Roles',
-    body: 'Due to severe weather warnings issued by local authorities, all in-person classes will shift to EduSetu Live Classroom module tomorrow.',
-    timestamp: '5 days ago',
-    date: '2026-10-22',
-    readRate: 99,
-    deliveredCount: 284,
-    status: 'Sent'
-  }
-];
-
-const INITIAL_ADMIN_SETTINGS = {
-  institutionName: 'EduSetu Model Central Academy',
-  institutionCode: 'EDU-CBSE-9082',
-  boardAffiliation: 'CBSE (Central Board of Secondary Education)',
-  academicSession: '2026-2027',
-  adminContactEmail: 'admin@edusetu.org',
-  helplinePhone: '+91 11 4987 6543',
-  enableToxicityGuard: true,
-  enablePromptInjectionShield: true,
-  enablePiiScrubbing: true,
-  emergencyCrisisIntercept: true,
-  aiTutorResponseMode: 'socratic',
-  masterLoginBypass: true,
-  enforceTwoFactorAuth: false,
-  studentRegistrationApproval: true,
-  sessionTimeoutMinutes: '60',
-  emailServiceMode: 'Development Console & Fallback Mode',
-  senderAddress: 'noreply@edusetu.org'
+const EMPTY_ADMIN_DASHBOARD = {
+  stats: {},
+  analytics: null,
+  recentUsers: []
 };
 
 const normalizeTab = (tab) => {
   if (tab === 'sections') return 'classes';
   if (tab === 'analytics') return 'overview';
-  return ['overview', 'users', 'teachers', 'students', 'parents', 'classes', 'subjects', 'tutors', 'notifications', 'settings'].includes(tab)
+  return ['overview', 'users', 'teachers', 'students', 'parents', 'classes', 'subjects', 'tutors'].includes(tab)
     ? tab
     : null;
 };
 
 
-const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
+const AdminDashboard = ({ initialTab = 'overview', onNavigate }) => {
   const [activeTab, setActiveTab] = useState(() => normalizeTab(initialTab) || 'overview');
   const [unsupportedTab, setUnsupportedTab] = useState(() => (normalizeTab(initialTab) ? null : initialTab));
   
-  // Notifications State
-  const [notificationsList, setNotificationsList] = useState(SAMPLE_ADMIN_NOTIFICATIONS);
-  const [notifSearch, setNotifSearch] = useState('');
-  const [notifAudienceFilter, setNotifAudienceFilter] = useState('all');
-  const [notifComposeModalOpen, setNotifComposeModalOpen] = useState(false);
-  const [newNotifForm, setNewNotifForm] = useState({
-    title: '',
-    targetAudience: 'All Roles',
-    priority: 'High',
-    category: 'Academic',
-    body: ''
-  });
-
-  // Settings State
-  const [adminSettings, setAdminSettings] = useState(INITIAL_ADMIN_SETTINGS);
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  
   // Overview State
-  const [dashboardData, setDashboardData] = useState(SAMPLE_ADMIN_DASHBOARD);
+  const [dashboardData, setDashboardData] = useState(EMPTY_ADMIN_DASHBOARD);
   const [coursesOverview, setCoursesOverview] = useState(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [dashboardError, setDashboardError] = useState(null);
@@ -396,11 +152,15 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     if (coursesRes.success && coursesRes.data) {
       setCoursesOverview(coursesRes.data);
     }
-    if (res.success && res.data && (res.data.stats?.totalUsers > 0 || res.data.stats?.totalStudents > 0)) {
-      setDashboardData(res.data);
+    if (res.success && res.data) {
+      setDashboardData({
+        stats: res.data.stats || {},
+        analytics: res.data.analytics || null,
+        recentUsers: Array.isArray(res.data.recentUsers) ? res.data.recentUsers : []
+      });
     } else {
-      setDashboardData(SAMPLE_ADMIN_DASHBOARD);
-      setDashboardError(null);
+      setDashboardData(EMPTY_ADMIN_DASHBOARD);
+      setDashboardError(res.error || 'Failed to load admin dashboard data.');
     }
   };
 
@@ -413,19 +173,18 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
 
     const res = await getAdminUsers(params);
     setIsLoadingUsers(false);
-    if (res.success && res.data?.users?.length > 0) {
-      setUsers(res.data.users);
-      setUserTotal(res.data.total || res.data.users.length);
-      setUserPage(res.data.page || 1);
-      setUserTotalPages(res.data.totalPages || 1);
+    if (res.success) {
+      const nextUsers = Array.isArray(res.data?.users) ? res.data.users : [];
+      setUsers(nextUsers);
+      setUserTotal(res.data?.total ?? nextUsers.length);
+      setUserPage(res.data?.page || 1);
+      setUserTotalPages(res.data?.totalPages || 1);
     } else {
-      let filtered = SAMPLE_ADMIN_USERS;
-      if (userRoleFilter) filtered = filtered.filter(u => u.role === userRoleFilter);
-      if (userSearch) filtered = filtered.filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase()));
-      setUsers(filtered);
-      setUserTotal(filtered.length);
+      setUsers([]);
+      setUserTotal(0);
       setUserPage(1);
       setUserTotalPages(1);
+      showStatus('error', res.error || 'Failed to load users');
     }
   };
 
@@ -434,10 +193,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingTeachers(true);
     const res = await getAdminTeachers({ limit: 50 });
     setIsLoadingTeachers(false);
-    if (res.success && res.data?.teachers?.length > 0) {
-      setTeachers(res.data.teachers);
+    if (res.success) {
+      setTeachers(Array.isArray(res.data?.teachers) ? res.data.teachers : []);
     } else {
-      setTeachers(SAMPLE_ADMIN_TEACHERS);
+      setTeachers([]);
+      showStatus('error', res.error || 'Failed to load teachers');
     }
   };
 
@@ -446,10 +206,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingStudents(true);
     const res = await getAdminStudents({ limit: 50 });
     setIsLoadingStudents(false);
-    if (res.success && res.data?.students?.length > 0) {
-      setStudents(res.data.students);
+    if (res.success) {
+      setStudents(Array.isArray(res.data?.students) ? res.data.students : []);
     } else {
-      setStudents(SAMPLE_ADMIN_STUDENTS);
+      setStudents([]);
+      showStatus('error', res.error || 'Failed to load students');
     }
   };
 
@@ -457,12 +218,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingAgeVerifications(true);
     const res = await getAdminAgeVerificationRequests();
     setIsLoadingAgeVerifications(false);
-    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-      setAgeVerificationRequests(res.data);
+    if (res.success) {
+      setAgeVerificationRequests(Array.isArray(res.data) ? res.data : []);
     } else {
-      setAgeVerificationRequests([
-        { id: 'STU-003', name: 'Rohan Mehta', dateOfBirth: '2008-01-19', className: 'Class 12', email: 'rohan.mehta@student.edusetu.org' }
-      ]);
+      setAgeVerificationRequests([]);
+      showStatus('error', res.error || 'Failed to load age verification requests');
     }
   };
 
@@ -488,10 +248,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingParents(true);
     const res = await getAdminParents({ limit: 50 });
     setIsLoadingParents(false);
-    if (res.success && res.data?.parents?.length > 0) {
-      setParents(res.data.parents);
+    if (res.success) {
+      setParents(Array.isArray(res.data?.parents) ? res.data.parents : []);
     } else {
-      setParents(SAMPLE_ADMIN_PARENTS);
+      setParents([]);
+      showStatus('error', res.error || 'Failed to load parents');
     }
   };
 
@@ -500,10 +261,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingClasses(true);
     const res = await getAdminClasses();
     setIsLoadingClasses(false);
-    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-      setClasses(res.data);
+    if (res.success) {
+      setClasses(Array.isArray(res.data) ? res.data : []);
     } else {
-      setClasses(SAMPLE_ADMIN_CLASSES);
+      setClasses([]);
+      showStatus('error', res.error || 'Failed to load classes');
     }
   };
 
@@ -512,10 +274,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingSubjects(true);
     const res = await getAdminSubjects();
     setIsLoadingSubjects(false);
-    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-      setSubjects(res.data);
+    if (res.success) {
+      setSubjects(Array.isArray(res.data) ? res.data : []);
     } else {
-      setSubjects(SAMPLE_ADMIN_SUBJECTS);
+      setSubjects([]);
+      showStatus('error', res.error || 'Failed to load subjects');
     }
   };
 
@@ -529,10 +292,11 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
     setIsLoadingTutors(true);
     const res = await getPendingVerifications(status);
     setIsLoadingTutors(false);
-    if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-      setTutorVerifications(res.data);
+    if (res.success) {
+      setTutorVerifications(Array.isArray(res.data) ? res.data : []);
     } else {
-      setTutorVerifications(SAMPLE_ADMIN_TUTOR_VERIFICATIONS);
+      setTutorVerifications([]);
+      showStatus('error', res.error || 'Failed to load tutor verifications');
     }
   };
 
@@ -827,10 +591,7 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
             { id: 'sections', label: 'Sections', icon: School },
             { id: 'subjects', label: 'Course Subjects', icon: BookOpen },
             { id: 'tutors', label: 'Tutor Verifications', icon: ShieldCheck },
-            { id: 'analytics', label: 'Analytics', icon: FileSpreadsheet },
-
-            { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'settings', label: 'Settings', icon: SettingsIcon }
+            { id: 'analytics', label: 'Analytics', icon: FileSpreadsheet }
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id ||
@@ -932,7 +693,7 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
                       <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
                         <GraduationCap className="w-4 h-4" />
                       </div>
-                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.totalEnrollments ?? 3}</p>
+                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.totalEnrollments ?? '—'}</p>
                       <p className="text-xs font-bold text-slate-500">Course Enrollments</p>
                     </div>
 
@@ -940,7 +701,7 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
                       <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
                         <BookOpen className="w-4 h-4" />
                       </div>
-                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.activeCourses ?? 4}</p>
+                      <p className="text-2xl font-black text-slate-900">{coursesOverview?.metrics?.activeCourses ?? '—'}</p>
                       <p className="text-xs font-bold text-slate-500">Active Batches</p>
                     </div>
                   </div>
@@ -1830,502 +1591,6 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
             </div>
           )}
 
-          {/* TAB: NOTIFICATIONS & BROADCASTS */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Header Card */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                      <Bell className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-xl font-black text-slate-900">Institutional Broadcasts & Circulars</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px]">
-                      Step 8 Admin
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Dispatch academic circulars, safety alerts, event notices, and emergency advisories across all Indian stakeholder roles.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setNotifComposeModalOpen(true)}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>Compose Broadcast Notice</span>
-                </button>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Broadcasts</span>
-                  <span className="text-2xl font-black text-slate-900 mt-1 block">{notificationsList.length}</span>
-                  <span className="text-[10px] text-emerald-600 font-bold">100% Delivery Tracked</span>
-                </div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Active Recipients</span>
-                  <span className="text-2xl font-black text-indigo-600 mt-1 block">284 Users</span>
-                  <span className="text-[10px] text-slate-500 font-medium">Students, Parents, Teachers</span>
-                </div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Average Read Rate</span>
-                  <span className="text-2xl font-black text-emerald-600 mt-1 block">95.8%</span>
-                  <span className="text-[10px] text-emerald-600 font-bold">↑ High Engagement</span>
-                </div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Critical Alerts</span>
-                  <span className="text-2xl font-black text-rose-600 mt-1 block">
-                    {notificationsList.filter(n => n.priority === 'Critical').length}
-                  </span>
-                  <span className="text-[10px] text-rose-500 font-medium">Immediate Priority</span>
-                </div>
-              </div>
-
-              {/* Filters & Search */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
-                <div className="relative w-full md:w-80">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search broadcasts & circulars..."
-                    value={notifSearch}
-                    onChange={(e) => setNotifSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-indigo-600"
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
-                  {['all', 'All Roles', 'Students & Parents', 'Parents', 'Teachers'].map((aud) => (
-                    <button
-                      key={aud}
-                      onClick={() => setNotifAudienceFilter(aud)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        notifAudienceFilter === aud
-                          ? 'bg-indigo-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {aud === 'all' ? 'All Audiences' : aud}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Broadcasts List */}
-              <div className="space-y-4">
-                {notificationsList
-                  .filter((n) => {
-                    const matchesSearch = !notifSearch || n.title.toLowerCase().includes(notifSearch.toLowerCase()) || n.body.toLowerCase().includes(notifSearch.toLowerCase());
-                    const matchesAud = notifAudienceFilter === 'all' || n.targetAudience.toLowerCase().includes(notifAudienceFilter.toLowerCase());
-                    return matchesSearch && matchesAud;
-                  })
-                  .map((notif) => {
-                    const isCritical = notif.priority === 'Critical';
-                    const isHigh = notif.priority === 'High';
-                    return (
-                      <div
-                        key={notif.id}
-                        className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-3 hover:border-indigo-300 transition-all"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center space-x-2.5">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
-                                isCritical
-                                  ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                                  : isHigh
-                                  ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                  : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                              }`}
-                            >
-                              {notif.priority} Priority
-                            </span>
-                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 font-bold text-[11px]">
-                              {notif.category}
-                            </span>
-                            <span className="text-[11px] font-medium text-slate-400">
-                              Target: <strong className="text-slate-700">{notif.targetAudience}</strong>
-                            </span>
-                          </div>
-                          <span className="text-xs text-slate-400 font-medium">{notif.timestamp}</span>
-                        </div>
-
-                        <div>
-                          <h3 className="text-base font-black text-slate-900">{notif.title}</h3>
-                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">{notif.body}</p>
-                        </div>
-
-                        {/* Read & Delivery Bar */}
-                        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-1.5 text-slate-500">
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>Delivered to <strong>{notif.deliveredCount}</strong> recipients</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-slate-500">Read: <strong>{notif.readRate}%</strong></span>
-                              <div className="w-20 bg-slate-100 h-2 rounded-full overflow-hidden">
-                                <div
-                                  className="bg-emerald-500 h-full rounded-full"
-                                  style={{ width: `${notif.readRate}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => {
-                                showStatus('success', `Notice "${notif.title}" resent to targeted recipients!`);
-                              }}
-                              className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all"
-                            >
-                              Resend Push Alert
-                            </button>
-                            <button
-                              onClick={() => {
-                                setNotificationsList(notificationsList.filter((x) => x.id !== notif.id));
-                                showStatus('success', 'Notice archived from active broadcast board.');
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
-                              title="Archive Notice"
-                            >
-                              <Archive className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB: PLATFORM & INSTITUTION SETTINGS */}
-          {activeTab === 'settings' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Header Card */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                      <SettingsIcon className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-xl font-black text-slate-900">Institution & Platform Governance</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                      System Configured
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Manage institutional affiliations, AI ethical safety parameters, security policies, and notification transport gateways.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsSavingSettings(true);
-                    setTimeout(() => {
-                      setIsSavingSettings(false);
-                      showStatus('success', 'Platform settings and institutional governance successfully updated!');
-                    }, 600);
-                  }}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2"
-                >
-                  {isSavingSettings ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  <span>Save System Configuration</span>
-                </button>
-              </div>
-
-              {/* Section 1: Institutional Profile */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
-                  <Building2 className="w-4 h-4 text-indigo-600" />
-                  <h3 className="text-sm font-black text-slate-900">1. Institutional Profile & Board Affiliation</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Institution Name</label>
-                    <input
-                      type="text"
-                      value={adminSettings.institutionName}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, institutionName: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">School / Institution Affiliation Code</label>
-                    <input
-                      type="text"
-                      value={adminSettings.institutionCode}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, institutionCode: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Affiliated Education Board</label>
-                    <select
-                      value={adminSettings.boardAffiliation}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, boardAffiliation: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 bg-white font-medium"
-                    >
-                      <option value="CBSE (Central Board of Secondary Education)">CBSE (Central Board of Secondary Education)</option>
-                      <option value="CISCE / ICSE">CISCE / ICSE (Council for the Indian School Certificate Examinations)</option>
-                      <option value="State Board (Maharashtra/UP/Karnataka/TN)">State Secondary Education Board</option>
-                      <option value="International Baccalaureate (IB)">International Baccalaureate (IB)</option>
-                      <option value="Cambridge International (IGCSE)">Cambridge International (IGCSE)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Academic Session Term</label>
-                    <input
-                      type="text"
-                      value={adminSettings.academicSession}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, academicSession: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Institutional Support Email</label>
-                    <input
-                      type="email"
-                      value={adminSettings.adminContactEmail}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, adminContactEmail: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Student & Parent Helpline Number</label>
-                    <input
-                      type="text"
-                      value={adminSettings.helplinePhone}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, helplinePhone: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-medium"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: EduSetu AI Safety, PII & Guardrails Engine */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-black text-slate-900">2. EduSetu AI Safety, Ethics & Pedagogy Guardrails</h3>
-                  </div>
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    DeepEval Verified
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  {/* Toggle 1: Toxicity */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Toxicity & Abuse Intercept</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Filter verbal abuse, profanity, and harassment in English and Hinglish.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, enableToxicityGuard: !adminSettings.enableToxicityGuard })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.enableToxicityGuard ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.enableToxicityGuard ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* Toggle 2: Prompt Injection */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Adversarial Jailbreak Shield</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Neutralize attempts to bypass safety filters or leak system instructions.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, enablePromptInjectionShield: !adminSettings.enablePromptInjectionShield })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.enablePromptInjectionShield ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.enablePromptInjectionShield ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* Toggle 3: PII Scrubbing */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Indian PII Auto-Masking</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Auto-redact 12-digit Aadhaar, 10-digit mobile numbers, and bank details.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, enablePiiScrubbing: !adminSettings.enablePiiScrubbing })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.enablePiiScrubbing ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.enablePiiScrubbing ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* Toggle 4: Crisis Helpline */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Self-Harm Crisis Emergency Intercept</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Instantly surfaces Vandrevala Foundation & Childline 1098 helplines.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, emergencyCrisisIntercept: !adminSettings.emergencyCrisisIntercept })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.emergencyCrisisIntercept ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.emergencyCrisisIntercept ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-2 text-xs">
-                  <label className="font-bold text-slate-700 block mb-1">AI Study Assistant Pedagogy Mode</label>
-                  <select
-                    value={adminSettings.aiTutorResponseMode}
-                    onChange={(e) => setAdminSettings({ ...adminSettings, aiTutorResponseMode: e.target.value })}
-                    className="w-full md:w-1/2 p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 bg-white font-medium"
-                  >
-                    <option value="socratic">Socratic Method (Scaffolding hints & questions; prevents cheating)</option>
-                    <option value="direct">Direct Clarification (Concise answers with step-by-step breakdown)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Section 3: Security & Access Governance */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
-                  <Shield className="w-4 h-4 text-emerald-600" />
-                  <h3 className="text-sm font-black text-slate-900">3. Authentication, Access & Security Governance</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  {/* Master Login Bypass Toggle */}
-                  <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="font-bold text-slate-900">Master Demo Account Access</h4>
-                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md font-bold text-[10px]">master@edusetu.org</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Allows frictionless testing and role evaluation across all modules.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, masterLoginBypass: !adminSettings.masterLoginBypass })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.masterLoginBypass ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.masterLoginBypass ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* 2FA Toggle */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Enforce OTP Two-Factor Authentication</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Requires email OTP verification on each administrator login session.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, enforceTwoFactorAuth: !adminSettings.enforceTwoFactorAuth })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.enforceTwoFactorAuth ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.enforceTwoFactorAuth ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* Student Registration Approval */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Under-13 Parental Verification Gate</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Mandate verified parent linkage before student can browse marketplace tutors.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSettings({ ...adminSettings, studentRegistrationApproval: !adminSettings.studentRegistrationApproval })}
-                      className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${adminSettings.studentRegistrationApproval ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${adminSettings.studentRegistrationApproval ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  {/* Session Timeout */}
-                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Admin Inactivity Session Timeout</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Auto log-out administrator when no activity is detected.</p>
-                    </div>
-                    <select
-                      value={adminSettings.sessionTimeoutMinutes}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, sessionTimeoutMinutes: e.target.value })}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-800"
-                    >
-                      <option value="15">15 Minutes</option>
-                      <option value="30">30 Minutes</option>
-                      <option value="60">60 Minutes</option>
-                      <option value="120">2 Hours</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 4: Email & Communication Transport Gateways */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
-                  <Mail className="w-4 h-4 text-blue-600" />
-                  <h3 className="text-sm font-black text-slate-900">4. Communication Gateways & SMTP Dispatch</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Email Delivery Engine</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={adminSettings.emailServiceMode}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">System Outbound Address</label>
-                    <input
-                      type="text"
-                      value={adminSettings.senderAddress}
-                      onChange={(e) => setAdminSettings({ ...adminSettings, senderAddress: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                  <div className="text-xs text-slate-500">
-                    Daily Quota: <strong className="text-slate-800">5,000 emails/day</strong> • Consumed today: <strong className="text-emerald-600">584 (11.7%)</strong>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showStatus('success', 'SMTP ping verification sent! Connection to email gateway is healthy.');
-                    }}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition-colors flex items-center space-x-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Send Test Gateway Ping</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
             </>
           )}
 
@@ -2700,151 +1965,6 @@ const AdminDashboard = ({ onLogout, initialTab = 'overview', onNavigate }) => {
         </div>
       )}
 
-      {/* MODAL 7: COMPOSE BROADCAST NOTICE */}
-      {notifComposeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                  <Megaphone className="w-4 h-4" />
-                </div>
-                <h4 className="text-sm font-black text-slate-900">Compose Broadcast Notice</h4>
-              </div>
-              <button onClick={() => setNotifComposeModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const newBroadcast = {
-                  id: `NOTIF-${Date.now().toString().slice(-4)}`,
-                  title: newNotifForm.title,
-                  category: newNotifForm.category,
-                  priority: newNotifForm.priority,
-                  targetAudience: newNotifForm.targetAudience,
-                  body: newNotifForm.body,
-                  timestamp: 'Just now',
-                  date: new Date().toISOString().split('T')[0],
-                  readRate: 0,
-                  deliveredCount: 284,
-                  status: 'Sent'
-                };
-                setNotificationsList([newBroadcast, ...notificationsList]);
-                setNotifComposeModalOpen(false);
-                setNewNotifForm({
-                  title: '',
-                  targetAudience: 'All Roles',
-                  priority: 'High',
-                  category: 'Academic',
-                  body: ''
-                });
-                showStatus('success', 'Broadcast notice dispatched successfully across selected audience!');
-              }}
-              className="space-y-3 text-xs"
-            >
-              <div>
-                <label className="font-bold text-slate-700">Notice Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Schedule for Mid-Term Practical Assessments"
-                  required
-                  value={newNotifForm.title}
-                  onChange={(e) => setNewNotifForm({ ...newNotifForm, title: e.target.value })}
-                  className="w-full mt-1 p-2 rounded-xl border border-slate-200 focus:outline-indigo-600"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700">Target Audience</label>
-                  <select
-                    value={newNotifForm.targetAudience}
-                    onChange={(e) => setNewNotifForm({ ...newNotifForm, targetAudience: e.target.value })}
-                    className="w-full mt-1 p-2 rounded-xl border border-slate-200 focus:outline-indigo-600 bg-white font-medium"
-                  >
-                    <option value="All Roles">All Roles (School-Wide)</option>
-                    <option value="Students & Parents">Students & Parents</option>
-                    <option value="Parents">Parents Only</option>
-                    <option value="Teachers">Teachers Only</option>
-                    <option value="Students">Students Only</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">Notice Category</label>
-                  <select
-                    value={newNotifForm.category}
-                    onChange={(e) => setNewNotifForm({ ...newNotifForm, category: e.target.value })}
-                    className="w-full mt-1 p-2 rounded-xl border border-slate-200 focus:outline-indigo-600 bg-white font-medium"
-                  >
-                    <option value="Academic">Academic Notice</option>
-                    <option value="Safety">Safety & Security</option>
-                    <option value="Circular">General Circular</option>
-                    <option value="Emergency">Emergency Alert</option>
-                    <option value="Training">Teacher Workshop</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700">Priority Level</label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  {['Low', 'High', 'Critical'].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setNewNotifForm({ ...newNotifForm, priority: p })}
-                      className={`py-1.5 rounded-xl font-bold text-center border transition-all ${
-                        newNotifForm.priority === p
-                          ? p === 'Critical'
-                            ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                            : p === 'High'
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
-                            : 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700">Message Content</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Type the detailed circular instructions or safety message..."
-                  value={newNotifForm.body}
-                  onChange={(e) => setNewNotifForm({ ...newNotifForm, body: e.target.value })}
-                  className="w-full mt-1 p-2.5 rounded-xl border border-slate-200 focus:outline-indigo-600 leading-relaxed font-sans"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setNotifComposeModalOpen(false)}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-500/20 flex items-center space-x-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send Broadcast Now</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );

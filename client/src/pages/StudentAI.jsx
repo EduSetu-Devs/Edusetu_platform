@@ -12,8 +12,8 @@ import {
   Eye,
   EyeOff,
   Flame,
-  HelpCircle,
   History,
+  Info,
   Lightbulb,
   Loader2,
   MessageSquarePlus,
@@ -25,7 +25,6 @@ import {
   Target,
   Trash2,
   TrendingUp,
-  User,
   Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -316,6 +315,17 @@ const StudentAI = ({ onNavigateBack }) => {
             <MessageSquarePlus className="w-3.5 h-3.5 text-indigo-600" /> New Chat Thread
           </button>
         </div>
+      </div>
+
+      <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-2.5 text-xs text-indigo-900 leading-relaxed">
+        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+        <p>
+          <strong>AI-generated content.</strong> Answers, plans, questions, and reports may be incomplete or inaccurate.
+          Verify important facts with your teacher or textbook. Do not submit private personal data in prompts.{' '}
+          <a href="/terms" className="font-bold underline">Terms</a>{' '}
+          <span aria-hidden="true">·</span>{' '}
+          <a href="/privacy" className="font-bold underline">Privacy</a>
+        </p>
       </div>
 
       {/* Modular Feature Navigation Tabs */}

@@ -11,7 +11,7 @@ export const getStudentSessions = async (params = {}) => {
 
 export const joinStudentSession = async (id) => {
   try {
-    const response = await apiClient.post(`/student/sessions/${id}/join`);
+    const response = await apiClient.post(`/student/sessions/${encodeURIComponent(id)}/join`);
     return { success: true, data: response.data.data };
   } catch (error) {
     return { success: false, status: error.response?.status, error: error.response?.data?.message || error.message || 'Failed to join class' };
@@ -19,12 +19,12 @@ export const joinStudentSession = async (id) => {
 };
 
 export const getStudentClassResources = async (sessionId) => {
-  try { const response = await apiClient.get(`/student/sessions/${sessionId}/resources`); return { success: true, data: response.data.data }; }
+  try { const response = await apiClient.get(`/student/sessions/${encodeURIComponent(sessionId)}/resources`); return { success: true, data: response.data.data }; }
   catch (error) { return { success: false, error: error.response?.data?.message || error.message || 'Failed to fetch resources' }; }
 };
 
 export const getStudentClassSummary = async (sessionId) => {
-  try { const response = await apiClient.get(`/student/sessions/${sessionId}/summary`); return { success: true, data: response.data.data }; }
+  try { const response = await apiClient.get(`/student/sessions/${encodeURIComponent(sessionId)}/summary`); return { success: true, data: response.data.data }; }
   catch (error) { return { success: false, error: error.response?.data?.message || error.message || 'Failed to fetch class summary' }; }
 };
 
@@ -53,7 +53,7 @@ export const generateStudentQuiz = (data) => aiRequest('post', '/student/ai/quiz
 
 export const getStudentSession = async (id) => {
   try {
-    const response = await apiClient.get(`/student/sessions/${id}`);
+    const response = await apiClient.get(`/student/sessions/${encodeURIComponent(id)}`);
     return { success: true, data: response.data.data };
   } catch (error) {
     return { success: false, status: error.response?.status, error: error.response?.data?.message || error.message || 'Failed to fetch class' };
@@ -252,7 +252,7 @@ export const getStudentHomework = async (filters = {}) => {
  */
 export const getHomeworkById = async (id) => {
   try {
-    const response = await apiClient.get(`/student/homework/${id}`);
+    const response = await apiClient.get(`/student/homework/${encodeURIComponent(id)}`);
     return {
       success: true,
       data: normalizeHomeworkDetails(response.data.data)
@@ -274,7 +274,7 @@ export const getHomeworkById = async (id) => {
  */
 export const getStudentSubmission = async (id) => {
   try {
-    const response = await apiClient.get(`/student/homework/${id}/submission`);
+    const response = await apiClient.get(`/student/homework/${encodeURIComponent(id)}/submission`);
     return {
       success: true,
       data: {
@@ -305,7 +305,7 @@ export const submitHomework = async (id, submissionData) => {
     if (submissionData.attachmentUrl) formData.append('attachmentUrl', submissionData.attachmentUrl);
     (submissionData.files || []).forEach((file) => formData.append('attachments', file));
 
-    const response = await apiClient.post(`/student/homework/${id}/submit`, formData);
+    const response = await apiClient.post(`/student/homework/${encodeURIComponent(id)}/submit`, formData);
     const responseData = response.data.data || {};
     return {
       success: true,
@@ -374,7 +374,7 @@ export const getStudentMarks = async (filters = {}) => {
  */
 export const getMarkById = async (id) => {
   try {
-    const response = await apiClient.get(`/student/marks/${id}`);
+    const response = await apiClient.get(`/student/marks/${encodeURIComponent(id)}`);
     return {
       success: true,
       data: response.data.data

@@ -43,6 +43,7 @@ const {
   studentPractice,
   studentQuiz
 } = require('../controllers/aiController');
+const aiQuota = require('../middleware/aiQuota');
 
 const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'AI service is temporarily busy. Please try again.' } });
 
@@ -66,13 +67,13 @@ router.get('/sessions/:sessionId/summary', getSummary);
 router.get('/learning-history', getStudentHistory);
 
 // AI learning endpoints. All use the authenticated student's identity.
-router.get('/ai/performance', aiLimiter, studentPerformance);
-router.get('/ai/recommendations', aiLimiter, studentRecommendations);
-router.post('/ai/study-plan', aiLimiter, studyPlan);
-router.post('/ai/doubt', aiLimiter, askDoubt);
+router.get('/ai/performance', aiLimiter, aiQuota, studentPerformance);
+router.get('/ai/recommendations', aiLimiter, aiQuota, studentRecommendations);
+router.post('/ai/study-plan', aiLimiter, aiQuota, studyPlan);
+router.post('/ai/doubt', aiLimiter, aiQuota, askDoubt);
 router.get('/ai/history', aiLimiter, chatHistory);
-router.post('/ai/practice', aiLimiter, studentPractice);
-router.post('/ai/quiz', aiLimiter, studentQuiz);
+router.post('/ai/practice', aiLimiter, aiQuota, studentPractice);
+router.post('/ai/quiz', aiLimiter, aiQuota, studentQuiz);
 
 // Attendance Endpoints
 router.get('/attendance', getStudentAttendance);

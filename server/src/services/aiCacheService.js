@@ -1,4 +1,5 @@
 const { AIQuestionCache } = require('../models');
+const { getClient: getRedisClient, isReady: isRedisReady } = require('./redisClient');
 
 class AICacheService {
   constructor(maxSize = 500) {
@@ -52,6 +53,24 @@ class AICacheService {
         cached: true,
         source: 'memory-cache'
       };
+    }
+
+    // 1.5 Redis L1 cache (shared across instances)
+    if (isRedisReady()) {
+      try {
+        const redisValue = await getRedisClient().get(`aicache:${key}`);
+        if (redisValue) {
+          let parsedRedis;
+          try { parsedRedis = JSON.parse(redisValue); } catch { parsedRedis = null; }
+          if (parsedRedis) {
+            this.storeInMemory(key, { answer: parsedRedis, depth, hitCount: 1, lastAccessed: new Date() });
+            this.stats.hits += 1;
+            return { ...JSON.parse(JSON.stringify(parsedRedis)), cached: true, source: 'redis-cache' };
+          }
+        }
+      } catch (err) {
+        console.warn('[AICache] Redis lookup warning:', err.message);
+      }
     }
 
     // 2. Database persistent cache check
@@ -109,6 +128,14 @@ class AICacheService {
       hitCount: 1,
       lastAccessed: new Date()
     });
+
+    if (isRedisReady()) {
+      try {
+        await getRedisClient().set(`aicache:${key}`, JSON.stringify(answer), 'EX', 3600);
+      } catch (err) {
+        console.warn('[AICache] Redis persist warning:', err.message);
+      }
+    }
 
     // Persist to database asynchronously
     const answerString = typeof answer === 'string' ? answer : JSON.stringify(answer);

@@ -1,144 +1,150 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
-  getStoredToken,
-  getStoredUser,
-  setStoredToken,
-  setStoredUser,
-  removeStoredToken,
-  removeStoredUser,
   loginUser,
   adminLoginUser,
   registerUser,
   sendRegistrationOtp,
   verifyAndRegisterOtp,
+  firebaseLoginUser,
   getCurrentUserProfile,
   logoutUser
 } from '../services/authService';
+import { signInWithGoogle } from '../config/firebase';
 import { connectSocket, disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(getStoredUser());
-  const [token, setToken] = useState(getStoredToken());
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  useEffect(() => {
-    if (token) {
-      connectSocket();
-    } else {
-      disconnectSocket();
-    }
-  }, [token]);
+  const clearLocalSession = useCallback(() => {
+    setUser(null);
+    setAuthError(null);
+    disconnectSocket();
+  }, []);
 
-  // Initialize and verify authentication state on mount
+  // Validate the HttpOnly cookie session on mount. There is no token in JS storage.
   useEffect(() => {
+    let cancelled = false;
+
     const initializeAuth = async () => {
-      const storedToken = getStoredToken();
-      if (storedToken) {
-        setToken(storedToken);
-        const result = await getCurrentUserProfile();
-        if (result.success) {
-          setUser(result.data);
-        } else {
-          // Token is expired or invalid
-          logoutUser();
-          setUser(null);
-          setToken(null);
-        }
+      const result = await getCurrentUserProfile();
+      if (cancelled) return;
+
+      if (result.success) {
+        setUser(result.data);
       } else {
         setUser(null);
-        setToken(null);
       }
       setIsLoading(false);
     };
 
     initializeAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Login handler
+  // Connect the WebSocket once an authenticated session exists.
+  useEffect(() => {
+    if (user) {
+      connectSocket();
+    } else {
+      disconnectSocket();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => clearLocalSession();
+    window.addEventListener('edusetu:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('edusetu:unauthorized', handleUnauthorized);
+  }, [clearLocalSession]);
+
   const login = async (email, password) => {
     setAuthError(null);
     const result = await loginUser({ email, password });
     if (result.success) {
       setUser(result.data.user);
-      setToken(result.data.token);
       return { success: true, user: result.data.user };
-    } else {
-      setAuthError(result.error);
-      return { success: false, error: result.error };
     }
+    setAuthError(result.error);
+    return { success: false, error: result.error };
   };
 
-  // Admin login handler (with verification token)
   const adminLogin = async (email, password, adminVerificationToken) => {
     setAuthError(null);
     const result = await adminLoginUser({ email, password, adminVerificationToken });
     if (result.success) {
       setUser(result.data.user);
-      setToken(result.data.token);
       return { success: true, user: result.data.user };
-    } else {
-      setAuthError(result.error);
-      return { success: false, error: result.error };
     }
+    setAuthError(result.error);
+    return { success: false, error: result.error };
   };
 
-  // Register handler
   const register = async (formData) => {
     setAuthError(null);
     const result = await registerUser(formData);
     if (result.success) {
       setUser(result.data.user);
-      setToken(result.data.token);
       return { success: true, user: result.data.user };
-    } else {
-      setAuthError(result.error);
-      return { success: false, error: result.error };
     }
+    setAuthError(result.error);
+    return { success: false, error: result.error };
   };
 
-  // Send registration OTP
   const sendOtp = async (userData) => {
     setAuthError(null);
     const result = await sendRegistrationOtp(userData);
-    if (!result.success) {
-      setAuthError(result.error);
-    }
+    if (!result.success) setAuthError(result.error);
     return result;
   };
 
-  // Verify OTP and complete registration
   const verifyOtp = async (verificationData) => {
     setAuthError(null);
     const result = await verifyAndRegisterOtp(verificationData);
     if (result.success) {
       setUser(result.data.user);
-      setToken(result.data.token);
       return { success: true, user: result.data.user };
-    } else {
+    }
+    setAuthError(result.error);
+    return { success: false, error: result.error };
+  };
+
+  const loginWithGoogle = async (role = 'student') => {
+    setAuthError(null);
+    try {
+      const res = await signInWithGoogle();
+      const idToken = await res.user.getIdToken();
+      const result = await firebaseLoginUser(idToken, role);
+      if (result.success) {
+        setUser(result.data.user);
+        return { success: true, user: result.data.user };
+      }
       setAuthError(result.error);
       return { success: false, error: result.error };
+    } catch (err) {
+      const msg = err.message || 'Google sign-in cancelled or failed';
+      setAuthError(msg);
+      return { success: false, error: msg };
     }
   };
 
-  // Logout handler
-  const logout = () => {
-    logoutUser();
-    setUser(null);
-    setToken(null);
-    setAuthError(null);
+  const logout = async () => {
+    await logoutUser();
+    clearLocalSession();
   };
 
   const value = {
     user,
-    token,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
     isLoading,
     authError,
     setAuthError,
     login,
+    loginWithGoogle,
     adminLogin,
     register,
     sendOtp,

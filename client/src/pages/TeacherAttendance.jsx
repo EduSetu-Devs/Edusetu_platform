@@ -26,22 +26,6 @@ import {
   Info
 } from 'lucide-react';
 
-const SAMPLE_ATTENDANCE_STUDENTS = [
-  { studentId: 'STU-001', name: 'Aarav Sharma', rollNumber: '101', className: 'Class 12', status: 'present', remarks: 'On time' },
-  { studentId: 'STU-002', name: 'Priya Verma', rollNumber: '102', className: 'Class 12', status: 'present', remarks: 'Active in class' },
-  { studentId: 'STU-003', name: 'Rohan Gupta', rollNumber: '103', className: 'Class 12', status: 'present', remarks: 'Punctual' },
-  { studentId: 'STU-004', name: 'Ananya Iyer', rollNumber: '104', className: 'Class 12', status: 'absent', remarks: 'Medical leave' },
-  { studentId: 'STU-005', name: 'Kabir Mehta', rollNumber: '105', className: 'Class 12', status: 'late', remarks: 'Bus delay' }
-];
-
-const SAMPLE_ATTENDANCE_SUMMARY = {
-  total: 5,
-  present: 3,
-  absent: 1,
-  late: 1,
-  percentage: 80
-};
-
 const TeacherAttendance = ({ onNavigateBack }) => {
   const { user } = useAuth();
 
@@ -93,18 +77,21 @@ const TeacherAttendance = ({ onNavigateBack }) => {
 
     setIsLoading(false);
 
-    if (rosterRes.success && rosterRes.data?.students && rosterRes.data.students.length > 0) {
+    if (rosterRes.success && rosterRes.data?.students) {
       setStudents(rosterRes.data.students);
       setIsDirty(false);
     } else {
-      setStudents(SAMPLE_ATTENDANCE_STUDENTS);
+      setStudents([]);
       setIsDirty(false);
+      if (!rosterRes.success) {
+        setFeedback({ type: 'error', message: rosterRes.error || 'Failed to load attendance roster' });
+      }
     }
 
     if (summaryRes.success && summaryRes.data) {
       setSummary(summaryRes.data);
     } else {
-      setSummary(SAMPLE_ATTENDANCE_SUMMARY);
+      setSummary(null);
     }
   };
 

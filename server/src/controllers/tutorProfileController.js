@@ -301,8 +301,29 @@ const submitForVerification = async (req, res, next) => {
       verificationStatus: 'pending_verification'
     };
 
-    if (resumeUrl !== undefined) updates.resumeUrl = resumeUrl;
-    if (Array.isArray(certificateUrls)) updates.certificateUrls = certificateUrls;
+    const isValidWebUrl = (urlStr) => {
+      try {
+        const parsed = new URL(urlStr);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    };
+
+    if (resumeUrl !== undefined) {
+      if (resumeUrl && !isValidWebUrl(resumeUrl)) {
+        return res.status(400).json({ success: false, message: 'Resume URL must be a valid http or https web address' });
+      }
+      updates.resumeUrl = resumeUrl;
+    }
+    if (Array.isArray(certificateUrls)) {
+      for (const cUrl of certificateUrls) {
+        if (cUrl && !isValidWebUrl(cUrl)) {
+          return res.status(400).json({ success: false, message: 'Certificate URLs must be valid http or https web addresses' });
+        }
+      }
+      updates.certificateUrls = certificateUrls;
+    }
     if (degree !== undefined) updates.degree = degree;
     if (university !== undefined) updates.university = university;
     if (qualifications !== undefined) updates.qualifications = qualifications;

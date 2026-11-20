@@ -4,7 +4,6 @@ import {
   getParentProfile,
   updateParentProfile,
   getMyChildren,
-  getChildDetails,
   linkChild,
   getAcademicOverview,
   getChildAttendanceHistory,
@@ -13,16 +12,9 @@ import {
 } from '../services/parentService';
 import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
-import { getChildEnrolledCourses } from '../services/courseService';
 import { getParentConversations } from '../services/parentMessageService';
-import { subscribeToMessages } from '../services/socket';
 import {
-  HeartHandshake,
-  User,
-  Mail,
-  Phone,
   BookOpen,
-  Calendar,
   ClipboardList,
   Award,
   Edit3,
@@ -31,8 +23,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  LogOut,
-  MapPin,
   Sparkles,
   Users,
   Briefcase,
@@ -41,16 +31,8 @@ import {
   GraduationCap,
   CalendarCheck,
   FileSpreadsheet,
-  Printer,
-  Smartphone,
-  Send,
-  MessageCircle,
   ArrowRight,
-  TrendingUp,
   History,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
   MessageSquare
 } from 'lucide-react';
 
@@ -74,96 +56,7 @@ const statusBadgeStyles = {
   pending: 'bg-amber-100 text-amber-800 border-amber-200'
 };
 
-const SAMPLE_PARENT_CHILDREN = [
-  {
-    studentId: 'STU-1024',
-    name: 'Aarav Sharma',
-    relationship: 'Son',
-    rollNumber: '14',
-    className: 'Class 10',
-    section: 'A',
-    bloodGroup: 'B+',
-    schoolName: 'Delhi Public School, R.K. Puram'
-  },
-  {
-    studentId: 'STU-1088',
-    name: 'Ananya Sharma',
-    relationship: 'Daughter',
-    rollNumber: '08',
-    className: 'Class 7',
-    section: 'B',
-    bloodGroup: 'O+',
-    schoolName: 'Delhi Public School, R.K. Puram'
-  }
-];
-
-const SAMPLE_ACADEMIC_OVERVIEW = {
-  attendance: {
-    percentage: 94.5,
-    present: 114,
-    absent: 4,
-    late: 2
-  },
-  homework: {
-    submitted: 28,
-    total: 30,
-    pending: 2,
-    late: 0
-  },
-  marks: {
-    averagePercentage: 91.4,
-    totalExams: 5,
-    grade: 'A+'
-  },
-  result: {
-    gpa: '9.20',
-    grade: 'A+',
-    totalObtainedMarks: 457,
-    totalMaxMarks: 500
-  }
-};
-
-const SAMPLE_SUBJECT_MARKS = {
-  subjectWise: [
-    { subject: 'Mathematics', grade: 'A+', totalObtainedMarks: 96, totalMaxMarks: 100, percentage: 96 },
-    { subject: 'Physics', grade: 'A+', totalObtainedMarks: 92, totalMaxMarks: 100, percentage: 92 },
-    { subject: 'Chemistry', grade: 'A', totalObtainedMarks: 88, totalMaxMarks: 100, percentage: 88 },
-    { subject: 'English Core', grade: 'A+', totalObtainedMarks: 91, totalMaxMarks: 100, percentage: 91 },
-    { subject: 'Computer Science', grade: 'A+', totalObtainedMarks: 90, totalMaxMarks: 100, percentage: 90 }
-  ]
-};
-
-const SAMPLE_ATTENDANCE_HISTORY = {
-  history: [
-    { subject: 'Mathematics (Calculus & Functions)', date: '26 Oct 2026', status: 'present' },
-    { subject: 'Physics (Kinematics & Dynamics)', date: '25 Oct 2026', status: 'present' },
-    { subject: 'Chemistry (Chemical Equilibrium)', date: '24 Oct 2026', status: 'present' },
-    { subject: 'English (Literary Analysis)', date: '23 Oct 2026', status: 'late' },
-    { subject: 'Computer Science (Data Structures)', date: '22 Oct 2026', status: 'present' },
-    { subject: 'Physical Education & Sports', date: '21 Oct 2026', status: 'present' }
-  ]
-};
-
-const SAMPLE_HOMEWORK_HISTORY = {
-  history: [
-    { title: 'Newtonian Dynamics Problem Set 4', subject: 'Physics', dueDate: '28 Oct 2026', submissionStatus: 'submitted' },
-    { title: 'Quadratic Equations & Roots Practice', subject: 'Mathematics', dueDate: '29 Oct 2026', submissionStatus: 'submitted' },
-    { title: 'Organic Reactions Worksheet', subject: 'Chemistry', dueDate: '31 Oct 2026', submissionStatus: 'pending' },
-    { title: 'English Formal Letter Drafting', subject: 'English', dueDate: '02 Nov 2026', submissionStatus: 'pending' }
-  ]
-};
-
-const SAMPLE_MARKS_HISTORY = {
-  marks: [
-    { examName: 'Term 1 Mid-Term Assessment', subject: 'Mathematics', obtainedMarks: 96, maxMarks: 100, percentage: 96, grade: 'A+' },
-    { examName: 'Term 1 Mid-Term Assessment', subject: 'Physics', obtainedMarks: 92, maxMarks: 100, percentage: 92, grade: 'A+' },
-    { examName: 'Term 1 Mid-Term Assessment', subject: 'Chemistry', obtainedMarks: 88, maxMarks: 100, percentage: 88, grade: 'A' },
-    { examName: 'Unit Test 2', subject: 'Computer Science', obtainedMarks: 90, maxMarks: 100, percentage: 90, grade: 'A+' },
-    { examName: 'Unit Test 2', subject: 'English Core', obtainedMarks: 91, maxMarks: 100, percentage: 91, grade: 'A+' }
-  ]
-};
-
-const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavigateToMessages }) => {
+const ParentDashboard = ({ onNavigateToAI, onNavigateToTutors, onNavigateToMessages }) => {
   const { user } = useAuth();
 
   const [profile, setProfile] = useState(null);
@@ -179,15 +72,11 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
   // Child Academic Dashboard Data
   const [academicOverview, setAcademicOverview] = useState(null);
   const [subjectMarksData, setSubjectMarksData] = useState(null);
-  const [childCourses, setChildCourses] = useState([]);
   const [isAcademicLoading, setIsAcademicLoading] = useState(false);
   const [recentMessages, setRecentMessages] = useState([]);
 
   // Modals & Drawers State
   const [activeModal, setActiveModal] = useState(null);
-  const [showAbsenceModal, setShowAbsenceModal] = useState(false);
-  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
-  const [whatsAppSent, setWhatsAppSent] = useState(false);
    // 'attendance_history' | 'homework_history' | 'marks_history' | 'child_profile'
   const [historyData, setHistoryData] = useState(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -211,23 +100,20 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     setFeedback(null);
 
     const [profRes, kidsRes, eligibilityRes, convRes] = await Promise.all([
-      getParentConversations(),
       getParentProfile(),
       getMyChildren(),
-      getTutorAssignmentEligibility()
+      getTutorAssignmentEligibility(),
+      getParentConversations()
     ]);
 
-    if (eligibilityRes.success && eligibilityRes.data?.children?.length > 0) {
+    let loadError = '';
+
+    if (eligibilityRes.success && Array.isArray(eligibilityRes.data?.children)) {
       setTutorEligibility(eligibilityRes.data);
       setTutorEligibilityError('');
     } else {
-      setTutorEligibility({
-        children: [
-          { studentProfileId: 'STU-1024', name: 'Aarav Sharma', canRequest: true, age: 15 },
-          { studentProfileId: 'STU-1088', name: 'Ananya Sharma', canRequest: true, age: 12 }
-        ]
-      });
-      setTutorEligibilityError('');
+      setTutorEligibility({ children: [] });
+      setTutorEligibilityError(eligibilityRes.error || 'Unable to verify tutor assignment eligibility.');
     }
 
     if (profRes.success && profRes.data) {
@@ -235,61 +121,57 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
       setEditForm({
         name: profRes.data.name || '',
         phone: profRes.data.phone || '',
-        relationship: profRes.data.relationship || 'Father',
+        relationship: profRes.data.relationship || 'Parent',
         occupation: profRes.data.occupation || '',
         address: profRes.data.address || ''
       });
     } else {
+      const fallbackName = user?.name || '';
       setProfile({
-        name: user?.name || 'Ramesh Sharma',
-        parentId: 'PAR-8801',
-        relationship: 'Father',
-        occupation: 'Senior Financial Analyst',
-        phone: '+91 98110 23456',
-        address: 'B-402, Green Valley Enclave, New Delhi',
-        email: user?.email || 'parent@edusetu.org'
+        name: fallbackName,
+        email: user?.email || '',
+        relationship: 'Parent',
+        parentId: '',
+        occupation: '',
+        phone: '',
+        address: ''
       });
       setEditForm({
-        name: user?.name || 'Ramesh Sharma',
-        phone: '+91 98110 23456',
-        relationship: 'Father',
-        occupation: 'Senior Financial Analyst',
-        address: 'B-402, Green Valley Enclave, New Delhi'
+        name: fallbackName,
+        phone: '',
+        relationship: 'Parent',
+        occupation: '',
+        address: ''
       });
+      loadError = profRes.error || 'Failed to load parent profile.';
     }
 
-    if (kidsRes.success && kidsRes.data?.children?.length > 0) {
-      const kids = kidsRes.data.children;
+    if (kidsRes.success) {
+      const kids = Array.isArray(kidsRes.data?.children) ? kidsRes.data.children : [];
       setChildren(kids);
-      loadChildAcademicData(kids[0].studentId);
+      setSelectedChildIndex(0);
+      if (kids[0]) {
+        await loadChildAcademicData(kids[0].studentId);
+      } else {
+        setAcademicOverview(null);
+        setSubjectMarksData(null);
+      }
     } else {
-      setChildren(SAMPLE_PARENT_CHILDREN);
-      setAcademicOverview(SAMPLE_ACADEMIC_OVERVIEW);
-      setSubjectMarksData(SAMPLE_SUBJECT_MARKS);
+      setChildren([]);
+      setSelectedChildIndex(0);
+      setAcademicOverview(null);
+      setSubjectMarksData(null);
+      loadError = loadError || kidsRes.error || 'Failed to load linked children.';
     }
 
-    if (convRes?.success && Array.isArray(convRes.data?.conversations) && convRes.data.conversations.length > 0) {
-      setRecentMessages(convRes.data.conversations);
+    if (convRes.success) {
+      setRecentMessages(Array.isArray(convRes.data?.conversations) ? convRes.data.conversations : []);
     } else {
-      setRecentMessages([
-        {
-          id: 'CONV-P01',
-          teacher: { name: 'Dr. Anand Kumar', designation: 'Senior Physics Faculty' },
-          student: { name: 'Aarav Sharma' },
-          lastMessage: 'Aarav has shown outstanding progress in Newtonian Mechanics. Next week we begin Circular Motion.',
-          lastMessageAt: new Date(Date.now() - 3600000).toISOString(),
-          unreadCount: 0
-        },
-        {
-          id: 'CONV-P02',
-          teacher: { name: 'Mrs. Sunita Sharma', designation: 'PGT Chemistry Faculty' },
-          student: { name: 'Aarav Sharma' },
-          lastMessage: 'Please ask Aarav to revise IUPAC nomenclature before tomorrow’s lab practical.',
-          lastMessageAt: new Date(Date.now() - 86400000).toISOString(),
-          unreadCount: 1
-        }
-      ]);
+      setRecentMessages([]);
+      loadError = loadError || convRes.error || 'Failed to load recent messages.';
     }
+
+    if (loadError) setFeedback({ type: 'error', message: loadError });
     setIsLoading(false);
   };
 
@@ -298,32 +180,26 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     setIsAcademicLoading(true);
     setAcademicOverview(null);
     setSubjectMarksData(null);
-    setChildCourses([]);
 
-    const [overviewRes, marksRes, coursesRes] = await Promise.all([
+    const [overviewRes, marksRes] = await Promise.all([
       getAcademicOverview(studentId),
-      getChildMarks(studentId),
-      getChildEnrolledCourses(studentId)
+      getChildMarks(studentId)
     ]);
 
     setIsAcademicLoading(false);
 
-    if (coursesRes.success && Array.isArray(coursesRes.data?.courses)) {
-      setChildCourses(coursesRes.data.courses);
-    } else {
-      setChildCourses([]);
-    }
-
     if (overviewRes.success && overviewRes.data) {
       setAcademicOverview(overviewRes.data);
     } else {
-      setAcademicOverview(SAMPLE_ACADEMIC_OVERVIEW);
+      setAcademicOverview(null);
+      if (overviewRes.error) setFeedback({ type: 'error', message: overviewRes.error });
     }
 
-    if (marksRes.success && marksRes.data && marksRes.data.subjectWise?.length > 0) {
+    if (marksRes.success && marksRes.data) {
       setSubjectMarksData(marksRes.data);
     } else {
-      setSubjectMarksData(SAMPLE_SUBJECT_MARKS);
+      setSubjectMarksData(null);
+      if (marksRes.error) setFeedback({ type: 'error', message: marksRes.error });
     }
   };
 
@@ -376,10 +252,11 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     const res = await getChildAttendanceHistory(activeKid.studentId);
     setIsHistoryLoading(false);
 
-    if (res.success && res.data?.history?.length > 0) {
-      setHistoryData(res.data);
+    if (res.success) {
+      setHistoryData({ history: Array.isArray(res.data?.history) ? res.data.history : [] });
     } else {
-      setHistoryData(SAMPLE_ATTENDANCE_HISTORY);
+      setHistoryData({ history: [] });
+      setFeedback({ type: 'error', message: res.error || 'Failed to load attendance history' });
     }
   };
 
@@ -392,30 +269,14 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     const res = await getChildHomeworkHistory(activeKid.studentId);
     setIsHistoryLoading(false);
 
-    if (res.success && res.data?.history?.length > 0) {
-      setHistoryData(res.data);
+    if (res.success) {
+      setHistoryData({ history: Array.isArray(res.data?.history) ? res.data.history : [] });
     } else {
-      setHistoryData(SAMPLE_HOMEWORK_HISTORY);
+      setHistoryData({ history: [] });
+      setFeedback({ type: 'error', message: res.error || 'Failed to load homework history' });
     }
   };
 
-  
-  const handleDownloadChildReportCard = () => {
-    if (!activeKid) return;
-    generateReportCardPDF({
-      studentName: activeKid.name,
-      className: activeKid.className || 'Class 10',
-      section: activeKid.section || 'A',
-      rollNumber: activeKid.rollNumber || '1001',
-      admissionId: activeKid.studentId || 'EDU-2026-9042',
-      dateOfBirth: activeKid.dateOfBirth ? activeKid.dateOfBirth.slice(0, 10) : '2008-05-14',
-      performance: academicOverview?.marks || null,
-      attendancePercentage: activeKid.attendancePercentage || 94,
-      totalDays: 180,
-      presentDays: Math.round(180 * ((activeKid.attendancePercentage || 94) / 100))
-    });
-  };
-  
   const handleOpenMarksHistory = async () => {
     const activeKid = children[selectedChildIndex];
     if (!activeKid) return;
@@ -425,10 +286,11 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
     const res = await getChildMarks(activeKid.studentId);
     setIsHistoryLoading(false);
 
-    if (res.success && res.data?.marks?.length > 0) {
-      setHistoryData(res.data);
+    if (res.success) {
+      setHistoryData({ marks: Array.isArray(res.data?.marks) ? res.data.marks : [] });
     } else {
-      setHistoryData(SAMPLE_MARKS_HISTORY);
+      setHistoryData({ marks: [] });
+      setFeedback({ type: 'error', message: res.error || 'Failed to load marks history' });
     }
   };
 
@@ -904,15 +766,15 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                           <CalendarCheck className="w-5 h-5" />
                         </div>
                         <span className="text-2xl font-black text-emerald-700">
-                          {academicOverview?.attendance?.percentage ?? 0}%
+                          {academicOverview?.attendance?.percentage == null ? 'No data' : `${academicOverview.attendance.percentage}%`}
                         </span>
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">Attendance Tracker</h4>
                         <div className="grid grid-cols-3 gap-1 text-[11px] text-slate-500 mt-2">
-                          <div>Present: <strong className="text-emerald-700 font-bold">{academicOverview?.attendance?.present ?? 0}</strong></div>
-                          <div>Absent: <strong className="text-rose-700 font-bold">{academicOverview?.attendance?.absent ?? 0}</strong></div>
-                          <div>Late: <strong className="text-amber-700 font-bold">{academicOverview?.attendance?.late ?? 0}</strong></div>
+                          <div>Present: <strong className="text-emerald-700 font-bold">{academicOverview?.attendance?.present ?? '—'}</strong></div>
+                          <div>Absent: <strong className="text-rose-700 font-bold">{academicOverview?.attendance?.absent ?? '—'}</strong></div>
+                          <div>Late: <strong className="text-amber-700 font-bold">{academicOverview?.attendance?.late ?? '—'}</strong></div>
                         </div>
                       </div>
                     </div>
@@ -925,17 +787,9 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                       <span>View History &rarr;</span>
                     </button>
                     {academicOverview?.attendance?.absent > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAbsenceModal(true);
-                          setWhatsAppSent(false);
-                        }}
-                        className="w-full mt-1.5 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <Smartphone className="w-3 h-3 text-rose-600" />
-                        <span>⚠️ {academicOverview.attendance.absent} Absences · WhatsApp Notice</span>
-                      </button>
+                      <p className="w-full mt-1.5 py-1.5 px-2 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px] rounded-xl text-center">
+                        {academicOverview.attendance.absent} recorded absence{academicOverview.attendance.absent === 1 ? '' : 's'} this term
+                      </p>
                     )}
   
                   </div>
@@ -948,15 +802,15 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                           <ClipboardList className="w-5 h-5" />
                         </div>
                         <span className="text-2xl font-black text-blue-700">
-                          {academicOverview?.homework?.submitted ?? 0} / {academicOverview?.homework?.total ?? 0}
+                          {academicOverview?.homework?.total == null ? 'No data' : `${academicOverview.homework.submitted ?? 0} / ${academicOverview.homework.total}`}
                         </span>
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">Homework & Tasks</h4>
                         <div className="grid grid-cols-3 gap-1 text-[11px] text-slate-500 mt-2">
-                          <div>Done: <strong className="text-emerald-700 font-bold">{academicOverview?.homework?.submitted ?? 0}</strong></div>
-                          <div>Pending: <strong className="text-amber-700 font-bold">{academicOverview?.homework?.pending ?? 0}</strong></div>
-                          <div>Late: <strong className="text-rose-700 font-bold">{academicOverview?.homework?.late ?? 0}</strong></div>
+                          <div>Done: <strong className="text-emerald-700 font-bold">{academicOverview?.homework?.submitted ?? '—'}</strong></div>
+                          <div>Pending: <strong className="text-amber-700 font-bold">{academicOverview?.homework?.pending ?? '—'}</strong></div>
+                          <div>Late: <strong className="text-rose-700 font-bold">{academicOverview?.homework?.late ?? '—'}</strong></div>
                         </div>
                       </div>
                     </div>
@@ -978,13 +832,13 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                           <FileSpreadsheet className="w-5 h-5" />
                         </div>
                         <span className="text-2xl font-black text-purple-700">
-                          {academicOverview?.marks?.averagePercentage ?? 0}%
+                          {academicOverview?.marks?.averagePercentage == null ? 'No data' : `${academicOverview.marks.averagePercentage}%`}
                         </span>
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">Academic Score</h4>
                         <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                          <span>Evaluated Exams: <strong className="text-slate-800 font-bold">{academicOverview?.marks?.totalExams ?? 0}</strong></span>
+                          <span>Evaluated Exams: <strong className="text-slate-800 font-bold">{academicOverview?.marks?.totalExams ?? '—'}</strong></span>
                           <span className={`px-2 py-0.2 rounded-full border text-[10px] ${
                             gradeBadgeStyles[academicOverview?.marks?.grade] || 'bg-slate-100'
                           }`}>
@@ -1011,13 +865,13 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                           <Award className="w-5 h-5" />
                         </div>
                         <span className="text-2xl font-black text-amber-700">
-                          {academicOverview?.result?.gpa ?? '0.00'}
+                          {academicOverview?.result?.gpa ?? 'No data'}
                         </span>
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">GPA Score & Grade</h4>
                         <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                          <span>Overall Marks: <strong className="text-slate-800 font-bold">{academicOverview?.result?.totalObtainedMarks ?? 0}/{academicOverview?.result?.totalMaxMarks ?? 0}</strong></span>
+                          <span>Overall Marks: <strong className="text-slate-800 font-bold">{academicOverview?.result?.totalObtainedMarks == null ? '—' : `${academicOverview.result.totalObtainedMarks}/${academicOverview.result.totalMaxMarks ?? '—'}`}</strong></span>
                           <span className={`px-2 py-0.2 rounded-full border text-[10px] ${
                             gradeBadgeStyles[academicOverview?.result?.grade] || 'bg-slate-100'
                           }`}>
@@ -1028,7 +882,7 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
                     </div>
 
                     <div className="p-2 bg-amber-50 rounded-xl text-center text-amber-800 text-[11px] font-bold">
-                      Grade {academicOverview?.result?.grade || 'N/A'} • GPA {academicOverview?.result?.gpa ?? '0.00'} / 10
+                      Grade {academicOverview?.result?.grade || 'N/A'} • GPA {academicOverview?.result?.gpa ?? '—'} / 10
                     </div>
                   </div>
 
@@ -1448,114 +1302,6 @@ const ParentDashboard = ({ onLogout, onNavigateToAI, onNavigateToTutors, onNavig
         </div>
       </section>
 
-
-      {/* Parent WhatsApp / SMS Absence Alert Modal */}
-      {showAbsenceModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
-            
-            {/* WhatsApp Header */}
-            <div className="p-4 bg-[#075e54] text-white flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-xs">
-                  ES
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-bold leading-tight">EduSetu Official Alerts</h3>
-                    <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold">
-                      ✓ Verified
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-emerald-100">Automated Parent Dispatch System</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAbsenceModal(false)}
-                className="p-1 rounded-xl text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Chat Body (WhatsApp doodle style) */}
-            <div className="p-4 bg-[#efeae2] space-y-3 min-h-[220px] text-xs">
-              <div className="text-center">
-                <span className="px-2 py-1 rounded-md bg-white/80 text-[10px] text-slate-500 font-semibold shadow-2xs">
-                  Today · Automated School Broadcast
-                </span>
-              </div>
-
-              {/* Message Bubble */}
-              <div className="max-w-[85%] bg-white rounded-2xl rounded-tl-xs p-3.5 shadow-sm text-slate-800 space-y-2 border border-slate-200">
-                <div className="flex items-center gap-1.5 text-rose-600 font-bold text-[11px]">
-                  <span>⚠️ UNPLANNED ABSENCE NOTICE</span>
-                </div>
-                <p className="text-xs leading-relaxed text-slate-700">
-                  Dear Parent / Guardian of <strong>{activeKid?.name || 'Student'}</strong> (ID: {activeKid?.studentId || 'STU001'}),
-                </p>
-                <p className="text-xs leading-relaxed text-slate-700">
-                  Your ward was recorded <strong>ABSENT</strong> during today's morning roll call. If this absence was planned, kindly submit a medical note or leave slip via this portal.
-                </p>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                  <span>EduSetu ERP Notification</span>
-                  <span className="font-bold text-[#075e54]">09:15 AM ✓✓</span>
-                </div>
-              </div>
-
-              {whatsAppSent && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Resent to parent registered phone (+91 98765 43210) via WhatsApp API.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Actions */}
-            <div className="p-4 bg-white border-t border-slate-100 space-y-2">
-              <button
-                type="button"
-                disabled={isSendingWhatsApp || whatsAppSent}
-                onClick={() => {
-                  setIsSendingWhatsApp(true);
-                  setTimeout(() => {
-                    setIsSendingWhatsApp(false);
-                    setWhatsAppSent(true);
-                  }, 1000);
-                }}
-                className="w-full py-2.5 px-4 bg-[#25d366] hover:bg-[#20ba59] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {isSendingWhatsApp ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Transmitting to Parent WhatsApp...</span>
-                  </>
-                ) : whatsAppSent ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Delivered to Parent WhatsApp</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Simulate Resend to WhatsApp</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAbsenceModal(false)}
-                className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors"
-              >
-                Close & Acknowledge
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-  
     </div>
   );
 };

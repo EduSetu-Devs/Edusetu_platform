@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Info, Loader2, Sparkles } from 'lucide-react';
 import { getMyStudents, getTeacherStudentAIInsights, getTeacherClassAIInsights, getTeacherSessions } from '../services/teacherService';
 
 const TeacherAIInsights = ({ onNavigateBack }) => {
@@ -51,7 +51,16 @@ const TeacherAIInsights = ({ onNavigateBack }) => {
         </button>
         <h1 className="text-3xl font-black text-slate-900">AI Insights</h1>
         <p className="text-sm text-slate-500 mt-1">Insights use recorded marks, attendance, submissions, feedback, and sessions only.</p>
-        <p className="text-sm font-semibold text-slate-700 mt-1">AI insights are advisory. You remain the final authority; verify records before acting.</p>
+      </div>
+      <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-2.5 text-xs text-indigo-900 leading-relaxed">
+        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+        <p>
+          <strong>AI-generated advisory content.</strong> You remain the final authority. Output may be incomplete or
+          inaccurate, so verify official records before acting.{' '}
+          <a href="/terms" className="font-bold underline">Terms</a>{' '}
+          <span aria-hidden="true">·</span>{' '}
+          <a href="/privacy" className="font-bold underline">Privacy</a>
+        </p>
       </div>
       {error && <p className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{error}</p>}
       <section className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">

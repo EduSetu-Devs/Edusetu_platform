@@ -4,22 +4,17 @@ import {
   GraduationCap,
   BookOpen,
   HeartHandshake,
-  School,
-  ShieldCheck,
-  ShieldAlert,
   ArrowRight,
   ArrowLeft,
   User,
   Mail,
   Lock,
   Phone,
-  UserCheck,
   Eye,
   EyeOff,
   Loader2,
   AlertCircle,
   CheckCircle2,
-  X,
   Sparkles
 } from 'lucide-react';
 
@@ -56,28 +51,6 @@ const roleOptions = [
     bgBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     iconBg: 'bg-emerald-100 text-emerald-700',
     description: "Monitor your ward's attendance, report cards, homework, and chat directly with teachers."
-  },
-  {
-    id: 'school',
-    title: 'School / Institution',
-    tag: 'Institution Portal',
-    icon: School,
-    color: 'teal',
-    borderHover: 'hover:border-teal-500 hover:shadow-teal-500/10',
-    bgBadge: 'bg-teal-50 text-teal-700 border-teal-200',
-    iconBg: 'bg-teal-100 text-teal-700',
-    description: 'Create an institution profile and discover, review, and shortlist qualified teachers.'
-  },
-  {
-    id: 'admin',
-    title: 'Administrator',
-    tag: 'Governance',
-    icon: ShieldCheck,
-    color: 'purple',
-    borderHover: 'hover:border-purple-500 hover:shadow-purple-500/10',
-    bgBadge: 'bg-purple-50 text-purple-700 border-purple-200',
-    iconBg: 'bg-purple-100 text-purple-700',
-    description: 'Institutional governance, user accounts, rosters, classes, sections, and curriculum subjects.'
   }
 ];
 
@@ -87,7 +60,6 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
   // Step state: 'role-select' | 'form' | 'otp'
   const [step, setStep] = useState('role-select');
   const [selectedRole, setSelectedRole] = useState('student');
-  const [showAdminNotice, setShowAdminNotice] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -95,7 +67,8 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    phone: ''
+    phone: '',
+    acceptedTerms: false
   });
 
   const [otpCode, setOtpCode] = useState('');
@@ -107,11 +80,6 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
 
   // Handle Role Selection
   const handleSelectRole = (roleId) => {
-    if (roleId === 'admin') {
-      setShowAdminNotice(true);
-      return;
-    }
-
     setSelectedRole(roleId);
     setStep('form');
     if (authError) setAuthError(null);
@@ -150,8 +118,12 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
       errors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!['student', 'teacher', 'parent', 'school'].includes(selectedRole)) {
+    if (!['student', 'teacher', 'parent'].includes(selectedRole)) {
       errors.role = 'Please select a valid registration role';
+    }
+
+    if (!formData.acceptedTerms) {
+      errors.acceptedTerms = 'You must accept the Terms of Service and Privacy Policy';
     }
 
     setLocalErrors(errors);
@@ -168,7 +140,9 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
       email: formData.email.trim(),
       password: formData.password,
       role: selectedRole,
-      phone: formData.phone.trim()
+      phone: formData.phone.trim(),
+      acceptedTerms: true,
+      acceptedPrivacy: true
     });
     setIsSubmitting(false);
 
@@ -209,7 +183,9 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
       email: formData.email.trim(),
       password: formData.password,
       role: selectedRole,
-      phone: formData.phone.trim()
+      phone: formData.phone.trim(),
+      acceptedTerms: true,
+      acceptedPrivacy: true
     });
     setIsSubmitting(false);
     if (result.success) {
@@ -392,7 +368,7 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     value={formData.password}
                     onChange={handleChange}
                     className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
@@ -419,7 +395,7 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="confirmPassword"
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className={`w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
@@ -451,6 +427,24 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
                 />
               </div>
             </div>
+
+            {/* Consent */}
+            <label className="flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+              <input
+                type="checkbox"
+                name="acceptedTerms"
+                checked={formData.acceptedTerms}
+                onChange={(e) => setFormData((prev) => ({ ...prev, acceptedTerms: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span>
+                I agree to the <a href="/terms" className="font-bold text-indigo-600 hover:underline">Terms of Service</a> and{' '}
+                <a href="/privacy" className="font-bold text-indigo-600 hover:underline">Privacy Policy</a>, and I consent to EduSetu processing my data to provide the service. For students under 18, a parent or guardian must provide consent.
+              </span>
+            </label>
+            {localErrors.acceptedTerms && (
+              <p className="text-xs text-rose-600 font-medium pl-1">{localErrors.acceptedTerms}</p>
+            )}
 
             {/* Submit Button */}
             <button
@@ -542,7 +536,7 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
                 }}
                 className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
               >
-                <span>Click to Auto-fill Code ({devOtp}) ⚡</span>
+                <span>Click to Auto-fill Code ({devOtp}) âš¡</span>
               </button>
             </div>
           )}
@@ -629,52 +623,6 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
         </div>
       )}
 
-      {/* ADMIN ACCOUNT SECURITY MODAL */}
-      {showAdminNotice && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 space-y-6 text-center">
-            
-            <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-xs">
-              <ShieldAlert className="w-8 h-8 text-purple-600" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xl font-black text-slate-900">
-                Administrator Policy
-              </h3>
-              <p className="text-xs sm:text-sm font-semibold text-purple-900 bg-purple-50 border border-purple-200 p-3 rounded-2xl">
-                Admin accounts can only be created by an existing administrator.
-              </p>
-              <p className="text-xs text-slate-500 leading-relaxed pt-1">
-                To maintain institution governance, privacy, and system security, administrative privileges cannot be created through public self-registration.
-              </p>
-            </div>
-
-            <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAdminNotice(false);
-                  onNavigateToLogin(true);
-                }}
-                className="w-full py-2.5 px-4 bg-indigo-900 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>Sign In as Existing Administrator</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAdminNotice(false)}
-                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors"
-              >
-                Back to Role Selection
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -16,25 +16,14 @@ const testDatabaseConnection = async (req, res) => {
       databaseStatus: 'connected',
       isConnected: true,
       dialect: dbStatus.dialect,
-      database: dbStatus.database,
-      host: dbStatus.host,
-      port: dbStatus.port
+      database: dbStatus.database
     });
   } catch (error) {
     return successResponse(res, 200, 'MySQL connection status test completed (Disconnected)', {
       databaseStatus: 'disconnected',
       isConnected: false,
       dialect: dbStatus.dialect,
-      database: dbStatus.database,
-      host: dbStatus.host,
-      port: dbStatus.port,
-      error: error.message,
-      instructions: {
-        step1: 'Ensure MySQL (e.g. MYSQL80 service) is running locally.',
-        step2: 'Start MySQL in Windows: Open Admin PowerShell and run "net start MYSQL80".',
-        step3: 'Configure DB_USER and DB_PASSWORD in server/.env.',
-        step4: 'Restart backend server (npm run dev).'
-      }
+      database: dbStatus.database
     });
   }
 };

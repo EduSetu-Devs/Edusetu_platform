@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import {
   getStudentProfile,
   updateStudentProfile,
-  getStudentDashboard,
   getStudentAttendanceSummary,
   getStudentHomework,
   getStudentPerformance,
@@ -11,10 +10,8 @@ import {
 } from '../services/studentService';
 import { getTutorAssignmentEligibility } from '../services/tutorService';
 import { getTutorAssignmentMessage } from '../utils/tutorAssignmentEligibility';
-import { subscribeToSessionEvents } from '../services/socket';
 import { generateReportCardPDF } from '../utils/reportCardGenerator';
 import { generateCertificatePDF } from '../utils/certificateGenerator';
-import CheckoutModal from '../components/CheckoutModal';
 import {
   getStudentEnrolledCourses,
   getAllCourses,
@@ -22,9 +19,6 @@ import {
 } from '../services/courseService';
 import {
   GraduationCap,
-  User,
-  Mail,
-  Phone,
   BookOpen,
   Calendar,
   ClipboardList,
@@ -37,23 +31,15 @@ import {
   AlertCircle,
   Loader2,
   LogOut,
-  MapPin,
   Sparkles,
-  ShieldCheck,
   ArrowRight,
-  Percent,
-  Clock,
-  TrendingUp,
-  Printer,
-  Video,
-  Radio
+  Printer
 } from 'lucide-react';
 
 const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomework, onNavigateToMarks, onNavigateToClasses, onNavigateToTutors, onNavigateToAI, onNavigateToClassroom }) => {
   const { user, logout } = useAuth();
   
   const [profile, setProfile] = useState(null);
-  const [dashboardSummary, setDashboardSummary] = useState(null);
   const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [homeworkStats, setHomeworkStats] = useState({ total: 0, active: 0, pending: 0 });
   const [performance, setPerformance] = useState(null);
@@ -71,7 +57,6 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const [enrollingCourseId, setEnrollingCourseId] = useState(null);
   const [courseFeedback, setCourseFeedback] = useState(null);
   const [liveSession, setLiveSession] = useState(null);
-  const [checkoutCourse, setCheckoutCourse] = useState(null);
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -89,9 +74,8 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
     setIsLoading(true);
     setFeedback(null);
     try {
-      const [profRes, dashRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes, sessionsRes] = await Promise.allSettled([
+      const [profRes, attRes, hwRes, perfRes, eligibilityRes, enrolledRes, allCoursesRes, sessionsRes] = await Promise.allSettled([
         getStudentProfile(),
-        getStudentDashboard(),
         getStudentAttendanceSummary(),
         getStudentHomework(),
         getStudentPerformance(),
@@ -102,7 +86,6 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
       ]);
 
       const prof = profRes.status === 'fulfilled' ? profRes.value : null;
-      const dash = dashRes.status === 'fulfilled' ? dashRes.value : null;
       const att = attRes.status === 'fulfilled' ? attRes.value : null;
       const hw = hwRes.status === 'fulfilled' ? hwRes.value : null;
       const perf = perfRes.status === 'fulfilled' ? perfRes.value : null;
@@ -138,10 +121,6 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
           gender: prof.data.gender || '',
           address: prof.data.address || ''
         });
-      }
-
-      if (dash && dash.success && dash.data) {
-        setDashboardSummary(dash.data);
       }
 
       if (att && att.success && att.data) {
@@ -251,37 +230,48 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
   const studentName = profile?.name || user?.name || 'Student';
   
   const handleDownloadCertificate = (course) => {
+    if (!course) return;
+
+    const progress = Number(course.progress);
+    if (!Number.isFinite(progress) || progress < 100) {
+      alert('Certificates become available once this course reaches 100% completion.');
+      return;
+    }
+
+    const certificateStudentName = profile?.name || user?.name;
+    if (!certificateStudentName) {
+      alert('Your student profile is incomplete. Please contact your school administrator.');
+      return;
+    }
+
     generateCertificatePDF({
-      studentName,
-      rollNumber: profile?.rollNumber || profile?.studentId || 'STU-1001',
-      courseTitle: course?.title || 'Academic Curriculum Mastery Batch',
-      subject: course?.subject || 'Academic Excellence',
-      gradeLevel: course?.gradeLevel || profile?.className || 'Class 10',
-      instructor: course?.teacher?.name || 'EduSetu Senior Faculty'
+      studentName: certificateStudentName,
+      rollNumber: profile?.rollNumber || profile?.studentId || null,
+      courseTitle: course.title,
+      subject: course.subject || null,
+      gradeLevel: course.gradeLevel || profile?.className || null,
+      instructor: course.teacher?.name || null,
+      completionDate: course.completedAt || null,
+      certificateId: course.certificateId || null
     });
   };
   
   const handleDownloadReportCard = () => {
+    const hasAttendance = attendanceSummary && attendanceSummary.totalClasses > 0;
+
     generateReportCardPDF({
       studentName,
-      className: profile?.className || 'Class 10',
-      section: profile?.section || 'A',
-      rollNumber: profile?.rollNumber || '1001',
-      admissionId: profile?.studentId || 'EDU-2026-9042',
-      dateOfBirth: profile?.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : '2008-05-14',
+      className: profile?.className,
+      section: profile?.section,
+      rollNumber: profile?.rollNumber,
+      admissionId: profile?.studentId,
+      dateOfBirth: profile?.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : null,
       performance,
-      attendancePercentage: attendanceSummary?.percentage || 92.5,
-      totalDays: attendanceSummary?.totalDays || 180,
-      presentDays: attendanceSummary?.presentDays || 166
+      attendancePercentage: hasAttendance ? attendanceSummary.attendancePercentage : null,
+      totalDays: hasAttendance ? attendanceSummary.totalClasses : null,
+      presentDays: hasAttendance ? attendanceSummary.present : null
     });
   };
-
-  const handleConfirmCheckout = async (txnId) => {
-    if (checkoutCourse) {
-      await handleEnrollCourse(checkoutCourse.id);
-    }
-  };
-  
 
   return (
     <div className="max-w-6xl mx-auto my-6 px-4 space-y-8">
@@ -350,7 +340,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                   </span>
                 </div>
                 <p className="text-xs text-blue-200 mt-0.5 font-mono">
-                  ID: {profile?.studentId || 'STU-001'}
+                  ID: {profile?.studentId || 'Not assigned'}
                 </p>
                 <p className="text-xs text-blue-200">
                   {profile?.className || 'Class Not Set'} {profile?.section ? `• Sec ${profile.section}` : ''}
@@ -361,7 +351,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
             
             <button
               onClick={handleDownloadReportCard}
-              title="Print official CBSE Progress Report Card"
+              title="Download academic progress report"
               className="px-4 py-2.5 bg-white text-indigo-700 hover:bg-blue-50 rounded-2xl text-xs font-black shadow-md transition-all flex items-center justify-center space-x-2 self-stretch sm:self-auto"
             >
               <Printer className="w-4 h-4 text-indigo-600" />
@@ -750,8 +740,8 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                     <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider border border-indigo-100">
                       {c.subject} · {c.gradeLevel}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                      Active
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 uppercase">
+                      {c.status || 'Enrolled'}
                     </span>
                   </div>
 
@@ -760,18 +750,18 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                       {c.title}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                      {c.description || 'Comprehensive curriculum with practice problem sheets and doubt solver access.'}
+                      {c.description || 'No course description provided.'}
                     </p>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-slate-600">
                       <span>Instructor:</span>
-                      <strong className="text-slate-800">{c.teacher?.name || 'EduSetu Faculty'}</strong>
+                      <strong className="text-slate-800">{c.teacher?.name || 'Not assigned'}</strong>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-600">
                       <span>Schedule:</span>
-                      <span className="font-semibold text-indigo-700">{c.schedule || 'Flexible'}</span>
+                      <span className="font-semibold text-indigo-700">{c.schedule || 'Not scheduled'}</span>
                     </div>
                   </div>
 
@@ -788,7 +778,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                       ></div>
                     </div>
                     <p className="text-[10px] text-slate-400 text-right">
-                      {c.completedLessons || 0} of {c.totalLessons || 24} Lessons Completed
+                      {c.completedLessons ?? 0} of {c.totalLessons ?? '—'} Lessons Completed
                     </p>
                   </div>
                 </div>
@@ -806,7 +796,7 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                     type="button"
                     onClick={() => handleDownloadCertificate(c)}
                     className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1"
-                    title="Download Official Course Completion Certificate"
+                    title="Download course completion certificate (requires 100% completion)"
                   >
                     <Award className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Certificate</span>
@@ -1159,7 +1149,16 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
                             <button
                               type="button"
                               disabled={isEnrolling}
-                              onClick={() => { if (Number(course.price) > 0) { setCheckoutCourse(course); } else { handleEnrollCourse(course.id); } }}
+                              onClick={() => {
+                                if (Number(course.price) > 0) {
+                                  setCourseFeedback({
+                                    type: 'error',
+                                    message: 'Paid course enrollment is not available online yet. Please contact the school to complete payment.'
+                                  });
+                                  return;
+                                }
+                                handleEnrollCourse(course.id);
+                              }}
                               className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                               {isEnrolling ? (
@@ -1198,18 +1197,6 @@ const StudentDashboard = ({ onLogout, onNavigateToAttendance, onNavigateToHomewo
       )}
 
 
-      {/* Commercial Checkout Modal */}
-      <CheckoutModal
-        isOpen={Boolean(checkoutCourse)}
-        onClose={() => setCheckoutCourse(null)}
-        itemTitle={checkoutCourse?.title || 'Academic Course Batch'}
-        itemSubtitle={`${checkoutCourse?.subject || 'Subject'} · ${checkoutCourse?.gradeLevel || 'Grade 10'}`}
-        instructor={checkoutCourse?.teacher?.name || 'EduSetu Senior Faculty'}
-        schedule={checkoutCourse?.schedule || 'Weekly Interactive Batches'}
-        price={checkoutCourse?.price || 999}
-        onConfirmPayment={handleConfirmCheckout}
-      />
-  
     </div>
   );
 };

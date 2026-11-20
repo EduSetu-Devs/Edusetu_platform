@@ -7,8 +7,14 @@ const aiCache = require('../services/aiCacheService');
 const aiGuardrailService = require('../services/aiGuardrailService');
 const mockAI = new MockAIProvider();
 
+const isProduction = () => process.env.NODE_ENV === 'production';
+const invalidAIResponseError = () => new Error('AI provider returned an invalid response');
+
 const runAI = async (task, payload, method) => {
   const provider = getAIProvider();
+  if (isProduction() && (process.env.AI_PROVIDER !== 'openai' || !process.env.AI_API_KEY)) {
+    throw new Error('AI provider is not configured');
+  }
   if (process.env.AI_PROVIDER === 'openai') {
     if (!process.env.AI_API_KEY) {
       throw new Error('AI provider is not configured');
@@ -18,8 +24,9 @@ const runAI = async (task, payload, method) => {
       return await provider.generate(task, payload);
     } catch (error) {
       if (error && error.message && error.message.includes('invalid JSON')) throw error;
+      if (isProduction()) throw error;
       if (error && (error.status === 429 || error.status === 401 || !error.status)) {
-        console.warn('[AI] provider failed, using mock fallback', error && (error.status || error.message));
+        console.warn('[AI] provider failed, using development mock fallback', error && (error.status || error.message));
         return mockAI[method](payload);
       }
       throw error;
@@ -66,6 +73,7 @@ const handleAIError = (res, error) => {
   });
 
   if (/not configured/i.test(message)) return errorResponse(res, 503, 'AI provider is not configured');
+  if (/invalid response/i.test(message)) return errorResponse(res, 502, 'AI service returned an invalid response. Please try again.');
   if (/invalid JSON/i.test(message)) return errorResponse(res, 500, 'AI request could not be completed');
   if (/provider/i.test(message) || status === 401 || status === 429 || providerCode || providerType) {
     return errorResponse(res, 503, 'AI service is temporarily unavailable. Please try again.');
@@ -86,9 +94,9 @@ const studentPerformance = async (req, res) => {
     if (!profile) return errorResponse(res, 404, 'Student profile not found');
     const query = { subject: req.query?.subject, topic: req.query?.topic };
     const rawPerformance = await runAI('performance-analysis', { ...profile, query }, 'analyzePerformance');
-    const performanceResult = rawPerformance && typeof rawPerformance === 'object' && Array.isArray(rawPerformance.strongSubjects)
-      ? rawPerformance
-      : await mockAI.analyzePerformance(profile, query);
+    const hasValidPerformance = rawPerformance && typeof rawPerformance === 'object' && Array.isArray(rawPerformance.strongSubjects);
+    if (!hasValidPerformance && isProduction()) throw invalidAIResponseError();
+    const performanceResult = hasValidPerformance ? rawPerformance : await mockAI.analyzePerformance(profile, query);
     return successResponse(res, 200, 'Performance analysis generated', performanceResult);
   }
   catch (error) { return handleAIError(res, error); }
@@ -101,9 +109,11 @@ const studentRecommendations = async (req, res) => {
     if (!profile) return errorResponse(res, 404, 'Student profile not found');
     const query = { subject: req.query?.subject, topic: req.query?.topic };
     const rawRecommendations = await runAI('study-recommendations', { ...profile, query }, 'recommendations');
-    const recommendations = Array.isArray(rawRecommendations)
+    const requestedRecommendations = Array.isArray(rawRecommendations)
       ? rawRecommendations
-      : (Array.isArray(rawRecommendations?.recommendations) ? rawRecommendations.recommendations : await mockAI.recommendations(profile, query));
+      : (Array.isArray(rawRecommendations?.recommendations) ? rawRecommendations.recommendations : null);
+    if (!requestedRecommendations && isProduction()) throw invalidAIResponseError();
+    const recommendations = requestedRecommendations || await mockAI.recommendations(profile, query);
     return successResponse(res, 200, 'Study recommendations generated', { recommendations });
   }
   catch (error) { return handleAIError(res, error); }
@@ -250,6 +260,7 @@ const askDoubt = async (req, res) => {
     try {
       answer = await getAIProvider().generate('doubt-assistant', { question, depth, conversationContext, answerRequirements });
     } catch (error) {
+      if (isProduction()) throw error;
       if (error && (error.status === 429 || error.status === 503 || !error.status)) {
         console.warn('[AI Doubt] External LLM temporarily unavailable, using curriculum engine fallback:', error.message);
         answer = await mockAI.doubt({ question, depth, conversationContext });
@@ -260,6 +271,7 @@ const askDoubt = async (req, res) => {
     if (!answer || typeof answer.explanation !== 'string' || !answer.explanation.trim()
       || !Array.isArray(answer.steps) || answer.steps.some((step) => typeof step !== 'string')
       || typeof answer.summary !== 'string' || !answer.summary.trim()) {
+      if (isProduction()) throw invalidAIResponseError();
       answer = await mockAI.doubt({ question, depth, conversationContext });
     }
 

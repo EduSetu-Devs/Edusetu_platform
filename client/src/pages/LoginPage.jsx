@@ -10,7 +10,6 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
-  ShieldAlert,
   AlertCircle,
   KeyRound,
   GraduationCap,
@@ -23,7 +22,7 @@ const accountTypes = [
   {
     id: 'student',
     title: 'Student',
-    emoji: '👨‍🎓',
+    emoji: 'ðŸ‘¨â€ðŸŽ“',
     icon: GraduationCap,
     bgBadge: 'bg-blue-50 text-blue-700 border-blue-200',
     iconBg: 'bg-blue-100 text-blue-700',
@@ -33,7 +32,7 @@ const accountTypes = [
   {
     id: 'teacher',
     title: 'Teacher',
-    emoji: '👨‍🏫',
+    emoji: 'ðŸ‘¨â€ðŸ«',
     icon: BookOpen,
     bgBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     iconBg: 'bg-indigo-100 text-indigo-700',
@@ -43,7 +42,7 @@ const accountTypes = [
   {
     id: 'parent',
     title: 'Parent',
-    emoji: '👨‍👩‍👧',
+    emoji: 'ðŸ‘¨â€ðŸ‘©â€ðŸ‘§',
     icon: HeartHandshake,
     bgBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     iconBg: 'bg-emerald-100 text-emerald-700',
@@ -53,7 +52,7 @@ const accountTypes = [
   {
     id: 'admin',
     title: 'Admin',
-    emoji: '🛡️',
+    emoji: 'ðŸ›¡ï¸',
     icon: ShieldCheck,
     bgBadge: 'bg-purple-50 text-purple-700 border-purple-200',
     iconBg: 'bg-purple-100 text-purple-700',
@@ -63,7 +62,17 @@ const accountTypes = [
 ];
 
 const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = false }) => {
-  const { login, adminLogin, authError, setAuthError } = useAuth();
+  const { login, adminLogin, loginWithGoogle, authError, setAuthError } = useAuth();
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleSubmitting(true);
+    const result = await loginWithGoogle(selectedRole || 'student');
+    setIsGoogleSubmitting(false);
+    if (result.success && onLoginSuccess) {
+      onLoginSuccess(result.user);
+    }
+  };
 
   // Screen State: 'select-type' | 'role-login' | 'admin-verify' | 'admin-login'
   const [screen, setScreen] = useState(initialAdminMode ? 'admin-verify' : 'select-type');
@@ -170,21 +179,6 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
     }
   };
 
-  const handleQuickFill = (roleEmail, rolePass = 'Password123') => {
-    setFormData({ email: roleEmail, password: rolePass });
-    setLocalErrors({});
-    if (authError) setAuthError(null);
-  };
-
-  const handleOneClickLogin = async (demoEmail, demoPass) => {
-    setIsSubmitting(true);
-    setFormData({ email: demoEmail, password: demoPass });
-    const result = await login(demoEmail, demoPass);
-    setIsSubmitting(false);
-    if (result.success && onLoginSuccess) {
-      onLoginSuccess(result.user);
-    }
-  };
 
   const currentRoleMeta = accountTypes.find((a) => a.id === selectedRole) || accountTypes[0];
 
@@ -212,51 +206,6 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
             </div>
           </div>
 
-          {/* Master 1-Click Quick Demo Login Panel */}
-          <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 rounded-2xl p-4 sm:p-5 border border-indigo-200 shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>⚡ Master 1-Click Quick Login (No typing needed)</span>
-              </span>
-              <span className="text-[11px] font-mono font-bold bg-white px-2.5 py-1 rounded-xl border border-indigo-200 text-indigo-800 shadow-2xs inline-flex items-center gap-1">
-                🔑 Master Pass: <code className="text-emerald-700 font-black">EduSetu@123</code>
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-600">
-              Kisi bhi account me bina alag-alag email dale turant enter hone ke liye neeche diye gaye button par click karein:
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleOneClickLogin('admin.demo@edusetu.in', 'EduSetu@123')}
-                className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <span>🛡️ Admin Portal</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOneClickLogin('tawap55774@goldvester.com', 'EduSetu@123')}
-                className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <span>👨‍🏫 Teacher</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOneClickLogin('yoreto4215@hopefunder.com', 'EduSetu@123')}
-                className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <span>👨‍👩‍👧 Parent</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOneClickLogin('student.test2026@gmail.com', 'EduSetu@123')}
-                className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <span>👨‍🎓 Student</span>
-              </button>
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {accountTypes.map((acc) => {
@@ -357,14 +306,6 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
                   {showAdminSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setVerificationPassword('EduSetu@123')}
-                className="text-[11px] font-bold text-purple-700 hover:text-purple-900 hover:underline pt-1 flex items-center gap-1"
-              >
-                <span>⚡ 1-Click Fill Master Secret:</span>
-                <code className="bg-purple-100 px-1.5 py-0.2 rounded font-mono">EduSetu@123</code>
-              </button>
             </div>
 
             <div className="space-y-2 pt-2">
@@ -395,7 +336,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
                 className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center space-x-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>← Back to Account Type Selection</span>
+                <span>â† Back to Account Type Selection</span>
               </button>
             </div>
           </form>
@@ -418,7 +359,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
               className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center space-x-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>← Back to Account Type Selection</span>
+              <span>â† Back to Account Type Selection</span>
             </button>
 
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center space-x-1 ${currentRoleMeta.bgBadge}`}>
@@ -483,7 +424,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
@@ -506,7 +447,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGoogleSubmitting}
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-50 mt-2"
             >
               {isSubmitting ? (
@@ -522,20 +463,49 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
               )}
             </button>
 
-          </form>
+            {/* Google One-Click Login */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-slate-400 font-semibold">Or continue with</span>
+              </div>
+            </div>
 
-          {/* Quick Helper */}
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Quick Test</p>
             <button
               type="button"
-              onClick={() => handleQuickFill(`${selectedRole}@edusetu.org`, 'Password123')}
-              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-lg text-slate-700 text-xs font-semibold text-left truncate flex items-center justify-between"
+              onClick={handleGoogleLogin}
+              disabled={isSubmitting || isGoogleSubmitting}
+              className="w-full py-2.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center space-x-3 disabled:opacity-50"
             >
-              <span>{currentRoleMeta.emoji} Fill Demo {currentRoleMeta.title} Account</span>
-              <span className="text-[10px] text-slate-400 font-mono">Password123</span>
+              {isGoogleSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                  />
+                </svg>
+              )}
+              <span>Continue with Google</span>
             </button>
-          </div>
+
+          </form>
+
 
           {/* Footer switch to Register */}
           <div className="pt-2 text-center text-xs text-slate-500 border-t border-slate-100">
@@ -567,7 +537,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
               className="text-xs font-bold text-slate-600 hover:text-purple-700 flex items-center space-x-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>← Back to Account Type Selection</span>
+              <span>â† Back to Account Type Selection</span>
             </button>
 
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center space-x-1">
@@ -632,7 +602,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
@@ -672,19 +642,6 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
             </button>
 
           </form>
-
-          {/* Quick Test Credential Helpers */}
-          <div className="p-3 bg-purple-50/60 border border-purple-100 rounded-2xl space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-purple-900">⚡ Master Admin Login</p>
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin.demo@edusetu.in', 'EduSetu@123')}
-              className="w-full px-2.5 py-1.5 bg-white border border-purple-200 hover:border-purple-400 rounded-lg text-purple-900 text-xs font-bold text-left truncate flex items-center justify-between"
-            >
-              <span>🛡️ Fill Master Admin Credentials</span>
-              <span className="text-[10px] text-purple-700 font-mono">EduSetu@123</span>
-            </button>
-          </div>
 
           {/* Footer switch to Register */}
           <div className="pt-2 text-center text-xs text-slate-500 border-t border-slate-100">

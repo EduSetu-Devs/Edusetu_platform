@@ -219,6 +219,14 @@ const enrollCourse = async (req, res) => {
       return errorResponse(res, 404, 'Course not found');
     }
 
+    if (Number(course.price) > 0) {
+      return errorResponse(
+        res,
+        402,
+        'Paid course enrollment is not available online yet. Please contact the school to complete payment and enrollment.'
+      );
+    }
+
     let targetStudentProfileId = null;
     let studentUser = null;
 

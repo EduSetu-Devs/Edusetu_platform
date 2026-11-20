@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Cpu, ShieldCheck, Database, Layout, GitFork } from 'lucide-react';
+import { Layers, Cpu, ShieldCheck, Database, Layout, GitFork, Sparkles, Box } from 'lucide-react';
 
 const techStack = [
   {
@@ -7,14 +7,14 @@ const techStack = [
     icon: Layout,
     tech: 'React 19 + Vite',
     color: 'text-cyan-600 bg-cyan-50 border-cyan-200',
-    description: 'Ultra-fast Single Page Application (SPA) with declarative UI components.'
+    description: 'Ultra-fast Single Page Application (SPA) with 3D declarative UI components.'
   },
   {
     category: 'Styling',
     icon: Layers,
     tech: 'Tailwind CSS',
     color: 'text-sky-600 bg-sky-50 border-sky-200',
-    description: 'Modern utility-first CSS framework for clean, responsive, and mobile-friendly layouts.'
+    description: 'Modern utility-first CSS framework for clean, responsive, and 3D animated layouts.'
   },
   {
     category: 'Backend',
@@ -26,9 +26,9 @@ const techStack = [
   {
     category: 'Database',
     icon: Database,
-    tech: 'MongoDB + Mongoose',
+    tech: 'MySQL / SQLite + Sequelize',
     color: 'text-green-600 bg-green-50 border-green-200',
-    description: 'Document-oriented NoSQL database for flexible data modeling and fast queries.'
+    description: 'Robust relational database with ORM for secure migrations and queries.'
   },
   {
     category: 'Security / Auth',
@@ -48,33 +48,38 @@ const techStack = [
 
 const ArchitectureSection = () => {
   return (
-    <div id="architecture" className="py-8">
-      <div className="text-center max-w-2xl mx-auto mb-10">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+    <div id="architecture" className="py-16 animate-fade-up relative">
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-cyan-50 border border-cyan-200 text-xs font-bold text-cyan-700 mb-4 shadow-sm">
+          <Box className="w-4 h-4 text-cyan-600 animate-spin" />
+          <span>3D Parallax Stack & Architecture</span>
+        </div>
+        <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight">
           Modern & Beginner-Friendly Architecture
         </h2>
-        <p className="text-slate-600 mt-2 text-sm sm:text-base">
-          EduSetu is structured with clean separation between client and server, keeping code maintainable and easy to learn.
+        <p className="text-slate-600 mt-4 text-base sm:text-lg leading-relaxed">
+          EduSetu is structured with clean separation between client and server, keeping code maintainable, secure, and fully scroll-animated in 3D.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {techStack.map((item, idx) => {
           const Icon = item.icon;
           return (
             <div
               key={idx}
-              className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+              style={{ animationDelay: `${idx * 120}ms` }}
+              className="p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-xl hover:shadow-2xl hover:-translate-y-2.5 transition-all duration-500 group animate-fade-up transform-gpu hover:scale-[1.02]"
             >
-              <div className="flex items-center space-x-3 mb-3">
-                <div className={`p-2.5 rounded-xl border ${item.color}`}>
-                  <Icon className="w-5 h-5" />
+              <div className="flex items-center space-x-4 mb-5">
+                <div className={`p-3.5 rounded-2xl border ${item.color} group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 shadow-md`}>
+                  <Icon className="w-7 h-7" />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-400">
                     {item.category}
                   </span>
-                  <h3 className="text-base font-bold text-slate-900">{item.tech}</h3>
+                  <h3 className="text-lg font-black text-slate-950 group-hover:text-indigo-600 transition-colors">{item.tech}</h3>
                 </div>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -85,19 +90,27 @@ const ArchitectureSection = () => {
         })}
       </div>
 
-      {/* Directory Layout Visual Card */}
-      <div className="mt-8 p-6 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800">
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
-          <span className="font-mono text-sm font-semibold text-indigo-400">📁 Project Directory Map</span>
-          <span className="text-xs text-slate-400">Independent Client & Server</span>
+      {/* Directory Layout 3D Visual Card */}
+      <div className="mt-12 p-8 sm:p-10 rounded-3xl bg-slate-950 text-slate-100 border border-slate-800 shadow-2xl relative overflow-hidden animate-fade-up">
+        {/* Background gradient orb */}
+        <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] pointer-events-none animate-pulse-glow" />
+
+        <div className="flex items-center justify-between pb-5 mb-8 border-b border-slate-800/80 relative z-10">
+          <span className="font-mono text-sm font-bold text-indigo-400 flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping shadow-lg shadow-emerald-400" />
+            📁 3D Project Directory Map
+          </span>
+          <span className="text-xs text-slate-400 bg-slate-900 px-3.5 py-1.5 rounded-full border border-slate-800">Independent Client & Server</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs text-slate-300">
-          <div>
-            <p className="text-emerald-400 font-semibold mb-2">client/ (React + Vite)</p>
-            <ul className="space-y-1 text-slate-400">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 font-mono text-xs text-slate-300 relative z-10">
+          <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800/80 shadow-lg hover:border-emerald-500/50 transition-colors">
+            <p className="text-emerald-400 font-bold mb-4 flex items-center gap-2 text-sm">
+              <span>client/</span> (React 19 + Vite + Tailwind)
+            </p>
+            <ul className="space-y-2 text-slate-400">
               <li>├── src/</li>
-              <li>│   ├── components/  # Reusable UI elements</li>
-              <li>│   ├── pages/       # Screen views</li>
+              <li>│   ├── components/  # 3D Reusable UI elements</li>
+              <li>│   ├── pages/       # Screen views & dashboards</li>
               <li>│   ├── services/    # API communication (Axios)</li>
               <li>│   ├── context/     # Auth & app state</li>
               <li>│   └── utils/       # Helper functions</li>
@@ -106,14 +119,16 @@ const ArchitectureSection = () => {
             </ul>
           </div>
 
-          <div>
-            <p className="text-blue-400 font-semibold mb-2">server/ (Node.js + Express)</p>
-            <ul className="space-y-1 text-slate-400">
+          <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800/80 shadow-lg hover:border-blue-500/50 transition-colors">
+            <p className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-sm">
+              <span>server/</span> (Node.js + Express + Sequelize)
+            </p>
+            <ul className="space-y-2 text-slate-400">
               <li>├── src/</li>
               <li>│   ├── config/      # DB & app configs</li>
               <li>│   ├── controllers/ # Request handlers</li>
               <li>│   ├── middleware/  # Auth & error handling</li>
-              <li>│   ├── models/      # Mongoose schemas</li>
+              <li>│   ├── models/      # Sequelize ORM models</li>
               <li>│   ├── routes/      # REST API endpoints</li>
               <li>│   └── server.js    # Express entrypoint</li>
               <li>└── .env.example     # Environment template</li>
@@ -125,4 +140,4 @@ const ArchitectureSection = () => {
   );
 };
 
-export default ArchitectureSection;
+exports = module.exports = ArchitectureSection;

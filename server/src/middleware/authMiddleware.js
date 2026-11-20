@@ -1,20 +1,22 @@
 const { verifyToken } = require('../utils/tokenHandler');
+const { parseCookies, SESSION_COOKIE_NAME } = require('../utils/authCookie');
 const User = require('../models/User');
 
 /**
  * Authentication Middleware
- * Validates incoming Bearer JWT tokens and attaches authenticated user to req.user
+ * Accepts the HttpOnly session cookie (browser clients) or a Bearer JWT (API clients).
+ * Validates the token and attaches the authenticated user to req.user.
  */
 const authMiddleware = async (req, res, next) => {
   try {
     let token = null;
     const authHeader = req.headers.authorization;
 
-    // Check if Authorization header exists and starts with Bearer
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.query && req.query.token) {
-      token = req.query.token;
+      token = authHeader.slice(7).trim();
+    } else {
+      const cookies = parseCookies(req);
+      token = cookies[SESSION_COOKIE_NAME] || null;
     }
 
     if (!token || token.trim() === '') {

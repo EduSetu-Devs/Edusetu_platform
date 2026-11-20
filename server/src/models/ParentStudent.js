@@ -53,6 +53,9 @@ const ParentStudent = sequelize.define(
         unique: true,
         name: 'unique_parent_student',
         fields: ['parentProfileId', 'studentProfileId']
+      },
+      {
+        fields: ['studentProfileId']
       }
     ]
   }

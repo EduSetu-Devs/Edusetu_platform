@@ -2,11 +2,11 @@
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?logo=node.js&logoColor=white)]()
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)]()
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)]()
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)]()
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)]()
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.1-38B2AC?logo=tailwind-css&logoColor=white)]()
 [![DeepEval](https://img.shields.io/badge/DeepEval-Safety_Guardrails-purple.svg)]()
-[![Tests](https://img.shields.io/badge/tests-33%20passed-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-36%20passed-success.svg)]()
 
 > **Bridging Students, Teachers, Parents, and Administrators through organized academic management, algorithmic tutor discovery, conversational AI study mentorship, and production-grade safety guardrails.**
 
@@ -32,7 +32,7 @@ Traditional school communication and private tutoring often suffer from fragment
 | 🧑‍🎓 **Student** | Primary learner | View timetable, track homework, solve doubts with AI Mentor, practice topic questions, discover tutors, and attend live sessions. |
 | 👩‍🏫 **Teacher / Tutor** | Classroom & private educator | Manage class rosters, mark attendance, assign & grade homework, publish exam marks, manage public tutor profile, set availability, and conduct sessions. |
 | 👨‍👩‍👧 **Parent** | Student guardian | Monitor child attendance in real-time, inspect report cards, direct chat with faculty, and request/book verified tutors for linked wards. |
-| 🏫 **School / Institution** | Institutional account | Maintain institutional profile, search vetted teachers/tutors, and manage candidate shortlists. |
+| 🏫 **School / Institution** | Institutional account managed by an administrator | Maintain institutional profile and manage institution-level data. School accounts are provisioned by an administrator, not through public self-registration. |
 | 🛡️ **Administrator** | School governance & governance | Central control over accounts, faculty placements, age verification, class/section/subject catalogs, and system audit logs. |
 
 ---
@@ -105,24 +105,26 @@ EduSetu utilizes a dual-engine architecture for discovering and recommending tut
 
 ```
 EduSetu Platform
-├── client/                     # Frontend (React 18, Vite, TailwindCSS, Lucide Icons)
+├── client/                     # Frontend (React 19, Vite 8, TailwindCSS 4, Lucide Icons)
 │   ├── src/pages/              # StudentAI, FindTutors, AdminDashboard, etc.
 │   ├── src/components/         # Reusable UI widgets & dashboards
-│   └── src/services/           # Axios API services
+│   └── src/services/           # Axios API services (cookie + CSRF aware)
 └── server/                     # Backend (Node.js, Express, Sequelize ORM, Socket.IO)
-    ├── src/config/             # Database connection & environment setup
+    ├── src/config/             # Database connection & environment validation
     ├── src/controllers/        # Business logic controllers
-    ├── src/middleware/         # JWT Auth, Roles, AI Rate Limiting
+    ├── src/middleware/         # Session auth, roles, AI quotas, rate limiting
     ├── src/models/             # Relational MySQL models (Sequelize)
     ├── src/routes/             # Express REST route handlers
-    ├── src/services/           # AI Provider, Caching, Safety Guardrails
-    ├── src/utils/              # Recommendation scoring, Eligibility checks
+    ├── src/services/           # AI Provider, Caching, Safety Guardrails, Email
+    ├── src/utils/              # Cookie/CSRF helpers, recommendation scoring
+    ├── migrations/             # Versioned production SQL migrations
     └── evals/                  # Python DeepEval safety & red-teaming benchmarks
 ```
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide React, Socket.IO Client
-- **Backend**: Node.js, Express, Sequelize ORM, MySQL 8.0, Socket.IO, Helmet, Morgan
-- **AI & Guardrails**: Gemini / OpenAI SDK, DeepEval v4.3, Custom Two-Tier Cache Service
+- **Frontend**: React 19, Vite 8, Tailwind CSS 4, Lucide React, Socket.IO Client
+- **Backend**: Node.js 20+, Express, Sequelize ORM, MySQL 8.0, Socket.IO, Helmet, Morgan
+- **AI & Guardrails**: OpenAI-compatible provider, DeepEval, custom two-tier cache service
+- **Authentication**: HttpOnly session cookies with double-submit CSRF; Bearer JWT for trusted API clients
 - **Testing**: Node.js Native Test Runner (`node:test`), DeepEval (Python 3.13)
 
 ---
@@ -145,7 +147,8 @@ cd Edusetu_platform
 ```bash
 cd server
 cp .env.example .env
-# Edit .env with your MySQL credentials, JWT_SECRET, and AI_API_KEY
+# Edit .env with MySQL credentials, JWT_SECRET, and AI provider settings.
+# For real OTP email delivery, set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM.
 npm install
 ```
 
@@ -173,7 +176,7 @@ cd client
 npm run dev
 ```
 
-Visit **`http://localhost:5173`** to access the application.
+Visit **`http://localhost:5173`** to access the application. Public registration is limited to **student**, **teacher**, and **parent** accounts, and every new account must verify a 6-digit email OTP. In development, when SMTP is not configured, OTPs are printed to the server console and returned only as `devOtp`.
 
 ---
 
@@ -182,7 +185,7 @@ Visit **`http://localhost:5173`** to access the application.
 EduSetu includes comprehensive test suites across units, integration, live APIs, and AI safety:
 
 ```bash
-# Run full server test suite (33 unit & integration tests)
+# Run full server test suite (36 tests)
 cd server
 npm test
 
@@ -191,6 +194,12 @@ npm run test:safety
 
 # Run Python DeepEval Red-Teaming Benchmarks
 npm run test:deepeval
+
+# Validate production environment variables and CORS origins
+npm run check:prod
+
+# Rotate/deactivate legacy demo credentials (requires explicit confirmation)
+npm run rotate-demo-credentials
 
 # Run full Live End-to-End API Audit
 node ../test_live_all.js
@@ -208,29 +217,56 @@ EduSetu is fully containerized with multi-stage production Dockerfiles and Docke
 ├───────────────────┬──────────────────┬─────────────────┤
 │  Frontend Client  │  Backend Server  │  MySQL Database │
 │  (React + Nginx)  │  (Node.js 20)    │  (MySQL 8.0)    │
-│  Port 80 / 3000   │  Port 5000       │  Port 3306      │
+│  Port 80          │  localhost:5000  │  localhost:3306 │
 └───────────────────┴──────────────────┴─────────────────┘
 ```
 
-### 1-Click Launch with Docker Compose
+Compose has **no default passwords or signing secrets**. Create `.env.docker` from `.env.docker.example`, replace every value, then launch:
+
 ```bash
-# Build and launch all 3 microservices in detached mode
-docker compose up -d --build
+# Generate strong secrets
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+# Build and launch all services in detached mode
+docker compose --env-file .env.docker up -d --build
 
 # View real-time container logs
-docker compose logs -f
+docker compose --env-file .env.docker logs -f
 
 # Check container health status
-docker compose ps
+docker compose --env-file .env.docker ps
 
-# Gracefully stop the application
-docker compose down
+# Stop the application
+docker compose --env-file .env.docker down
 ```
 
+The public web app is served by Nginx on port 80. The API and MySQL ports bind to localhost only and must sit behind a TLS-terminating reverse proxy or load balancer. Nginx already proxies `/api/` and `/socket.io/` to the backend, keeping the browser on a single origin so HttpOnly session cookies work correctly.
+
 ### Accessing the Containerized App:
-- **Web App (Nginx Reverse Proxy):** `http://localhost` or `http://localhost:3000`
-- **Backend API:** `http://localhost:5000`
-- **Health Check:** `http://localhost:5000/api/health`
+- **Web App (Nginx):** `https://your-domain.example`
+- **Backend API (internal):** `http://localhost:5000`
+- **Health Check:** `https://your-domain.example/api/health`
+
+---
+
+## 🔐 Production Readiness
+
+Before exposing EduSetu to real students:
+
+1. Copy `server/.env.example` to `server/.env` (or `.env.docker.example` to `.env.docker` for Compose) and set unique values for `JWT_SECRET`, `OTP_HASH_SECRET`, and `ADMIN_VERIFICATION_PASSWORD`.
+2. Configure `CLIENT_URL` / `CORS_ORIGIN` to the exact HTTPS origin, set `AUTH_COOKIE_SECURE=true`, and keep `AUTH_COOKIE_SAMESITE=lax` for same-site deployments.
+3. Configure transactional SMTP with SPF, DKIM, and DMARC. Production startup fails if SMTP is missing, and verification emails fail closed.
+4. Run `npm run check:prod` in the release environment. The server refuses to start with insecure or placeholder secrets.
+5. Apply `server/migrations/20261101-production-hardening.sql` to add consent columns, AI usage counters, and hot-path indexes. Set `DB_SYNC=true` only for an initial bootstrap; normal production deploys rely on migrations.
+6. Run `CONFIRM_DEMO_ROTATION=ROTATE npm run rotate-demo-credentials` against any database that still contains demo accounts.
+7. Keep `ALLOW_UNVERIFIED_REGISTRATION=false` and `SEED_INDIAN_TUTORS=false` in production.
+8. Review `SECURITY.md`, `docs/PRODUCTION_LAUNCH_CHECKLIST.md`, `docs/INCIDENT_RESPONSE.md`, and `docs/LEGAL_AND_COMPLIANCE.md`.
+
+**Browser authentication:** the SPA no longer stores JWTs in `localStorage`. Login sets an HttpOnly, SameSite session cookie plus a readable CSRF cookie. The client sends the CSRF token on state-changing requests. Bearer JWT remains available only for trusted non-browser API clients when `AUTH_EXPOSE_TOKEN=true`.
+
+**AI safety and cost controls:** AI inputs and outputs pass through guardrails, calls have timeouts and token caps, and per-user/global daily quotas apply when a paid provider is enabled. AI output is advisory and must be reviewed by teachers, parents, or students.
+
+**Legal documents:** the bundled Terms and Privacy pages are drafts and must be reviewed by qualified Indian counsel before a public commercial launch.
 
 ---
 

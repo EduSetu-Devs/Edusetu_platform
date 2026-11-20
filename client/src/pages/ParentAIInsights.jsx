@@ -1,93 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Sparkles, CheckCircle2, BookOpen, Award, Target, Brain } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Loader2, Sparkles, CheckCircle2, BookOpen, Award, Target, Brain, Info } from 'lucide-react';
 import { getMyChildren, getChildAIInsights } from '../services/parentService';
 
-const SAMPLE_CHILDREN = [
-  { studentId: 'STU-1024', name: 'Aarav Sharma (Class 10-A)' },
-  { studentId: 'STU-1088', name: 'Ananya Sharma (Class 7-B)' }
-];
-
-const SAMPLE_INSIGHTS = {
-  'STU-1024': {
-    academicSummary: {
-      attendance: { percentage: 94.5, present: 114, total: 120 },
-      assignments: { submitted: 28, pending: 2, total: 30 },
-      subjects: [
-        { subject: 'Mathematics', percentage: 96, assessments: 4 },
-        { subject: 'Physics', percentage: 92, assessments: 4 },
-        { subject: 'Chemistry', percentage: 88, assessments: 3 },
-        { subject: 'English Core', percentage: 91, assessments: 3 },
-        { subject: 'Computer Science', percentage: 98, assessments: 4 }
-      ],
-      teacherFeedback: [
-        { feedback: 'Outstanding problem solving in Calculus and mechanics. Highly dedicated and active in class questions.' },
-        { feedback: 'Regular with science lab experiments. Recommended to spend 30 mins weekly on organic reaction mechanisms.' }
-      ]
-    },
-    insights: {
-      overall: 'Aarav displays superior analytical acumen and consistent academic rigor with a high attendance rate of 94.5%. He ranks in the top 3% in STEM subjects.',
-      insights: [
-        'Top quartile performance in Mathematics (96%) and Computer Science (98%).',
-        'Consistently turns in 93.3% of all term assignments ahead of schedule.',
-        'Active contributor in STEM lab practicals and coding competitions.'
-      ],
-      strongSubjects: ['Mathematics (96%)', 'Computer Science (98%)', 'Physics (92%)'],
-      focusAreas: ['Chemistry organic synthesis mechanisms and equilibrium problem sets.']
-    }
-  },
-  'STU-1088': {
-    academicSummary: {
-      attendance: { percentage: 98.0, present: 118, total: 120 },
-      assignments: { submitted: 30, pending: 0, total: 30 },
-      subjects: [
-        { subject: 'Mathematics', percentage: 98, assessments: 4 },
-        { subject: 'Science', percentage: 94, assessments: 4 },
-        { subject: 'Social Studies', percentage: 90, assessments: 3 },
-        { subject: 'English', percentage: 95, assessments: 3 }
-      ],
-      teacherFeedback: [
-        { feedback: 'Ananya is an exceptional student with perfect homework compliance and brilliant participation in class debates.' }
-      ]
-    },
-    insights: {
-      overall: 'Ananya maintains outstanding academic consistency, securing 1st rank in Class 7-B with 98% attendance.',
-      insights: [
-        'Perfect 100% on-time submission rate across all subjects.',
-        'Strong verbal ability and creative writing skills shown in English assignments.'
-      ],
-      strongSubjects: ['Mathematics (98%)', 'English (95%)', 'Science (94%)'],
-      focusAreas: ['Advanced mental math Olympiad challenges.']
-    }
-  }
-};
-
 const ParentAIInsights = ({ onNavigateBack }) => {
-  const [children, setChildren] = useState(SAMPLE_CHILDREN);
-  const [selected, setSelected] = useState(SAMPLE_CHILDREN[0].studentId);
-  const [result, setResult] = useState(SAMPLE_INSIGHTS['STU-1024']);
+  const [children, setChildren] = useState([]);
+  const [selected, setSelected] = useState('');
+  const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    getMyChildren().then((response) => {
-      if (response.success && response.data?.children?.length > 0) {
-        setChildren(response.data.children);
-        const firstId = response.data.children[0].studentId;
-        setSelected(firstId);
-        loadInsightsForChild(firstId);
-      } else {
-        setChildren(SAMPLE_CHILDREN);
-        setSelected(SAMPLE_CHILDREN[0].studentId);
-        setResult(SAMPLE_INSIGHTS['STU-1024']);
-      }
-    }).catch(() => {
-      setChildren(SAMPLE_CHILDREN);
-      setSelected(SAMPLE_CHILDREN[0].studentId);
-      setResult(SAMPLE_INSIGHTS['STU-1024']);
-    });
-  }, []);
-
-  const loadInsightsForChild = async (studentId) => {
+  const loadInsightsForChild = useCallback(async (studentId) => {
     if (!studentId) return;
     setBusy(true);
     setError('');
@@ -96,18 +18,54 @@ const ParentAIInsights = ({ onNavigateBack }) => {
       if (response.success && response.data) {
         setResult(response.data);
       } else {
-        setResult(SAMPLE_INSIGHTS[studentId] || SAMPLE_INSIGHTS['STU-1024']);
+        setResult(null);
+        setError(response.error || 'Unable to generate insights for this child.');
       }
     } catch {
-      setResult(SAMPLE_INSIGHTS[studentId] || SAMPLE_INSIGHTS['STU-1024']);
+      setResult(null);
+      setError('Unable to generate insights. Please try again.');
     } finally {
       setBusy(false);
     }
-  };
+  }, []);
+
+  const loadChildren = useCallback(async () => {
+    setError('');
+    try {
+      const response = await getMyChildren();
+      if (response.success && Array.isArray(response.data?.children)) {
+        setChildren(response.data.children);
+        if (response.data.children.length > 0) {
+          const firstId = response.data.children[0].studentId;
+          setSelected(firstId);
+          await loadInsightsForChild(firstId);
+        } else {
+          setChildren([]);
+          setSelected('');
+          setResult(null);
+        }
+      } else {
+        setChildren([]);
+        setSelected('');
+        setResult(null);
+        setError(response.error || 'Unable to load linked children.');
+      }
+    } catch {
+      setChildren([]);
+      setSelected('');
+      setResult(null);
+      setError('Unable to load linked children. Please try again.');
+    }
+  }, [loadInsightsForChild]);
+
+  useEffect(() => {
+    loadChildren();
+  }, [loadChildren]);
 
   const handleSelectChange = (e) => {
     const studentId = e.target.value;
     setSelected(studentId);
+    setResult(null);
     if (studentId) {
       loadInsightsForChild(studentId);
     }
@@ -150,6 +108,17 @@ const ParentAIInsights = ({ onNavigateBack }) => {
         )}
       </div>
 
+      <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-4 flex items-start space-x-2.5 text-xs text-indigo-900 leading-relaxed">
+        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+        <p>
+          <strong>AI-generated advisory content.</strong> Output may be incomplete or inaccurate and is not a substitute
+          for a teacher's professional judgement. Review official records before acting.{' '}
+          <a href="/terms" className="font-bold underline">Terms</a>{' '}
+          <span aria-hidden="true">·</span>{' '}
+          <a href="/privacy" className="font-bold underline">Privacy</a>
+        </p>
+      </div>
+
       {error && <p className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{error}</p>}
 
       {/* Child Selector Control Card */}
@@ -158,39 +127,54 @@ const ParentAIInsights = ({ onNavigateBack }) => {
           <label className="block text-xs font-bold text-slate-700 mb-1.5">
             Select Linked Child for Analysis:
           </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select
-              value={selected}
-              onChange={handleSelectChange}
-              className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold focus:outline-emerald-600 focus:bg-white transition-all"
-            >
-              {children.map((child) => (
-                <option key={child.studentId} value={child.studentId}>
-                  {child.name}
-                </option>
-              ))}
-            </select>
 
-            <button
-              disabled={busy || !selected}
-              onClick={() => loadInsightsForChild(selected)}
-              className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Analyzing Records...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-emerald-200" />
-                  <span>Refresh AI Insights</span>
-                </>
-              )}
-            </button>
-          </div>
+          {children.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              No linked student profiles are available for this account. Ask your school administrator to link your
+              child before using AI insights.
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                value={selected}
+                onChange={handleSelectChange}
+                className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold focus:outline-emerald-600 focus:bg-white transition-all"
+              >
+                {children.map((child) => (
+                  <option key={child.studentId} value={child.studentId}>
+                    {child.name}{child.className ? ` (Class ${child.className}${child.section ? `-${child.section}` : ''})` : ''}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                disabled={busy || !selected}
+                onClick={() => loadInsightsForChild(selected)}
+                className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Analyzing Records...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-emerald-200" />
+                    <span>Refresh AI Insights</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </section>
+
+      {!result && !busy && children.length > 0 && (
+        <section className="bg-white border border-slate-200 rounded-3xl p-8 text-center text-sm text-slate-600">
+          Select a child and choose <strong>Refresh AI Insights</strong> to generate an advisory summary from recorded
+          school data.
+        </section>
+      )}
 
       {/* Insights Results */}
       {result && (
@@ -202,7 +186,7 @@ const ParentAIInsights = ({ onNavigateBack }) => {
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">AI Pedagogical Assessment</span>
             </div>
             <p className="text-sm sm:text-base leading-relaxed text-emerald-50">
-              {insights?.overall || 'Consistent performance observed across evaluated subjects.'}
+              {insights?.overall || insights?.summary || 'No advisory summary was generated from the available records.'}
             </p>
           </div>
 
@@ -218,50 +202,60 @@ const ParentAIInsights = ({ onNavigateBack }) => {
                 <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100">
                   <span className="text-[10px] font-bold uppercase text-emerald-700">Attendance Rate</span>
                   <p className="text-xl font-black text-emerald-900 mt-1">
-                    {academic?.attendance?.percentage == null ? '94.5%' : `${academic.attendance.percentage}%`}
+                    {academic?.attendance?.percentage == null ? 'No data' : `${academic.attendance.percentage}%`}
                   </p>
                   <p className="text-[10px] text-emerald-700 mt-0.5">
-                    {academic?.attendance?.present ?? 114} / {academic?.attendance?.total ?? 120} sessions
+                    {academic?.attendance?.total == null
+                      ? 'No attendance recorded'
+                      : `${academic.attendance.present ?? 0} / ${academic.attendance.total} sessions`}
                   </p>
                 </div>
 
                 <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100">
                   <span className="text-[10px] font-bold uppercase text-blue-700">Assignments Completed</span>
                   <p className="text-xl font-black text-blue-900 mt-1">
-                    {academic?.assignments?.submitted ?? 28} / {academic?.assignments?.total ?? 30}
+                    {academic?.assignments?.submitted ?? 0} / {academic?.assignments?.total ?? 0}
                   </p>
                   <p className="text-[10px] text-blue-700 mt-0.5">
-                    {academic?.assignments?.pending ?? 2} pending
+                    {academic?.assignments?.pending ?? 0} pending
                   </p>
                 </div>
               </div>
 
               <div>
                 <h4 className="text-xs font-bold text-slate-700 mb-2">Subject Scores Evaluated:</h4>
-                <div className="space-y-2">
-                  {(academic?.subjects || []).map((sub) => (
-                    <div key={sub.subject} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 text-xs">
-                      <span className="font-semibold text-slate-800">{sub.subject}</span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[11px] text-slate-400">{sub.assessments} tests</span>
-                        <span className="font-bold text-emerald-700 px-2 py-0.5 bg-emerald-100/60 rounded-md">
-                          {sub.percentage}%
-                        </span>
+                {academic?.subjects?.length ? (
+                  <div className="space-y-2">
+                    {academic.subjects.map((sub) => (
+                      <div key={sub.subject} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 text-xs">
+                        <span className="font-semibold text-slate-800">{sub.subject}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[11px] text-slate-400">{sub.assessments} tests</span>
+                          <span className="font-bold text-emerald-700 px-2 py-0.5 bg-emerald-100/60 rounded-md">
+                            {sub.percentage}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl">No marks are recorded yet.</p>
+                )}
               </div>
 
               <div>
                 <h4 className="text-xs font-bold text-slate-700 mb-1.5">Teacher Observations:</h4>
-                <div className="space-y-2">
-                  {(academic?.teacherFeedback || []).map((item, idx) => (
-                    <p key={idx} className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
-                      "{item.feedback || item.understandingLevel || 'Student actively engaged in coursework.'}"
-                    </p>
-                  ))}
-                </div>
+                {academic?.teacherFeedback?.length ? (
+                  <div className="space-y-2">
+                    {academic.teacherFeedback.map((item, idx) => (
+                      <p key={`${item.feedback || item.understandingLevel || 'feedback'}-${idx}`} className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
+                        "{item.feedback || item.understandingLevel || 'Teacher feedback recorded.'}"
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl">No teacher feedback is recorded.</p>
+                )}
               </div>
             </div>
 
@@ -277,13 +271,17 @@ const ParentAIInsights = ({ onNavigateBack }) => {
                   <Award className="w-4 h-4 text-emerald-600" />
                   <span>Key Strengths</span>
                 </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {(insights?.strongSubjects || []).map((item, idx) => (
-                    <span key={idx} className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200">
-                      ✓ {item}
-                    </span>
-                  ))}
-                </div>
+                {insights?.strongSubjects?.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {insights.strongSubjects.map((item, idx) => (
+                      <span key={`${item}-${idx}`} className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">No strengths were identified from recorded data.</p>
+                )}
               </div>
 
               <div>
@@ -292,20 +290,26 @@ const ParentAIInsights = ({ onNavigateBack }) => {
                   <span>Recommended Focus Areas</span>
                 </h4>
                 <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 font-medium">
-                  {(insights?.focusAreas || []).join(' ') || 'Continue consistent weekly revision.'}
+                  {insights?.focusAreas?.length
+                    ? insights.focusAreas.join(' ')
+                    : 'No specific focus areas were identified from recorded data.'}
                 </div>
               </div>
 
               <div>
                 <h4 className="text-xs font-bold text-slate-700 mb-2">Core Takeaways:</h4>
-                <ul className="space-y-2 text-xs text-slate-700">
-                  {(insights?.insights || []).map((item, idx) => (
-                    <li key={idx} className="flex items-start space-x-2 bg-slate-50 p-2.5 rounded-xl">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                {insights?.insights?.length ? (
+                  <ul className="space-y-2 text-xs text-slate-700">
+                    {insights.insights.map((item, idx) => (
+                      <li key={`${item}-${idx}`} className="flex items-start space-x-2 bg-slate-50 p-2.5 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-slate-500">No advisory takeaways were generated.</p>
+                )}
               </div>
             </div>
           </div>

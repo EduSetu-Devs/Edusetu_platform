@@ -5,14 +5,11 @@ const dotenv = require('dotenv');
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Default AI configuration for cloud deployment (Render) if not set in cloud dashboard
-if (!process.env.AI_API_KEY && process.env.NODE_ENV !== 'test') {
-  process.env.AI_PROVIDER = process.env.AI_PROVIDER || 'openai';
-  // Fallback cloud AI key
-  process.env.AI_API_KEY = Buffer.from('c2stb3ItdjEtMzE4NWUyOWMwMTRmMzg0NGI2NmVlODM5ZjdiOThkM2U4MzdlY2MzYTU3NDg3NGI3NjU5OWM1MTJiNTBkM2M4NA==', 'base64').toString('utf8');
-  process.env.AI_MODEL = process.env.AI_MODEL || 'openrouter/free';
-  process.env.AI_API_URL = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-}
+const { loadSecretsFromFiles } = require('./config/secrets');
+loadSecretsFromFiles();
+
+const { validateEnvironment } = require('./config/validateEnv');
+validateEnvironment();
 
 // Ensure all database models and relationships are registered
 require('./models');

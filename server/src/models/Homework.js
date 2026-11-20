@@ -104,7 +104,18 @@ const Homework = sequelize.define(
   },
   {
     tableName: 'homeworks',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+      {
+        fields: ['assignedBy']
+      },
+      {
+        fields: ['className', 'section']
+      },
+      {
+        fields: ['dueDate']
+      }
+    ]
   }
 );
 

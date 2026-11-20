@@ -70,6 +70,9 @@ const CourseEnrollment = sequelize.define(
         unique: true,
         fields: ['courseId', 'studentProfileId'],
         name: 'unique_course_student_enrollment'
+      },
+      {
+        fields: ['studentProfileId']
       }
     ]
   }

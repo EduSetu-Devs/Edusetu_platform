@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, Clock3, Loader2, MapPin, MonitorPlay, RefreshCw, XCircle } from 'lucide-react';
+import { CalendarDays, Clock3, Loader2, MapPin, MonitorPlay, RefreshCw, XCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   cancelTutorBooking,
@@ -13,48 +13,6 @@ import {
 } from '../services/tutorService';
 import { startTeacherSession } from '../services/teacherService';
 import { joinStudentSession } from '../services/studentService';
-
-const SAMPLE_BOOKINGS = [
-  {
-    id: 101,
-    tutorName: 'Er. Ashutosh Tripathi',
-    studentName: 'Aarav Sharma',
-    subject: 'Physics',
-    date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-    startTime: '17:00',
-    durationMinutes: 60,
-    mode: 'ONLINE',
-    status: 'CONFIRMED',
-    hourlyRate: 950,
-    topic: 'Rotational Motion & Moment of Inertia'
-  },
-  {
-    id: 102,
-    tutorName: 'Er. Ashutosh Tripathi',
-    studentName: 'Rohan Mehra',
-    subject: 'Mathematics',
-    date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-    startTime: '18:00',
-    durationMinutes: 60,
-    mode: 'ONLINE',
-    status: 'CONFIRMED',
-    hourlyRate: 850,
-    topic: 'Trigonometric Equations & Graphs'
-  },
-  {
-    id: 103,
-    tutorName: 'Er. Ashutosh Tripathi',
-    studentName: 'Sneha Patel',
-    subject: 'Physics',
-    date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-    startTime: '16:00',
-    durationMinutes: 60,
-    mode: 'ONLINE',
-    status: 'COMPLETED',
-    hourlyRate: 950,
-    topic: 'Ray Optics & Refraction at Spherical Surfaces'
-  }
-];
 
 const MyBookingsPage = ({ onNavigateToClassroom, onNavigateBack }) => {
   const { user } = useAuth();
@@ -73,12 +31,10 @@ const MyBookingsPage = ({ onNavigateToClassroom, onNavigateBack }) => {
       getTutorBookings(),
       user?.role === 'teacher' ? Promise.resolve(null) : getTutorAssignmentEligibility()
     ]);
-    if (result.success && result.data && result.data.length > 0) {
-      setBookings(result.data);
-    } else if (result.success) {
-      setBookings(SAMPLE_BOOKINGS);
+    if (result.success) {
+      setBookings(Array.isArray(result.data) ? result.data : []);
     } else {
-      setBookings(SAMPLE_BOOKINGS);
+      setBookings([]);
       if (result.error) setFeedback(result.error);
     }
     if (eligibility?.success) setAssignmentEligibility(eligibility.data);

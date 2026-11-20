@@ -79,7 +79,12 @@ const Course = sequelize.define(
   },
   {
     tableName: 'courses',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+      { fields: ['teacherProfileId'] },
+      { fields: ['status'] },
+      { fields: ['subject'] }
+    ]
   }
 );
 

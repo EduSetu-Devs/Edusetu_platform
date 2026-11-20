@@ -2,66 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { getAdminMarketplaceBookings, getAdminMarketplaceReports, updateAdminMarketplaceReport } from '../services/adminService';
 
-const SAMPLE_MARKETPLACE_BOOKINGS = [
-  {
-    id: 'BKG-501',
-    subject: 'Physics (JEE Advanced Mechanics)',
-    date: '2026-10-28',
-    startTime: '16:00',
-    endTime: '17:30',
-    teacherName: 'Dr. Anand Kumar',
-    studentName: 'Aarav Sharma',
-    mode: 'online',
-    status: 'CONFIRMED',
-    bookingStatus: 'ACTIVE'
-  },
-  {
-    id: 'BKG-502',
-    subject: 'Mathematics (Calculus & Coordinate Geometry)',
-    date: '2026-10-29',
-    startTime: '17:30',
-    endTime: '18:45',
-    teacherName: 'Mr. Rajesh Verma',
-    studentName: 'Ananya Sharma',
-    mode: 'online',
-    status: 'CONFIRMED',
-    bookingStatus: 'ACTIVE'
-  },
-  {
-    id: 'BKG-503',
-    subject: 'Chemistry (Organic Reaction Mechanisms)',
-    date: '2026-10-25',
-    startTime: '15:00',
-    endTime: '16:15',
-    teacherName: 'Mrs. Sunita Sharma',
-    studentName: 'Rohan Mehta',
-    mode: 'online',
-    status: 'COMPLETED',
-    bookingStatus: 'FULFILLED'
-  }
-];
-
-const SAMPLE_MARKETPLACE_REPORTS = [
-  {
-    id: 'REP-101',
-    category: 'AUDIO_VIDEO_QUALITY',
-    status: 'REVIEWED',
-    reporter: { name: 'Ramesh Sharma', role: 'parent' },
-    booking: { id: 'BKG-498' },
-    description: 'Minor audio crackle observed during the last 10 minutes of the thermodynamics session. Tutor switched microphone and resolved promptly.',
-    adminNote: 'Reviewed session telemetry; WebRTC connection was stable throughout. Marked as resolved.'
-  },
-  {
-    id: 'REP-102',
-    category: 'TIMING_RESCHEDULE',
-    status: 'OPEN',
-    reporter: { name: 'Aarav Sharma', role: 'student' },
-    booking: { id: 'BKG-504' },
-    description: 'Requested advance notice for Friday school sports day clash; tutor consented to reschedule to Saturday morning.',
-    adminNote: 'Awaiting tutor confirmation on slot timing update.'
-  }
-];
-
 const AdminMarketplacePage = ({ onNavigateBack }) => {
   const [bookings, setBookings] = useState([]);
   const [reports, setReports] = useState([]);
@@ -76,15 +16,23 @@ const AdminMarketplacePage = ({ onNavigateBack }) => {
       getAdminMarketplaceBookings(),
       getAdminMarketplaceReports()
     ]);
-    if (!bookingResult.success && !reportResult.success) {
-      setBookings(SAMPLE_MARKETPLACE_BOOKINGS);
-      setReports(SAMPLE_MARKETPLACE_REPORTS);
+
+    const errors = [];
+    if (bookingResult.success) {
+      setBookings(Array.isArray(bookingResult.data?.bookings) ? bookingResult.data.bookings : []);
     } else {
-      const bList = bookingResult.data?.bookings;
-      const rList = reportResult.data?.reports;
-      setBookings(Array.isArray(bList) && bList.length > 0 ? bList : SAMPLE_MARKETPLACE_BOOKINGS);
-      setReports(Array.isArray(rList) && rList.length > 0 ? rList : SAMPLE_MARKETPLACE_REPORTS);
+      setBookings([]);
+      errors.push(bookingResult.error || 'Failed to load marketplace bookings');
     }
+
+    if (reportResult.success) {
+      setReports(Array.isArray(reportResult.data?.reports) ? reportResult.data.reports : []);
+    } else {
+      setReports([]);
+      errors.push(reportResult.error || 'Failed to load marketplace reports');
+    }
+
+    if (errors.length > 0) setError(errors.join(' '));
     setLoading(false);
   }, []);
 
@@ -107,7 +55,7 @@ const AdminMarketplacePage = ({ onNavigateBack }) => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-2 rounded-xl transition-colors shadow-xs"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>← Back to Admin Console</span>
+            <span>Back to Admin Console</span>
           </button>
         </div>
       )}

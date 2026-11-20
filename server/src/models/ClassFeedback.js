@@ -9,6 +9,10 @@ const ClassFeedback = sequelize.define('ClassFeedback', {
   feedback: { type: DataTypes.TEXT, allowNull: false },
   improvementTopics: { type: DataTypes.TEXT, allowNull: true, defaultValue: '' },
   homeworkRecommendation: { type: DataTypes.TEXT, allowNull: true, defaultValue: '' }
-}, { tableName: 'class_feedback', timestamps: true });
+}, {
+  tableName: 'class_feedback',
+  timestamps: true,
+  indexes: [{ fields: ['authorUserId'] }]
+});
 
 module.exports = ClassFeedback;

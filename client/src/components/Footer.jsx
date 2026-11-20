@@ -1,7 +1,7 @@
 import React from 'react';
-import { GraduationCap, Heart, Code2 } from 'lucide-react';
+import { GraduationCap, Heart } from 'lucide-react';
 
-const Footer = () => {
+const Footer = ({ onNavigate }) => {
   return (
     <footer className="bg-white border-t border-slate-200 mt-20 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
@@ -14,10 +14,26 @@ const Footer = () => {
           <span>Education Communication Platform</span>
         </div>
 
-        <div className="flex items-center space-x-1">
-          <span>Architected with</span>
-          <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
-          <span>for clean & scalable learning</span>
+        <div className="flex items-center space-x-4">
+          <button
+            type="button"
+            onClick={() => onNavigate?.('terms')}
+            className="font-semibold text-slate-600 hover:text-indigo-600 transition-colors"
+          >
+            Terms
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('privacy')}
+            className="font-semibold text-slate-600 hover:text-indigo-600 transition-colors"
+          >
+            Privacy
+          </button>
+          <span className="flex items-center space-x-1">
+            <span>Architected with</span>
+            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
+            <span>for clean & scalable learning</span>
+          </span>
         </div>
 
         <div className="text-center sm:text-right">

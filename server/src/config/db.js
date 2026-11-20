@@ -16,22 +16,26 @@ const DB_PORT = parseInt(process.env.DB_PORT, 10) || 3306;
 const DB_DIALECT = process.env.DB_DIALECT || 'mysql';
 const useSSL = process.env.DB_SSL === 'true' || DB_HOST.includes('tidbcloud.com') || DB_HOST.includes('aivencloud.com');
 
+const isSqlite = DB_DIALECT === 'sqlite';
+const sqliteStorage = process.env.DB_STORAGE || ':memory:';
+
 // Initialize Sequelize instance
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   host: DB_HOST,
   port: DB_PORT,
   dialect: DB_DIALECT,
+  storage: isSqlite ? sqliteStorage : undefined,
   logging: false, // Clean console logging
-  dialectOptions: useSSL ? {
+  dialectOptions: useSSL && !isSqlite ? {
     ssl: {
       minVersion: 'TLSv1.2',
       rejectUnauthorized: true
     }
   } : {},
   pool: {
-    max: 5,
-    min: 0,
-    acquire: 10000,
+    max: parseInt(process.env.DB_POOL_MAX, 10) || 25,
+    min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
+    acquire: 20000,
     idle: 10000
   },
   retry: {
@@ -46,6 +50,9 @@ let connectionError = null;
  * Ensure MySQL database exists before initializing Sequelize
  */
 const ensureDatabaseExists = async () => {
+  if (isSqlite) {
+    return true;
+  }
   try {
     const connection = await mysql.createConnection({
       host: DB_HOST,
@@ -78,16 +85,26 @@ const connectDB = async () => {
     console.log(`[Database] Sequelize successfully connected to MySQL database: ${DB_NAME} at ${DB_HOST}:${DB_PORT}`);
 
     // 3. Sync database models (creates tables such as 'users' if they don't exist)
-    try {
-      await sequelize.sync();
-      console.log('[Database] Database tables synchronized successfully.');
-    } catch (syncErr) {
-      console.warn('[Database] Model sync notice (continuing with existing schema):', syncErr.message);
+    const shouldAutoSync = process.env.NODE_ENV !== 'production' || process.env.DB_SYNC === 'true';
+    if (shouldAutoSync) {
+      try {
+        await sequelize.sync();
+        console.log('[Database] Database tables synchronized successfully.');
+      } catch (syncErr) {
+        console.warn('[Database] Model sync notice (continuing with existing schema):', syncErr.message);
+      }
+    } else {
+      console.log('[Database] Auto-sync disabled in production (set DB_SYNC=true to enable). Apply migrations before deploy.');
     }
     try {
       await ensureGradingColumns();
     } catch (colErr) {
       console.log('[Database] ensureGradingColumns notice:', colErr.message);
+    }
+    try {
+      await ensureUserComplianceColumns();
+    } catch (colErr) {
+      console.log('[Database] ensureUserComplianceColumns notice:', colErr.message);
     }
     try {
       await ensureMarketplaceSchema();
@@ -120,6 +137,8 @@ const connectDB = async () => {
 };
 
 const ensureGradingColumns = async () => {
+  if (sequelize.getDialect() !== 'mysql') return;
+
   const columns = [
     { table: 'homeworks', name: 'maxMarks', definition: 'DECIMAL(8,2) NOT NULL DEFAULT 10' },
     { table: 'homework_submissions', name: 'marksObtained', definition: 'DECIMAL(8,2) NULL' },
@@ -135,6 +154,25 @@ const ensureGradingColumns = async () => {
     );
     if (rows.length === 0) {
       await sequelize.query(`ALTER TABLE \`${column.table}\` ADD COLUMN \`${column.name}\` ${column.definition}`);
+    }
+  }
+};
+
+const ensureUserComplianceColumns = async () => {
+  if (sequelize.getDialect() !== 'mysql') return;
+
+  const columns = [
+    { name: 'termsAcceptedAt', definition: 'DATETIME NULL' },
+    { name: 'privacyAcceptedAt', definition: 'DATETIME NULL' }
+  ];
+
+  for (const column of columns) {
+    const [rows] = await sequelize.query(
+      'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1',
+      { replacements: ['users', column.name] }
+    );
+    if (rows.length === 0) {
+      await sequelize.query(`ALTER TABLE \`users\` ADD COLUMN \`${column.name}\` ${column.definition}`);
     }
   }
 };

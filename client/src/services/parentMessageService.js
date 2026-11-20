@@ -63,7 +63,7 @@ export const createParentConversation = async (payload) => {
  */
 export const getParentMessages = async (conversationId) => {
   try {
-    const response = await apiClient.get(`/parent/conversations/${conversationId}/messages`);
+    const response = await apiClient.get(`/parent/conversations/${encodeURIComponent(conversationId)}/messages`);
     return {
       success: true,
       data: response.data.data
@@ -86,7 +86,7 @@ export const getParentMessages = async (conversationId) => {
  */
 export const sendParentMessage = async (conversationId, message) => {
   try {
-    const response = await apiClient.post(`/parent/conversations/${conversationId}/messages`, { message });
+    const response = await apiClient.post(`/parent/conversations/${encodeURIComponent(conversationId)}/messages`, { message });
     return {
       success: true,
       data: response.data.data
@@ -108,7 +108,7 @@ export const sendParentMessage = async (conversationId, message) => {
  */
 export const markParentMessageRead = async (messageId) => {
   try {
-    const response = await apiClient.patch(`/parent/messages/${messageId}/read`);
+    const response = await apiClient.patch(`/parent/messages/${encodeURIComponent(messageId)}/read`);
     return {
       success: true,
       data: response.data.data

@@ -78,10 +78,11 @@ const getStudentHomework = async (req, res) => {
       status: { [Op.ne]: 'draft' } // Never expose drafts to students
     };
 
-    // Filter by student's class if set
-    if (studentProfile.className && studentProfile.className.trim()) {
-      whereClause.className = studentProfile.className.trim();
+    // Require student class to be configured
+    if (!studentProfile.className || !studentProfile.className.trim()) {
+      return errorResponse(res, 403, 'Access denied. Student class is not configured.');
     }
+    whereClause.className = studentProfile.className.trim();
 
     // Status filter
     if (status && ['active', 'closed'].includes(status.toLowerCase().trim())) {
@@ -206,8 +207,11 @@ const getHomeworkById = async (req, res) => {
       return errorResponse(res, 404, 'Homework not found');
     }
 
-    // Verify class relevance: if student has a className, ensure homework matches
-    if (studentProfile.className && homework.className !== studentProfile.className) {
+    // Verify class relevance: student class must be configured and match homework class
+    if (!studentProfile.className || !studentProfile.className.trim()) {
+      return errorResponse(res, 403, 'Access denied. Student class is not configured.');
+    }
+    if (homework.className !== studentProfile.className.trim()) {
       return errorResponse(res, 403, 'Access denied. This homework is not assigned to your class.');
     }
 
@@ -316,8 +320,12 @@ const submitHomework = async (req, res) => {
       return errorResponse(res, 400, 'This homework assignment is closed and no longer accepting submissions');
     }
 
-    // Verify class relevance
-    if (studentProfile.className && homework.className !== studentProfile.className) {
+    // Verify class relevance: student class must be configured and match homework class
+    if (!studentProfile.className || !studentProfile.className.trim()) {
+      cleanupUploadedFiles(uploadedFiles);
+      return errorResponse(res, 403, 'Access denied. Student class is not configured.');
+    }
+    if (homework.className !== studentProfile.className.trim()) {
       cleanupUploadedFiles(uploadedFiles);
       return errorResponse(res, 403, 'Access denied. You cannot submit homework for another class.');
     }

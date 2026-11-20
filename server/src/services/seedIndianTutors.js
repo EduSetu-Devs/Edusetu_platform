@@ -1,5 +1,6 @@
 const { User, TutorProfile, TutorSubject, TutorAvailability, TutorReview } = require('../models');
 const { INDIAN_TUTORS_DATA } = require('./indianTutorsData');
+const crypto = require('crypto');
 
 /**
  * Idempotently seeds comprehensive Indian tutor profiles into TiDB / MySQL.
@@ -7,6 +8,14 @@ const { INDIAN_TUTORS_DATA } = require('./indianTutorsData');
  */
 const seedIndianTutorsIfNeeded = async (force = false) => {
   try {
+    if (process.env.NODE_ENV === 'production' && process.env.SEED_INDIAN_TUTORS !== 'true') {
+      console.log('[Tutor Seeder] Demo tutor seeding is disabled in production. Set SEED_INDIAN_TUTORS=true only for an intentional sandbox dataset.');
+      return { seeded: false, skipped: true };
+    }
+
+    const seededAccountPassword = process.env.NODE_ENV === 'production'
+      ? crypto.randomBytes(32).toString('hex')
+      : 'Password123';
     const existingCount = await TutorProfile.count({
       where: { isProfileActive: true }
     });
@@ -25,7 +34,7 @@ const seedIndianTutorsIfNeeded = async (force = false) => {
       demoStudent = await User.create({
         name: 'Aarav Sharma',
         email: 'student.demo@edusetu.in',
-        password: 'Password123',
+        password: seededAccountPassword,
         role: 'student',
         phone: '9800000001',
         isActive: true
@@ -37,7 +46,7 @@ const seedIndianTutorsIfNeeded = async (force = false) => {
       demoParent = await User.create({
         name: 'Sunita Sharma',
         email: 'parent.demo@edusetu.in',
-        password: 'Password123',
+        password: seededAccountPassword,
         role: 'parent',
         phone: '9800000002',
         isActive: true
@@ -52,7 +61,7 @@ const seedIndianTutorsIfNeeded = async (force = false) => {
         user = await User.create({
           name: tutorData.name,
           email: tutorData.email,
-          password: 'Password123',
+          password: seededAccountPassword,
           role: 'teacher',
           phone: tutorData.phone,
           profileImage: tutorData.profileImage,

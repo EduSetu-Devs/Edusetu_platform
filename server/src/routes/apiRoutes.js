@@ -3,6 +3,7 @@ const router = express.Router();
 const healthRoutes = require('./healthRoutes');
 const testRoutes = require('./testRoutes');
 const authRoutes = require('./authRoutes');
+const accountRoutes = require('./accountRoutes');
 const studentRoutes = require('./studentRoutes');
 const teacherRoutes = require('./teacherRoutes');
 const parentRoutes = require('./parentRoutes');
@@ -28,6 +29,9 @@ router.use('/health', healthRoutes);
 
 // Authentication routes: /api/auth (register, login, me)
 router.use('/auth', authRoutes);
+
+// Self-service privacy controls: export and erasure
+router.use('/account', accountRoutes);
 
 // Student Module routes: /api/student (profile, dashboard, attendance, homework, marks)
 router.use('/student', studentRoutes);
@@ -59,8 +63,10 @@ router.use('/courses', courseRoutes);
 router.use('/submission-attachments', submissionAttachmentRoutes);
 router.get('/teaching-resources/:resourceId', authMiddleware, downloadResource);
 
-// Test routes: GET /api/test/db, GET /api/test/user-schema
-router.use('/test', testRoutes);
+// Test routes are development-only and must never be exposed in production.
+if (process.env.NODE_ENV !== 'production') {
+  router.use('/test', testRoutes);
+}
 
 
 module.exports = router;

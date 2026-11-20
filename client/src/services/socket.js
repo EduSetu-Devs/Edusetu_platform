@@ -1,24 +1,13 @@
 import { io } from 'socket.io-client';
-import { getStoredToken } from './authService';
 
 let socket = null;
 
 const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:5000');
 
 /**
- * Initialize and connect WebSocket with authenticated JWT
+ * Initialize and connect WebSocket using the HttpOnly session cookie.
  */
 export const connectSocket = () => {
-  const token = getStoredToken();
-  if (!token) {
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-    return null;
-  }
-
-  // If already connected or connecting with same token, reuse
   if (socket && socket.connected) {
     return socket;
   }
@@ -28,9 +17,7 @@ export const connectSocket = () => {
   }
 
   socket = io(SOCKET_URL, {
-    auth: {
-      token: `Bearer ${token}`
-    },
+    withCredentials: true,
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 10,

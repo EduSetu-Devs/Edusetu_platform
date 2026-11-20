@@ -114,6 +114,7 @@ const TeachingSession = sequelize.define(
     tableName: 'teaching_sessions',
     timestamps: true,
     indexes: [
+      { fields: ['teacherProfileId', 'scheduledDate', 'startTime'] },
       { fields: ['teacherProfileId', 'status'] },
       { fields: ['studentProfileId', 'status'] },
       { fields: ['scheduledDate'] }

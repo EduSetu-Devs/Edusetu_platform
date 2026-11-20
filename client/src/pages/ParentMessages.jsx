@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
 import {
   getParentConversations,
   getParentMessageContacts,
@@ -13,11 +12,8 @@ import { subscribeToMessages, subscribeToSocketReconnect } from '../services/soc
 import {
   MessageSquare,
   Send,
-  User,
-  Users,
   Search,
   PlusCircle,
-  Clock,
   Check,
   CheckCheck,
   Loader2,
@@ -27,115 +23,10 @@ import {
   HeartHandshake,
   X,
   RefreshCw,
-  Briefcase,
   ArrowLeft
 } from 'lucide-react';
 
-const SAMPLE_PARENT_CONVERSATIONS = [
-  {
-    id: 'CONV-P01',
-    teacher: {
-      name: 'Dr. Anand Kumar',
-      designation: 'Senior Physics Faculty (IIT Delhi)',
-      department: 'Physics & Applied Sciences'
-    },
-    student: {
-      name: 'Aarav Sharma',
-      className: 'Class 10',
-      section: 'A',
-      rollNumber: '14'
-    },
-    lastMessage: 'Aarav has shown outstanding progress in Newtonian Mechanics. Next week we begin Circular Motion.',
-    lastMessageAt: new Date(Date.now() - 3600000).toISOString(),
-    unreadCount: 0
-  },
-  {
-    id: 'CONV-P02',
-    teacher: {
-      name: 'Mrs. Sunita Sharma',
-      designation: 'PGT Chemistry Faculty',
-      department: 'Chemistry & Chemical Sciences'
-    },
-    student: {
-      name: 'Aarav Sharma',
-      className: 'Class 10',
-      section: 'A',
-      rollNumber: '14'
-    },
-    lastMessage: 'Please ask Aarav to revise IUPAC nomenclature before tomorrow’s lab practical.',
-    lastMessageAt: new Date(Date.now() - 86400000).toISOString(),
-    unreadCount: 1
-  },
-  {
-    id: 'CONV-P03',
-    teacher: {
-      name: 'Mr. Rajesh Verma',
-      designation: 'Senior Mathematics Olympiad Mentor',
-      department: 'Mathematics'
-    },
-    student: {
-      name: 'Ananya Sharma',
-      className: 'Class 7',
-      section: 'B',
-      rollNumber: '08'
-    },
-    lastMessage: 'Ananya solved all 5 Olympiad geometry puzzles with full accuracy today in class!',
-    lastMessageAt: new Date(Date.now() - 172800000).toISOString(),
-    unreadCount: 0
-  }
-];
-
-const SAMPLE_CONVERSATION_MESSAGES = {
-  'CONV-P01': [
-    {
-      id: 'MSG-P01',
-      isMine: true,
-      message: 'Namaste Dr. Anand. I wanted to inquire about Aarav’s preparation for the upcoming Term Physics assessment.',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-      isRead: true
-    },
-    {
-      id: 'MSG-P02',
-      isMine: false,
-      sender: { name: 'Dr. Anand Kumar' },
-      message: 'Hello Mr. Sharma! Aarav is performing exceptionally well in free-body diagrams and friction problems.',
-      createdAt: new Date(Date.now() - 5400000).toISOString(),
-      isRead: true
-    },
-    {
-      id: 'MSG-P03',
-      isMine: false,
-      sender: { name: 'Dr. Anand Kumar' },
-      message: 'Aarav has shown outstanding progress in Newtonian Mechanics. Next week we begin Circular Motion.',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      isRead: true
-    }
-  ],
-  'CONV-P02': [
-    {
-      id: 'MSG-P04',
-      isMine: false,
-      sender: { name: 'Mrs. Sunita Sharma' },
-      message: 'Please ask Aarav to revise IUPAC nomenclature before tomorrow’s lab practical.',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      isRead: false
-    }
-  ],
-  'CONV-P03': [
-    {
-      id: 'MSG-P05',
-      isMine: false,
-      sender: { name: 'Mr. Rajesh Verma' },
-      message: 'Ananya solved all 5 Olympiad geometry puzzles with full accuracy today in class!',
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      isRead: true
-    }
-  ]
-};
-
 const ParentMessages = ({ onNavigateBack }) => {
-  const { user } = useAuth();
-
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -228,20 +119,26 @@ const ParentMessages = ({ onNavigateBack }) => {
 
     setIsLoadingConvs(false);
 
-    if (convsRes.success && convsRes.data.conversations?.length > 0) {
-      const list = convsRes.data.conversations;
+    if (convsRes.success) {
+      const list = Array.isArray(convsRes.data.conversations) ? convsRes.data.conversations : [];
       setConversations(list);
       if (list.length > 0 && !activeConversation) {
         setActiveConversation(list[0]);
+      } else if (list.length === 0) {
+        setActiveConversation(null);
+        setMessages([]);
       }
     } else {
-      setConversations(SAMPLE_PARENT_CONVERSATIONS);
-      setActiveConversation(SAMPLE_PARENT_CONVERSATIONS[0]);
-      setMessages(SAMPLE_CONVERSATION_MESSAGES['CONV-P01']);
+      setConversations([]);
+      setActiveConversation(null);
+      setMessages([]);
+      setErrorBanner(convsRes.error || 'Failed to load conversations');
     }
 
     if (unreadRes.success) {
       setUnreadCount(unreadRes.data.unreadCount || 0);
+    } else {
+      setUnreadCount(0);
     }
   };
 
@@ -250,8 +147,8 @@ const ParentMessages = ({ onNavigateBack }) => {
     const res = await getParentMessages(convId);
     setIsLoadingMessages(false);
 
-    if (res.success && res.data.messages?.length > 0) {
-      const msgs = res.data.messages;
+    if (res.success) {
+      const msgs = Array.isArray(res.data.messages) ? res.data.messages : [];
       setMessages(msgs);
 
       // Auto mark unread incoming messages as read
@@ -267,7 +164,8 @@ const ParentMessages = ({ onNavigateBack }) => {
         setUnreadCount((prev) => Math.max(0, prev - unreadIncoming.length));
       }
     } else {
-      setMessages(SAMPLE_CONVERSATION_MESSAGES[convId] || []);
+      setMessages([]);
+      setErrorBanner(res.error || 'Failed to load messages');
     }
   };
 
@@ -284,26 +182,18 @@ const ParentMessages = ({ onNavigateBack }) => {
 
     if (res.success && res.data) {
       setMessages((prev) => [...prev, res.data]);
+      // Update last message in sidebar only after the server confirms delivery
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeConversation.id
+            ? { ...c, lastMessage: outgoingText, lastMessageAt: res.data.createdAt || new Date().toISOString() }
+            : c
+        )
+      );
     } else {
-      // Local optimistic append for demo or offline fallback
-      const localMsg = {
-        id: 'MSG-' + Date.now(),
-        isMine: true,
-        message: outgoingText,
-        createdAt: new Date().toISOString(),
-        isRead: true
-      };
-      setMessages((prev) => [...prev, localMsg]);
+      setMessageText(outgoingText);
+      setErrorBanner(res.error || 'Message could not be sent. Please try again.');
     }
-
-    // Update last message in sidebar
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === activeConversation.id
-          ? { ...c, lastMessage: outgoingText, lastMessageAt: new Date().toISOString() }
-          : c
-      )
-    );
   };
 
   const handleOpenNewModal = async () => {
@@ -312,14 +202,11 @@ const ParentMessages = ({ onNavigateBack }) => {
     const res = await getParentMessageContacts();
     setIsModalLoading(false);
 
-    if (res.success && res.data.contacts?.length > 0) {
-      setMessageContacts(res.data.contacts);
+    if (res.success) {
+      setMessageContacts(Array.isArray(res.data.contacts) ? res.data.contacts : []);
     } else {
-      setMessageContacts([
-        { parent: { id: 'PAR-8801' }, teacher: { id: 'TUT-101', name: 'Dr. Anand Kumar', department: 'Physics' }, student: { id: 'STU-1024', name: 'Aarav Sharma' } },
-        { parent: { id: 'PAR-8801' }, teacher: { id: 'TUT-102', name: 'Mrs. Sunita Sharma', department: 'Chemistry' }, student: { id: 'STU-1024', name: 'Aarav Sharma' } },
-        { parent: { id: 'PAR-8801' }, teacher: { id: 'TUT-103', name: 'Mr. Rajesh Verma', department: 'Mathematics' }, student: { id: 'STU-1088', name: 'Ananya Sharma' } }
-      ]);
+      setMessageContacts([]);
+      setErrorBanner(res.error || 'Failed to load available teachers');
     }
   };
 
@@ -334,24 +221,12 @@ const ParentMessages = ({ onNavigateBack }) => {
 
     setIsCreatingConv(false);
 
-    if (res.success) {
+    if (res.success && res.data) {
       setShowNewModal(false);
       await loadConversations();
       setActiveConversation(res.data);
     } else {
-      // Fallback local conversation creation
-      const newConv = {
-        id: 'CONV-' + Date.now(),
-        teacher: contact.teacher,
-        student: contact.student,
-        lastMessage: 'Conversation started',
-        lastMessageAt: new Date().toISOString(),
-        unreadCount: 0
-      };
-      setConversations((prev) => [newConv, ...prev]);
-      setActiveConversation(newConv);
-      setMessages([]);
-      setShowNewModal(false);
+      setErrorBanner(res.error || 'Could not start the conversation. Please try again.');
     }
   };
 

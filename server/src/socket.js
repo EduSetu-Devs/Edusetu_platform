@@ -1,5 +1,7 @@
 const { Server } = require('socket.io');
 const { verifyToken } = require('./utils/tokenHandler');
+const { parseCookies, SESSION_COOKIE_NAME } = require('./utils/authCookie');
+const { createCorsOriginValidator } = require('./utils/originUtils');
 const { TeachingSession, TeachingSessionParticipant, TeacherProfile, StudentProfile, User, Attendance } = require('./models');
 
 let io = null;
@@ -10,11 +12,9 @@ let io = null;
  * @returns {Object} Socket.IO instance
  */
 const initSocket = (httpServer) => {
-  const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
-
   io = new Server(httpServer, {
     cors: {
-      origin: [clientOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+      origin: createCorsOriginValidator(),
       credentials: true,
       methods: ['GET', 'POST']
     },
@@ -25,10 +25,11 @@ const initSocket = (httpServer) => {
   // Socket Authentication Middleware
   io.use(async (socket, next) => {
     try {
+      const cookies = parseCookies(socket.handshake);
       const rawToken =
+        cookies[SESSION_COOKIE_NAME] ||
         socket.handshake.auth?.token ||
-        socket.handshake.headers?.authorization ||
-        socket.handshake.query?.token;
+        socket.handshake.headers?.authorization;
 
       if (!rawToken) {
         return next(new Error('Authentication error: Missing token'));

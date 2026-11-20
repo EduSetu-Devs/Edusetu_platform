@@ -126,9 +126,19 @@ export const AuthProvider = ({ children }) => {
       setAuthError(result.error);
       return { success: false, error: result.error };
     } catch (err) {
-      const msg = err.message || 'Google sign-in cancelled or failed';
-      setAuthError(msg);
-      return { success: false, error: msg };
+      console.error('[Firebase Google Sign-In Error]:', err);
+      let userFriendlyMsg = 'Google sign-in was cancelled or encountered an error.';
+      if (err.code === 'auth/popup-closed-by-user') {
+        userFriendlyMsg = 'Google sign-in popup was closed before completing.';
+      } else if (err.code === 'auth/unauthorized-domain') {
+        userFriendlyMsg = 'This domain is not authorized in Firebase Console (Authorized Domains).';
+      } else if (err.code === 'auth/internal-error' || err.message?.includes('internal-error')) {
+        userFriendlyMsg = 'Google authentication provider is not enabled in Firebase Console. Please enable Google in Firebase Authentication -> Sign-in method.';
+      } else if (err.message) {
+        userFriendlyMsg = err.message;
+      }
+      setAuthError(userFriendlyMsg);
+      return { success: false, error: userFriendlyMsg };
     }
   };
 

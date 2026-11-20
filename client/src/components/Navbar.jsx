@@ -328,7 +328,7 @@ const Navbar = ({ backendConnected, isChecking, currentView, onNavigate }) => {
                 className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-extrabold text-xs shadow-md shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-2 ring-indigo-400/40 transition-all hover:scale-[1.02] animate-pulse"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Choose Role / Register Ã°Å¸Å¡â‚¬</span>
+                <span>Choose Role / Register 🚀</span>
               </button>
             </div>
           )}

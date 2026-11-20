@@ -1,7 +1,7 @@
 # EduSetu Frontend Client Multi-Stage Dockerfile
 
 # Stage 1: Build the React application with Vite
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 

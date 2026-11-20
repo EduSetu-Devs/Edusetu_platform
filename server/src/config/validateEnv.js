@@ -3,6 +3,12 @@ const MIN_ADMIN_SECRET_LENGTH = 12;
 
 const collectProductionErrors = () => {
   const errors = [];
+  // For demo/development deployments, bypass hard crash and allow defaults
+  if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_DEMO_ENV === 'true') {
+    console.log('[Config] DEMO_MODE is active. Strict production secret checks are bypassed.');
+    return [];
+  }
+
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!isProduction) return errors;

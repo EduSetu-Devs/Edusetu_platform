@@ -13,10 +13,10 @@ const getAllowedOrigins = () => {
   ];
 
   if (configured.length === 0) {
-    if (isProduction) {
+    if (isProduction && process.env.DEMO_MODE !== 'true') {
       throw new Error('CLIENT_URL or CORS_ORIGIN must be configured in production');
     }
-    configured.push('http://localhost:5173');
+    configured.push('https://edusetu-platform.onrender.com', 'http://localhost:5173');
   }
 
   if (!isProduction) {

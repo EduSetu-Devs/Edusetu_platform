@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { verifyAdminSecretPassword } from '../services/authService';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { useToast } from '../components/ui/Toast';
 import {
   Lock,
   Mail,
   Eye,
   EyeOff,
-  Loader2,
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
@@ -15,6 +19,8 @@ import {
   GraduationCap,
   BookOpen,
   HeartHandshake,
+  CheckCircle2,
+  Users,
   Sparkles
 } from 'lucide-react';
 
@@ -22,143 +28,113 @@ const accountTypes = [
   {
     id: 'student',
     title: 'Student',
-    emoji: 'ðŸ‘¨â€ðŸŽ“',
+    emoji: '👨‍🎓',
     icon: GraduationCap,
-    bgBadge: 'bg-blue-50 text-blue-700 border-blue-200',
-    iconBg: 'bg-blue-100 text-blue-700',
-    borderHover: 'hover:border-blue-500 hover:shadow-blue-500/10',
-    desc: 'Access your classes, attendance, homework and results'
+    desc: 'Access your classroom, homework, exams, and AI study assistant'
   },
   {
     id: 'teacher',
     title: 'Teacher',
-    emoji: 'ðŸ‘¨â€ðŸ«',
+    emoji: '👨‍🏫',
     icon: BookOpen,
-    bgBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    iconBg: 'bg-indigo-100 text-indigo-700',
-    borderHover: 'hover:border-indigo-500 hover:shadow-indigo-500/10',
-    desc: 'Manage students, attendance, homework and marks'
+    desc: 'Manage classes, attendance, grading, and parent communications'
   },
   {
     id: 'parent',
     title: 'Parent',
-    emoji: 'ðŸ‘¨â€ðŸ‘©â€ðŸ‘§',
+    emoji: '👨‍👩‍👧',
     icon: HeartHandshake,
-    bgBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    iconBg: 'bg-emerald-100 text-emerald-700',
-    borderHover: 'hover:border-emerald-500 hover:shadow-emerald-500/10',
-    desc: "Track your child's academic progress"
+    desc: "Monitor your child's real-time progress and school updates"
   },
   {
     id: 'admin',
-    title: 'Admin',
-    emoji: 'ðŸ›¡ï¸',
+    title: 'Institutional Admin',
+    emoji: '🛡️',
     icon: ShieldCheck,
-    bgBadge: 'bg-purple-50 text-purple-700 border-purple-200',
-    iconBg: 'bg-purple-100 text-purple-700',
-    borderHover: 'hover:border-purple-500 hover:shadow-purple-500/10',
-    desc: 'Manage EduSetu users, academics and system settings'
+    desc: 'Institution governance, marketplace audits, and user approvals'
   }
 ];
 
-const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = false }) => {
+const LoginPage = ({
+  onLoginSuccess,
+  onNavigateToRegister,
+  initialRole = null
+}) => {
   const { login, adminLogin, loginWithGoogle, authError, setAuthError } = useAuth();
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const toast = useToast();
 
-  const handleGoogleLogin = async () => {
-    setIsGoogleSubmitting(true);
-    const result = await loginWithGoogle(selectedRole || 'student');
-    setIsGoogleSubmitting(false);
-    if (result.success && onLoginSuccess) {
-      onLoginSuccess(result.user);
-    }
-  };
-
-  // Screen State: 'select-type' | 'role-login' | 'admin-verify' | 'admin-login'
-  const [screen, setScreen] = useState(initialAdminMode ? 'admin-verify' : 'select-type');
-  const [selectedRole, setSelectedRole] = useState('student');
-
-  // Admin Verification Password State
-  const [verificationPassword, setVerificationPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState(initialRole || 'student');
+  const [isAdminMode, setIsAdminMode] = useState(initialRole === 'admin');
   const [adminVerificationToken, setAdminVerificationToken] = useState(null);
-  const [showAdminSecret, setShowAdminSecret] = useState(false);
-  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
+  const [verificationPassword, setVerificationPassword] = useState('');
   const [adminVerifyError, setAdminVerifyError] = useState(null);
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
 
-  // Credentials State
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-
   const [showPassword, setShowPassword] = useState(false);
+  const [showAdminSecret, setShowAdminSecret] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [localErrors, setLocalErrors] = useState({});
+
+  const handleRoleChange = (roleId) => {
+    if (roleId === 'admin') {
+      setIsAdminMode(true);
+      setSelectedRole('admin');
+    } else {
+      setIsAdminMode(false);
+      setSelectedRole(roleId);
+      setAdminVerificationToken(null);
+    }
+    if (authError) setAuthError(null);
+    setLocalErrors({});
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (localErrors[name]) {
-      setLocalErrors((prev) => ({ ...prev, [name]: '' }));
-    }
+    if (localErrors[name]) setLocalErrors((prev) => ({ ...prev, [name]: '' }));
     if (authError) setAuthError(null);
   };
 
   const validate = () => {
     const errors = {};
     if (!formData.email.trim()) {
-      errors.email = 'Email or username is required';
-    } else if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email.trim())) {
+      errors.email = 'Email address is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       errors.email = 'Please enter a valid email address';
     }
-
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       errors.password = 'Password must be at least 8 characters';
     }
-
     setLocalErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Screen 1: Select Account Type
-  const handleSelectAccountType = (roleId) => {
-    if (roleId === 'admin') {
-      setScreen('admin-verify');
-      setAdminVerifyError(null);
-    } else {
-      setSelectedRole(roleId);
-      setScreen('role-login');
-    }
-    if (authError) setAuthError(null);
-  };
-
-  // Screen 2: Submit Admin Verification Password
-  const handleAdminVerificationSubmit = async (e) => {
+  const handleAdminVerifySubmit = async (e) => {
     e.preventDefault();
     if (!verificationPassword.trim()) {
       setAdminVerifyError('Admin verification password is required');
       return;
     }
-
     setIsVerifyingAdmin(true);
     setAdminVerifyError(null);
-
     const result = await verifyAdminSecretPassword(verificationPassword.trim());
     setIsVerifyingAdmin(false);
 
     if (result.success && result.data?.adminVerificationToken) {
       setAdminVerificationToken(result.data.adminVerificationToken);
-      setScreen('admin-login');
-      setAdminVerifyError(null);
-      if (authError) setAuthError(null);
+      toast.success('Admin passkey verified. Please enter your credentials.');
     } else {
-      setAdminVerifyError(result.error || 'Invalid admin verification.');
+      setAdminVerifyError(result.error || 'Invalid admin verification password.');
     }
   };
 
-  // Screen 3: Submit Standard or Admin Login
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -166,7 +142,7 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
     setIsSubmitting(true);
     let result;
 
-    if (screen === 'admin-login') {
+    if (isAdminMode) {
       result = await adminLogin(formData.email.trim(), formData.password, adminVerificationToken);
     } else {
       result = await login(formData.email.trim(), formData.password);
@@ -175,489 +151,301 @@ const LoginPage = ({ onNavigateToRegister, onLoginSuccess, initialAdminMode = fa
     setIsSubmitting(false);
 
     if (result.success) {
+      toast.success(`Welcome back, ${result.user?.name || 'User'}!`);
       if (onLoginSuccess) onLoginSuccess(result.user);
+    } else {
+      toast.error(result.error || 'Sign in failed');
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setIsGoogleSubmitting(true);
+    const result = await loginWithGoogle(selectedRole || 'student');
+    setIsGoogleSubmitting(false);
+    if (result.success) {
+      toast.success(`Signed in with Google as ${result.user?.name || 'User'}`);
+      if (onLoginSuccess) onLoginSuccess(result.user);
+    } else {
+      toast.error(result.error || 'Google sign-in failed');
+    }
+  };
 
-  const currentRoleMeta = accountTypes.find((a) => a.id === selectedRole) || accountTypes[0];
+  const activeRoleMeta = accountTypes.find((a) => a.id === selectedRole) || accountTypes[0];
 
   return (
-    <div className="max-w-2xl mx-auto my-6 px-4 animate-fadeIn">
-      
-      {/* SCREEN 1: WHO ARE YOU SIGNING IN AS? */}
-      {screen === 'select-type' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
-          
-          <div className="text-center space-y-2 max-w-lg mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto shadow-md shadow-indigo-500/20">
-              <Sparkles className="w-6 h-6" />
+    <div className="min-h-[85vh] flex items-center justify-center py-6 px-4 sm:px-6">
+      <div className="w-full max-w-5xl bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[620px]">
+        
+        {/* LEFT SHOWCASE PANEL (5 COLUMNS ON DESKTOP) */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+          {/* Subtle background glow circles */}
+          <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Top Brand */}
+          <div className="relative z-10 space-y-4">
+            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-indigo-200">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>EduSetu Unified SaaS</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Welcome Back to EduSetu
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Choose your account type to continue
-            </p>
-            <div className="pt-2">
-              <span className="inline-block px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-bold text-indigo-700">
-                Who are you signing in as?
-              </span>
-            </div>
-          </div>
-
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {accountTypes.map((acc) => {
-              const Icon = acc.icon;
-              return (
-                <button
-                  key={acc.id}
-                  type="button"
-                  onClick={() => handleSelectAccountType(acc.id)}
-                  className={`group p-5 rounded-3xl border border-slate-200/90 bg-slate-50/50 hover:bg-white text-left transition-all duration-200 shadow-2xs hover:shadow-lg ${acc.borderHover} flex flex-col justify-between space-y-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                >
-                  <div className="flex items-start justify-between w-full">
-                    <div className={`w-12 h-12 rounded-2xl ${acc.iconBg} flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <span className="text-xl">
-                      {acc.emoji}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1 flex-1">
-                    <h3 className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center justify-between">
-                      <span>{acc.title} {acc.emoji}</span>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {acc.desc}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="pt-2 text-center text-xs text-slate-500 border-t border-slate-100">
-            <span>Don't have an account? </span>
-            <button
-              type="button"
-              onClick={onNavigateToRegister}
-              className="font-bold text-indigo-600 hover:text-indigo-700 underline"
-            >
-              Create Account
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* SCREEN 2: ADMIN VERIFICATION */}
-      {screen === 'admin-verify' && (
-        <div className="max-w-md mx-auto bg-white border border-purple-200 rounded-3xl p-6 sm:p-8 shadow-md space-y-6">
-          
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-700 to-indigo-700 text-white flex items-center justify-center mx-auto shadow-md shadow-purple-500/20">
-              <KeyRound className="w-6 h-6 text-amber-300" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Admin Verification
-            </h2>
-            <p className="text-xs sm:text-sm font-semibold text-purple-950 bg-purple-50 border border-purple-200 p-2.5 rounded-xl">
-              Admin access requires additional verification.
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight text-white">
+              Education Platform for Modern Institutions.
+            </h1>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Empowering students, educators, and guardians with real-time academic workflows and AI assistance.
             </p>
           </div>
 
-          {/* Error Banner */}
-          {adminVerifyError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2.5 text-xs text-rose-800 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          {/* Live Platform Highlights */}
+          <div className="relative z-10 space-y-3.5 my-8">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
               <div>
-                <p className="font-bold">Verification Failed</p>
-                <p className="text-rose-700">{adminVerifyError}</p>
+                <p className="text-xs font-bold text-white">Verified Academic Community</p>
+                <p className="text-2xs text-slate-400">Institutional rosters with strict role boundaries</p>
               </div>
             </div>
-          )}
 
-          <form onSubmit={handleAdminVerificationSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-700">
-                Admin Verification Password *
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3.5" />
-                <input
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs">
+              <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center text-teal-300 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">Secure OTP & Google Auth</p>
+                <p className="text-2xs text-slate-400">End-to-end token verification via Brevo & Firebase</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">Full Privacy & Compliance</p>
+                <p className="text-2xs text-slate-400">Encrypted communications & parental oversight</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Social Proof */}
+          <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-2xs text-slate-400 font-medium">
+            <span>© 2026 EduSetu Platform</span>
+            <span className="text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Systems Operational
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT FORM PANEL (7 COLUMNS ON DESKTOP) */}
+        <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-between bg-white">
+          <div className="space-y-6 max-w-md mx-auto w-full">
+            
+            {/* Role Switcher Tabs */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Sign in as</span>
+                {isAdminMode && (
+                  <Badge variant="purple" size="sm">Admin Protected</Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-4 p-1 bg-slate-100 rounded-2xl gap-1">
+                {accountTypes.map((acc) => {
+                  const isSelected = selectedRole === acc.id;
+                  return (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => handleRoleChange(acc.id)}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white text-slate-900 shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="text-sm">{acc.emoji}</span>
+                      <span className="truncate">{acc.title.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Header Titles */}
+            <div className="text-left">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                {activeRoleMeta.title} Portal
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {activeRoleMeta.desc}
+              </p>
+            </div>
+
+            {/* Server Error Notice */}
+            {authError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Authentication Notice:</span> {authError}
+                </div>
+              </div>
+            )}
+
+            {/* ADMIN GATE: Passkey Entry Screen */}
+            {isAdminMode && !adminVerificationToken ? (
+              <form onSubmit={handleAdminVerifySubmit} className="space-y-4 pt-2">
+                <div className="p-4 bg-purple-50 border border-purple-200/80 rounded-2xl text-xs text-purple-950 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-purple-900">
+                    <KeyRound className="w-4 h-4 text-purple-700" />
+                    <span>Administrator Master Gate</span>
+                  </div>
+                  <p className="text-purple-800/80">
+                    Institutional governance accounts require master authorization passkey before proceeding.
+                  </p>
+                </div>
+
+                <Input
+                  label="Master Verification Password"
                   type={showAdminSecret ? 'text' : 'password'}
-                  placeholder="Enter admin verification password"
+                  placeholder="Enter administrator master secret"
                   value={verificationPassword}
                   onChange={(e) => {
                     setVerificationPassword(e.target.value);
                     if (adminVerifyError) setAdminVerifyError(null);
                   }}
-                  autoFocus
-                  className="w-full pl-10 pr-10 py-2.5 bg-purple-50/40 border border-purple-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                  error={adminVerifyError}
+                  icon={Lock}
+                  iconRight={
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminSecret(!showAdminSecret)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showAdminSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
+                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminSecret(!showAdminSecret)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showAdminSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
 
-            <div className="space-y-2 pt-2">
-              <button
-                type="submit"
-                disabled={isVerifyingAdmin}
-                className="w-full py-2.5 px-4 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-              >
-                {isVerifyingAdmin ? (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full bg-purple-600 hover:bg-purple-700 focus-visible:ring-purple-500"
+                  isLoading={isVerifyingAdmin}
+                >
+                  Verify Master Gate
+                </Button>
+              </form>
+            ) : (
+              /* STANDARD CREDENTIALS FORM */
+              <form onSubmit={handleSubmit} className="space-y-4">
+                
+                {/* One-Click Google Auth for Non-Admin */}
+                {!isAdminMode && (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Continue</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={isSubmitting || isGoogleSubmitting}
+                      className="w-full py-2.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl shadow-2xs transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </button>
+
+                    <div className="relative my-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200"></div>
+                      </div>
+                      <div className="relative flex justify-center text-2xs uppercase">
+                        <span className="bg-white px-2 text-slate-400 font-bold tracking-wider">Or email credentials</span>
+                      </div>
+                    </div>
                   </>
                 )}
-              </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setScreen('select-type');
-                  setAdminVerifyError(null);
-                }}
-                className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center space-x-1"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>â† Back to Account Type Selection</span>
-              </button>
-            </div>
-          </form>
-
-        </div>
-      )}
-
-      {/* SCREEN 3: ROLE LOGIN (STUDENT / TEACHER / PARENT) */}
-      {screen === 'role-login' && (
-        <div className="max-w-md mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          
-          {/* Top Bar with Back Button & Role Badge */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <button
-              type="button"
-              onClick={() => {
-                setScreen('select-type');
-                if (authError) setAuthError(null);
-              }}
-              className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center space-x-1 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>â† Back to Account Type Selection</span>
-            </button>
-
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center space-x-1 ${currentRoleMeta.bgBadge}`}>
-              <span>{currentRoleMeta.emoji}</span>
-              <span>{currentRoleMeta.title}</span>
-            </span>
-          </div>
-
-          {/* Header */}
-          <div className="text-center space-y-1.5">
-            <div className={`w-12 h-12 rounded-2xl ${currentRoleMeta.iconBg} flex items-center justify-center mx-auto shadow-md`}>
-              <currentRoleMeta.icon className="w-6 h-6" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {currentRoleMeta.title} Sign In
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Enter your credentials to access your {currentRoleMeta.title.toLowerCase()} portal.
-            </p>
-          </div>
-
-          {/* Server Auth Error Banner */}
-          {authError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2.5 text-xs text-rose-800 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">Authentication Failed</p>
-                <p className="text-rose-700">{authError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Email / Username */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-700">Email or Username *</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
+                <Input
+                  label="Email Address"
                   type="email"
                   name="email"
                   placeholder="name@school.edu"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
-                    localErrors.email ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20' : 'border-slate-200'
-                  }`}
+                  error={localErrors.email}
+                  icon={Mail}
+                  required
                 />
-              </div>
-              {localErrors.email && (
-                <p className="text-xs text-rose-600 font-medium pl-1">{localErrors.email}</p>
-              )}
-            </div>
 
-            {/* Password */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-700">Account Password *</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
+                <Input
+                  label="Account Password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${
-                    localErrors.password ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20' : 'border-slate-200'
-                  }`}
+                  error={localErrors.password}
+                  icon={Lock}
+                  iconRight={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
+                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                  isLoading={isSubmitting}
+                  iconRight={ArrowRight}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {localErrors.password && (
-                <p className="text-xs text-rose-600 font-medium pl-1">{localErrors.password}</p>
-              )}
-            </div>
+                  Sign In to {activeRoleMeta.title}
+                </Button>
+              </form>
+            )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting || isGoogleSubmitting}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-50 mt-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing in as {currentRoleMeta.title}...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In as {currentRoleMeta.title}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+          </div>
 
-            {/* Google One-Click Login */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-slate-400 font-semibold">Or continue with</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={isSubmitting || isGoogleSubmitting}
-              className="w-full py-2.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center space-x-3 disabled:opacity-50"
-            >
-              {isGoogleSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
-              ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                  />
-                </svg>
-              )}
-              <span>Continue with Google</span>
-            </button>
-
-          </form>
-
-
-          {/* Footer switch to Register */}
-          <div className="pt-2 text-center text-xs text-slate-500 border-t border-slate-100">
-            <span>Don't have an account? </span>
+          {/* Bottom Switch to Register */}
+          <div className="pt-6 mt-6 border-t border-slate-100 text-center text-xs text-slate-500">
+            <span>Don't have an institutional account? </span>
             <button
               type="button"
               onClick={onNavigateToRegister}
-              className="font-bold text-indigo-600 hover:text-indigo-700 underline"
+              className="font-bold text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
             >
               Create Account
             </button>
           </div>
 
         </div>
-      )}
 
-      {/* SCREEN 4: ADMIN LOGIN */}
-      {screen === 'admin-login' && (
-        <div className="max-w-md mx-auto bg-white border border-purple-300 rounded-3xl p-6 sm:p-8 shadow-md space-y-6">
-          
-          {/* Top Bar with Back Button & Verified Badge */}
-          <div className="flex items-center justify-between pb-2 border-b border-purple-100">
-            <button
-              type="button"
-              onClick={() => {
-                setScreen('select-type');
-                if (authError) setAuthError(null);
-              }}
-              className="text-xs font-bold text-slate-600 hover:text-purple-700 flex items-center space-x-1 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>â† Back to Account Type Selection</span>
-            </button>
-
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center space-x-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-              <span>Verified Admin</span>
-            </span>
-          </div>
-
-          {/* Header */}
-          <div className="text-center space-y-1.5">
-            <div className="w-12 h-12 rounded-2xl bg-purple-700 text-white flex items-center justify-center mx-auto shadow-md">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Admin Login
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Enter your institutional administrator credentials
-            </p>
-          </div>
-
-          {/* Server Auth Error Banner */}
-          {authError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2.5 text-xs text-rose-800 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">Authentication Failed</p>
-                <p className="text-rose-700">{authError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Email / Username */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-700">Email or Username *</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="admin@school.edu"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                    localErrors.email ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20' : 'border-slate-200'
-                  }`}
-                />
-              </div>
-              {localErrors.email && (
-                <p className="text-xs text-rose-600 font-medium pl-1">{localErrors.email}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-700">Account Password *</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                    localErrors.password ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20' : 'border-slate-200'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {localErrors.password && (
-                <p className="text-xs text-rose-600 font-medium pl-1">{localErrors.password}</p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white font-bold text-sm rounded-xl shadow-md shadow-purple-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 mt-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Login as Admin</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-
-          </form>
-
-          {/* Footer switch to Register */}
-          <div className="pt-2 text-center text-xs text-slate-500 border-t border-slate-100">
-            <span>Don't have an account? </span>
-            <button
-              type="button"
-              onClick={onNavigateToRegister}
-              className="font-bold text-indigo-600 hover:text-indigo-700 underline"
-            >
-              Create Account
-            </button>
-          </div>
-
-        </div>
-      )}
-
+      </div>
     </div>
   );
 };

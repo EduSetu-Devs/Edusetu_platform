@@ -11,6 +11,8 @@ html {
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased min-h-screen font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden;
+    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }
 

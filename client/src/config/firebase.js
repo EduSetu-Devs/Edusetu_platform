@@ -10,7 +10,7 @@ import {
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBor7DCwDASa4ZhMjqRcSPPGfvtTlLqsWI",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBor7DCwDASa4ZhMjqRcSPPGFvtTlLqsWI",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "loyal-synthesis-477817-e7.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "loyal-synthesis-477817-e7",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "loyal-synthesis-477817-e7.firebasestorage.app",

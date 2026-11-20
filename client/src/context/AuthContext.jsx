@@ -9,7 +9,12 @@ import {
   getCurrentUserProfile,
   logoutUser
 } from '../services/authService';
-import { signInWithGoogle } from '../config/firebase';
+import {
+  signInWithGoogle,
+  loginWithEmailFirebase,
+  registerWithEmailFirebase
+} from '../config/firebase';
+import { syncUserProfileFirestore } from '../services/firestoreService';
 import { connectSocket, disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
@@ -120,6 +125,8 @@ export const AuthProvider = ({ children }) => {
       const idToken = await res.user.getIdToken();
       const result = await firebaseLoginUser(idToken, role);
       if (result.success) {
+        // Sync profile to Firestore
+        await syncUserProfileFirestore(result.data.user, { role }).catch(() => {});
         setUser(result.data.user);
         return { success: true, user: result.data.user };
       }

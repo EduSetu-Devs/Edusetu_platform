@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import GoogleAuthButton from '../components/ui/GoogleAuthButton';
 import {
   GraduationCap,
   BookOpen,
@@ -55,7 +56,7 @@ const roleOptions = [
 ];
 
 const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
-  const { sendOtp, verifyOtp, authError, setAuthError } = useAuth();
+  const { sendOtp, verifyOtp, loginWithGoogle, authError, setAuthError } = useAuth();
 
   // Step state: 'role-select' | 'form' | 'otp'
   const [step, setStep] = useState('role-select');
@@ -75,8 +76,21 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
   const [devOtp, setDevOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [localErrors, setLocalErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+
+  const handleGoogleRegister = async () => {
+    setIsGoogleSubmitting(true);
+    const result = await loginWithGoogle(selectedRole || 'student');
+    if (result.redirected) {
+      return;
+    }
+    setIsGoogleSubmitting(false);
+    if (result.success && onRegisterSuccess) {
+      onRegisterSuccess(result.user);
+    }
+  };
 
   // Handle Role Selection
   const handleSelectRole = (roleId) => {
@@ -313,6 +327,24 @@ const RegisterPage = ({ onNavigateToLogin, onRegisterSuccess }) => {
               </div>
             </div>
           )}
+
+          <div className="space-y-4">
+            <GoogleAuthButton
+              onClick={handleGoogleRegister}
+              disabled={isSubmitting}
+              isLoading={isGoogleSubmitting}
+              label={`Continue with Google as ${currentRoleMeta.title}`}
+            />
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-slate-400 font-bold tracking-wider">Or register with email</span>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             

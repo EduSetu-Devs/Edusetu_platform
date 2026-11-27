@@ -61,12 +61,13 @@ app.use(
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://apis.google.com', 'https://www.gstatic.com'],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
         fontSrc: ["'self'", 'data:'],
         mediaSrc: ["'self'", 'blob:'],
+        frameSrc: ["'self'", 'https://*.firebaseapp.com', 'https://accounts.google.com'],
         connectSrc: [
           "'self'",
           ...(isProduction ? ['https:', 'wss:'] : ['http://localhost:*', 'ws://localhost:*', 'http://127.0.0.1:*', 'ws://127.0.0.1:*'])
@@ -75,6 +76,7 @@ app.use(
         upgradeInsecureRequests: isProduction ? [] : null
       }
     },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     crossOriginEmbedderPolicy: false,
     strictTransportSecurity: isProduction
       ? { maxAge: 15552000, includeSubDomains: true, preload: false }

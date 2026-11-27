@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
@@ -26,8 +28,26 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+const PENDING_GOOGLE_ROLE_KEY = 'edusetu_google_pending_role';
+
+export const getPendingGoogleRole = () => {
+  try {
+    return sessionStorage.getItem(PENDING_GOOGLE_ROLE_KEY) || 'student';
+  } catch {
+    return 'student';
+  }
+};
+
+export const clearPendingGoogleRole = () => {
+  try {
+    sessionStorage.removeItem(PENDING_GOOGLE_ROLE_KEY);
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+};
+
 // Firebase Authentication Helpers: popup with fallback to redirect
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (role = 'student') => {
   try {
     return await signInWithPopup(auth, googleProvider);
   } catch (popupErr) {
@@ -35,15 +55,23 @@ export const signInWithGoogle = async () => {
     // If popup is blocked, restricted, or throws internal-error due to cross-origin iframe blocking
     if (popupErr.code === 'auth/internal-error' || popupErr.code === 'auth/popup-blocked') {
       try {
-        const { signInWithRedirect } = await import('firebase/auth');
-        return await signInWithRedirect(auth, googleProvider);
+        try {
+          sessionStorage.setItem(PENDING_GOOGLE_ROLE_KEY, role);
+        } catch {
+          // Ignore storage errors
+        }
+        await signInWithRedirect(auth, googleProvider);
+        return { redirected: true };
       } catch (redirectErr) {
+        clearPendingGoogleRole();
         throw popupErr;
       }
     }
     throw popupErr;
   }
 };
+
+export const getGoogleRedirectResult = () => getRedirectResult(auth);
 export const loginWithEmailFirebase = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const registerWithEmailFirebase = (email, password) => createUserWithEmailAndPassword(auth, email, password);
 export const resetPasswordFirebase = (email) => sendPasswordResetEmail(auth, email);

@@ -11,6 +11,9 @@ import {
 } from '../services/authService';
 import {
   signInWithGoogle,
+  getGoogleRedirectResult,
+  getPendingGoogleRole,
+  clearPendingGoogleRole,
   loginWithEmailFirebase,
   registerWithEmailFirebase
 } from '../config/firebase';
@@ -30,11 +33,54 @@ export const AuthProvider = ({ children }) => {
     disconnectSocket();
   }, []);
 
-  // Validate the HttpOnly cookie session on mount. There is no token in JS storage.
+  const formatFirebaseAuthError = useCallback((err) => {
+    console.error('[Firebase Google Sign-In Error Code]:', err?.code, err?.message);
+    if (err?.code === 'auth/popup-closed-by-user') {
+      return 'Google sign-in popup was closed before completing.';
+    }
+    if (err?.code === 'auth/unauthorized-domain') {
+      return `This domain (${typeof window !== 'undefined' ? window.location.hostname : 'current domain'}) is not authorized in Firebase Console -> Authentication -> Settings -> Authorized domains.`;
+    }
+    if (err?.code === 'auth/configuration-not-found' || err?.code === 'auth/operation-not-allowed') {
+      return 'Google sign-in is not allowed. Please verify Google is Enabled under Sign-in method in Firebase Console.';
+    }
+    if (err?.message) {
+      return `Google sign-in notice: ${err.message}`;
+    }
+    return 'Google sign-in was cancelled or encountered an error.';
+  }, []);
+
+  const completeFirebaseGoogleSession = useCallback(async (firebaseUser, role = 'student') => {
+    const idToken = await firebaseUser.getIdToken();
+    const result = await firebaseLoginUser(idToken, role);
+    if (result.success) {
+      await syncUserProfileFirestore(result.data.user, { role }).catch(() => {});
+      setUser(result.data.user);
+      return { success: true, user: result.data.user };
+    }
+    setAuthError(result.error);
+    return { success: false, error: result.error };
+  }, []);
+
+  // Validate the HttpOnly cookie session (or complete a pending Google redirect) on mount.
   useEffect(() => {
     let cancelled = false;
 
     const initializeAuth = async () => {
+      try {
+        const redirectResult = await getGoogleRedirectResult();
+        if (!cancelled && redirectResult?.user) {
+          const pendingRole = getPendingGoogleRole();
+          clearPendingGoogleRole();
+          await completeFirebaseGoogleSession(redirectResult.user, pendingRole);
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        clearPendingGoogleRole();
+        if (!cancelled) setAuthError(formatFirebaseAuthError(err));
+      }
+
       const result = await getCurrentUserProfile();
       if (cancelled) return;
 
@@ -50,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [completeFirebaseGoogleSession, formatFirebaseAuthError]);
 
   // Connect the WebSocket once an authenticated session exists.
   useEffect(() => {
@@ -121,29 +167,16 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = async (role = 'student') => {
     setAuthError(null);
     try {
-      const res = await signInWithGoogle();
-      const idToken = await res.user.getIdToken();
-      const result = await firebaseLoginUser(idToken, role);
-      if (result.success) {
-        // Sync profile to Firestore
-        await syncUserProfileFirestore(result.data.user, { role }).catch(() => {});
-        setUser(result.data.user);
-        return { success: true, user: result.data.user };
+      const res = await signInWithGoogle(role);
+      if (res?.redirected) {
+        return { success: false, redirected: true };
       }
-      setAuthError(result.error);
-      return { success: false, error: result.error };
+      if (!res?.user) {
+        throw new Error('Google sign-in did not return a user.');
+      }
+      return await completeFirebaseGoogleSession(res.user, role);
     } catch (err) {
-      console.error('[Firebase Google Sign-In Error Code]:', err.code, err.message);
-      let userFriendlyMsg = 'Google sign-in was cancelled or encountered an error.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        userFriendlyMsg = 'Google sign-in popup was closed before completing.';
-      } else if (err.code === 'auth/unauthorized-domain') {
-        userFriendlyMsg = 'This domain (edusetu-platform.onrender.com) is not authorized in Firebase Console -> Authentication -> Settings -> Authorized domains.';
-      } else if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
-        userFriendlyMsg = 'Google sign-in is not allowed. Please verify Google is Enabled under Sign-in method in Firebase Console.';
-      } else if (err.message) {
-        userFriendlyMsg = `Google sign-in notice: ${err.message}`;
-      }
+      const userFriendlyMsg = formatFirebaseAuthError(err);
       setAuthError(userFriendlyMsg);
       return { success: false, error: userFriendlyMsg };
     }
